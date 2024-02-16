@@ -226,9 +226,7 @@ void VIC::drawSpriteDataSC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
                            uint8_t *data, uint8_t color) {
   uint16_t tftcolor = tftColorFromC64ColorArr[color];
   uint16_t idx = xpos + ypos * 320;
-  uint16_t bgcol =
-      tftColorFromC64ColorArr[vicreg[0x21].load(std::memory_order_acquire) &
-                              15];
+  uint16_t bgcol = tftColorFromC64ColorArr[vicreg[0x21] & 15];
   for (uint8_t x = 0; x < 3; x++) {
     uint8_t d = *data++;
     uint8_t bitval = 128;
@@ -236,17 +234,48 @@ void VIC::drawSpriteDataSC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
       if (d & bitval) {
         if (spritedatacoll[xpos]) {
           // sprite - data collision
-          vicreg[0x1f].fetch_or(bitnr, std::memory_order_release);
+          vicreg[0x1f] |= bitnr;
         }
         bitmap[idx++] = tftcolor;
         uint8_t sprcoll = spritespritecoll[xpos];
         if (sprcoll != 0) {
           // sprite - sprite collision
-          vicreg[0x1e].fetch_or(sprcoll | bitnr, std::memory_order_release);
+          vicreg[0x1e] |= sprcoll | bitnr;
         }
         spritespritecoll[xpos++] = sprcoll | bitnr;
       } else {
         idx++;
+        xpos++;
+      }
+      bitval >>= 1;
+    }
+  }
+}
+
+void VIC::drawSpriteDataSCDS(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
+                             uint8_t *data, uint8_t color) {
+  uint16_t tftcolor = tftColorFromC64ColorArr[color];
+  uint16_t idx = xpos + ypos * 320;
+  uint16_t bgcol = tftColorFromC64ColorArr[vicreg[0x21] & 15];
+  for (uint8_t x = 0; x < 3; x++) {
+    uint8_t d = *data++;
+    uint8_t bitval = 128;
+    for (uint8_t i = 0; i < 8; i++) {
+      if (d & bitval) {
+        if (spritedatacoll[xpos]) {
+          // sprite - data collision
+          vicreg[0x1f] |= bitnr;
+        }
+        bitmap[idx++] = tftcolor;
+        bitmap[idx++] = tftcolor;
+        uint8_t sprcoll = spritespritecoll[xpos];
+        if (sprcoll != 0) {
+          // sprite - sprite collision
+          vicreg[0x1e] |= sprcoll | bitnr;
+        }
+        spritespritecoll[xpos++] = sprcoll | bitnr;
+      } else {
+        idx += 2;
         xpos++;
       }
       bitval >>= 1;
@@ -261,7 +290,7 @@ void VIC::drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, uint16_t &xpos,
     if ((spritedatacoll[xpos] != bgcol) ||
         (spritedatacoll[xpos + 1] != bgcol)) {
       // sprite - data collision
-      vicreg[0x1f].fetch_or(bitnr, std::memory_order_release);
+      vicreg[0x1f] |= bitnr;
     }
     bitmap[idx++] = tftcolor[idxc];
     bitmap[idx++] = tftcolor[idxc];
@@ -269,11 +298,11 @@ void VIC::drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, uint16_t &xpos,
     uint8_t bitnrcollxpos1 = spritespritecoll[xpos + 1];
     if (bitnrcollxpos0 != 0) {
       // sprite - sprite collision
-      vicreg[0x1e].fetch_or(bitnrcollxpos0 | bitnr, std::memory_order_release);
+      vicreg[0x1e] |= bitnrcollxpos0 | bitnr;
     }
     if (bitnrcollxpos1 != 0) {
       // sprite - sprite collision
-      vicreg[0x1e].fetch_or(bitnrcollxpos1 | bitnr, std::memory_order_release);
+      vicreg[0x1e] |= bitnrcollxpos1 | bitnr;
     }
     spritespritecoll[xpos++] = bitnrcollxpos0 | bitnr;
     spritespritecoll[xpos++] = bitnrcollxpos1 | bitnr;
@@ -290,9 +319,7 @@ void VIC::drawSpriteDataMC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
                           tftColorFromC64ColorArr[color10],
                           tftColorFromC64ColorArr[color11]};
   uint16_t idx = xpos + ypos * 320;
-  uint16_t bgcol =
-      tftColorFromC64ColorArr[vicreg[0x21].load(std::memory_order_acquire) &
-                              15];
+  uint16_t bgcol = tftColorFromC64ColorArr[vicreg[0x21] & 15];
   for (uint8_t x = 0; x < 3; x++) {
     uint8_t d = *data++;
     uint8_t idxc = (d & 192) >> 6;
@@ -306,21 +333,51 @@ void VIC::drawSpriteDataMC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
   }
 }
 
-void VIC::drawSpritesOnRasterline(uint8_t line) {
-  uint8_t spritesenabled = vicreg[0x15].load(std::memory_order_acquire);
-  uint8_t spritesdoubley = vicreg[0x17].load(std::memory_order_acquire);
-  uint8_t multicolorreg = vicreg[0x1c].load(std::memory_order_acquire);
-  uint8_t color01 = vicreg[0x25].load(std::memory_order_acquire) & 0x0f;
-  uint8_t color11 = vicreg[0x26].load(std::memory_order_acquire) & 0x0f;
+void VIC::drawSpriteDataMCDS(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
+                             uint8_t *data, uint8_t color10, uint8_t color01,
+                             uint8_t color11) {
+  uint16_t tftcolor[4] = {0, tftColorFromC64ColorArr[color01],
+                          tftColorFromC64ColorArr[color10],
+                          tftColorFromC64ColorArr[color11]};
+  uint16_t idx = xpos + ypos * 320;
+  uint16_t bgcol = tftColorFromC64ColorArr[vicreg[0x21] & 15];
+  for (uint8_t x = 0; x < 3; x++) {
+    uint8_t d = *data++;
+    uint8_t idxc = (d & 192) >> 6;
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    xpos -= 2;
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    idxc = (d & 48) >> 4;
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    xpos -= 2;
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    idxc = (d & 12) >> 2;
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    xpos -= 2;
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    idxc = (d & 3);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    xpos -= 2;
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+  }
+}
+
+void VIC::drawSprites(uint8_t line) {
+  uint8_t spritesenabled = vicreg[0x15];
+  uint8_t spritesdoubley = vicreg[0x17];
+  uint8_t spritesdoublex = vicreg[0x1d];
+  uint8_t multicolorreg = vicreg[0x1c];
+  uint8_t color01 = vicreg[0x25] & 0x0f;
+  uint8_t color11 = vicreg[0x26] & 0x0f;
   memset(spritespritecoll, 0, sizeof(spritespritecoll));
   uint8_t bitval = 128;
   for (int8_t nr = 7; nr >= 0; nr--) {
     if (spritesenabled & bitval) {
       uint8_t facysize = (spritesdoubley & bitval) ? 2 : 1;
-      uint16_t y = vicreg[0x01 + nr * 2].load(std::memory_order_acquire);
+      uint16_t y = vicreg[0x01 + nr * 2];
       if ((line >= y) && (line < (y + 21 * facysize))) {
-        int16_t x = vicreg[0x00 + nr * 2].load(std::memory_order_acquire) - 24;
-        if (vicreg[0x10].load(std::memory_order_acquire) & bitval) {
+        int16_t x = vicreg[0x00 + nr * 2] - 24;
+        if (vicreg[0x10] & bitval) {
           x += 256;
         }
         if ((x + 24 >= 320) || (x < 0)) {
@@ -328,52 +385,61 @@ void VIC::drawSpritesOnRasterline(uint8_t line) {
           continue;
         }
         uint8_t ypos = line - 50;
-        uint16_t dataaddr =
-            mem[screenmemstart.load(std::memory_order_acquire) + 1016 + nr] *
-            64;
-        uint8_t *data = mem + vicmem.load(std::memory_order_acquire) +
-                        dataaddr + ((line - y) / facysize) * 3;
-        uint8_t col = vicreg[0x27 + nr].load(std::memory_order_acquire) & 0x0f;
+        uint16_t dataaddr = ram[screenmemstart + 1016 + nr] * 64;
+        uint8_t *data = ram + vicmem + dataaddr + ((line - y) / facysize) * 3;
+        uint8_t col = vicreg[0x27 + nr] & 0x0f;
         if (multicolorreg & bitval) {
-          drawSpriteDataMC(bitval, x, ypos, data, col, color01, color11);
+          if (spritesdoublex & bitval) {
+            drawSpriteDataMCDS(bitval, x, ypos, data, col, color01, color11);
+          } else {
+            drawSpriteDataMC(bitval, x, ypos, data, col, color01, color11);
+          }
         } else {
-          drawSpriteDataSC(bitval, x, ypos, data, col);
+          if (spritesdoublex & bitval) {
+            drawSpriteDataSCDS(bitval, x, ypos, data, col);
+          } else {
+            drawSpriteDataSC(bitval, x, ypos, data, col);
+          }
         }
       }
     }
     bitval >>= 1;
   }
-  if ((vicreg[0x1a].load(std::memory_order_acquire) & 2) &&
-      (vicreg[0x1f].load(std::memory_order_acquire) != 0)) {
-    vicreg[0x19].fetch_or(2, std::memory_order_release);
+  if ((vicreg[0x1a] & 2) && (vicreg[0x1f] != 0)) {
+    vicreg[0x19] |= 2;
   }
-  if ((vicreg[0x1a].load(std::memory_order_acquire) & 4) &&
-      (vicreg[0x1e].load(std::memory_order_acquire) != 0)) {
-    vicreg[0x19].fetch_or(4, std::memory_order_release);
+  if ((vicreg[0x1a] & 4) && (vicreg[0x1e] != 0)) {
+    vicreg[0x19] |= 4;
   }
 }
 
-bool VIC::init(uint8_t *memory, uint8_t *charrom, uint16_t *tftbitmap,
-               uint8_t *colormapmem) {
-  this->mem = memory;
+bool VIC::init(uint8_t *ram, uint8_t *charrom, uint16_t *bitmap) {
+  this->ram = ram;
   this->chrom = charrom;
-  this->bitmap = tftbitmap;
-  this->colormap = colormapmem;
-  vicreg[0x11].store(0x1b, std::memory_order_release);
-  vicreg[0x1a].store(0, std::memory_order_release);
-  vicreg[0x18].store(0x15, std::memory_order_release);
+  this->bitmap = bitmap;
+  this->colormap = (uint8_t *)calloc(40 * 25, sizeof(uint8_t));
+  if (colormap == nullptr) {
+    return false;
+  }
+  for (uint8_t i = 0; i < 0x40; i++) {
+    vicreg[i] = 0;
+  }
+  vicreg[0x11] = 0x1b;
+  vicreg[0x16] = 0xc8;
+  vicreg[0x18] = 0x15;
+  vicreg[0x19] = 0x71;
+  vicreg[0x1a] = 0xf0;
 
   cntRefreshs = 0;
   drawEvenLines = true;
   syncd020 = 0;
 
-  vicmem.store(0, std::memory_order_release);
-  bitmapstart.store(0x2000, std::memory_order_release);
-  screenmemstart.store(1024, std::memory_order_release);
+  vicmem = 0;
+  bitmapstart = 0x2000;
+  screenmemstart = 1024;
   cntRefreshs = 0;
-  rasterline.store(0, std::memory_order_release);
-  drawnotevenodd.store(false, std::memory_order_release);
-  rsync.store(true, std::memory_order_release);
+  rasterline = 0;
+  drawnotevenodd = false;
   charset = chrom;
 
   // init LCD driver
@@ -384,7 +450,7 @@ bool VIC::init(uint8_t *memory, uint8_t *charrom, uint16_t *tftbitmap,
 }
 
 void VIC::checkFrameColor() {
-  uint8_t framecol = vicreg[0x20].load(std::memory_order_acquire) & 15;
+  uint8_t framecol = vicreg[0x20] & 15;
   if (framecol != syncd020) {
     syncd020 = framecol;
     ST7789V::drawFrame(tftColorFromC64ColorArr[framecol]);
@@ -397,38 +463,33 @@ void VIC::refresh() {
   cntRefreshs++;
 }
 
-bool VIC::checkVICInt() {
-  rasterline.fetch_add(1, std::memory_order_release);
-  if (rasterline.load(std::memory_order_acquire) > 311) {
-    rasterline.store(0, std::memory_order_release);
-    vicreg[0x11].fetch_and(127, std::memory_order_release);
+bool VIC::nextRasterline() {
+  rasterline += 1;
+  if (rasterline > 311) {
+    rasterline = 0;
+    vicreg[0x11] &= 127;
     drawEvenLines = !drawEvenLines;
-    rsync.store(true, std::memory_order_release);
   }
-  uint8_t ld011 =
-      (rasterline.load(std::memory_order_acquire) >= 256) ? 0x80 : 0;
-  vicreg[0x11].fetch_or(ld011, std::memory_order_release);
-  vicreg[0x12].store((rasterline.load(std::memory_order_acquire) & 0xff),
-                     std::memory_order_release);
-  if ((vicreg[0x1a].load(std::memory_order_acquire) & 1) &&
-      (latchd012.load(std::memory_order_acquire) ==
-       vicreg[0x12].load(std::memory_order_acquire)) &&
-      ((latchd011.load(std::memory_order_acquire) & 0x80) == ld011)) {
-    vicreg[0x19].fetch_or(0x81, std::memory_order_release);
+  uint8_t ld011 = (rasterline >= 256) ? 0x80 : 0;
+  vicreg[0x11] |= ld011;
+  vicreg[0x12] = (rasterline & 0xff);
+  if ((vicreg[0x1a] & 1) && (latchd012 == vicreg[0x12]) &&
+      ((latchd011 & 0x80) == ld011)) {
+    vicreg[0x19] |= 0x81;
     return true;
   }
   return false;
 }
 
-bool VIC::drawRasterline() {
-  uint16_t line = rasterline.load(std::memory_order_acquire);
-  bool dneo = drawnotevenodd.load(std::memory_order_acquire);
+void VIC::drawRasterline() {
+  uint16_t line = rasterline;
+  bool dneo = drawnotevenodd;
   if ((line >= 50) && (line < 250)) {
     if (dneo || (drawEvenLines && ((line % 2) == 0)) ||
         ((!drawEvenLines) && ((line % 2) == 1))) {
       // determine video mode
-      uint8_t d011 = vicreg[0x11].load(std::memory_order_acquire);
-      uint8_t d016 = vicreg[0x16].load(std::memory_order_acquire);
+      uint8_t d011 = vicreg[0x11];
+      uint8_t d016 = vicreg[0x16];
       uint8_t deltay = d011 & 7;
       uint8_t deltax = d016 & 7;
       uint8_t dline = line - 50;
@@ -441,44 +502,29 @@ bool VIC::drawRasterline() {
         bool mcm = d016 & 16;
         if (bmm) {
           if (mcm) {
-            drawMCBitmapMode(
-                mem + bitmapstart.load(std::memory_order_acquire),
-                mem + screenmemstart.load(std::memory_order_acquire), colormap,
-                vicreg[0x21].load(std::memory_order_acquire), dline, idx);
+            drawMCBitmapMode(ram + bitmapstart, ram + screenmemstart, colormap,
+                             vicreg[0x21], dline, idx);
           } else {
-            drawStdBitmapMode(
-                mem + bitmapstart.load(std::memory_order_acquire),
-                mem + screenmemstart.load(std::memory_order_acquire), dline,
-                idx);
+            drawStdBitmapMode(ram + bitmapstart, ram + screenmemstart, dline,
+                              idx);
           }
         } else {
           if ((!ecm) && (!mcm)) {
-            drawStdCharMode(
-                mem + screenmemstart.load(std::memory_order_acquire), charset,
-                colormap, vicreg[0x21].load(std::memory_order_acquire), dline,
-                idx);
+            drawStdCharMode(ram + screenmemstart, charset, colormap,
+                            vicreg[0x21], dline, idx);
           } else if ((!ecm) && mcm) {
-            drawMCCharMode(
-                mem + screenmemstart.load(std::memory_order_acquire), charset,
-                colormap, vicreg[0x21].load(std::memory_order_acquire),
-                vicreg[0x22].load(std::memory_order_acquire),
-                vicreg[0x23].load(std::memory_order_acquire), dline, idx);
+            drawMCCharMode(ram + screenmemstart, charset, colormap,
+                           vicreg[0x21], vicreg[0x22], vicreg[0x23], dline,
+                           idx);
           } else if (ecm && (!mcm)) {
-            uint8_t bgColArr[] = {vicreg[0x21].load(std::memory_order_acquire),
-                                  vicreg[0x22].load(std::memory_order_acquire),
-                                  vicreg[0x23].load(std::memory_order_acquire),
-                                  vicreg[0x24].load(std::memory_order_acquire)};
-            drawExtBGColCharMode(
-                mem + screenmemstart.load(std::memory_order_acquire), charset,
-                colormap, bgColArr, dline, idx);
+            uint8_t bgColArr[] = {vicreg[0x21], vicreg[0x22], vicreg[0x23],
+                                  vicreg[0x24]};
+            drawExtBGColCharMode(ram + screenmemstart, charset, colormap,
+                                 bgColArr, dline, idx);
           }
         }
       }
-      drawSpritesOnRasterline(line);
-      if (line == 249) {
-        return true;
-      }
+      drawSprites(line);
     }
   }
-  return false;
 }

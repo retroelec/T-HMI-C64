@@ -18,14 +18,12 @@
 #define VIC_H
 
 #include "ST7789V.h"
-#include <atomic>
 #include <stdint.h>
 
 class VIC {
 private:
-  uint8_t *mem;
+  uint8_t *ram;
   uint16_t *bitmap;
-  uint8_t *colormap;
   uint8_t spritespritecoll[320];
   bool spritedatacoll[320];
   bool drawEvenLines;
@@ -51,6 +49,8 @@ private:
                          uint16_t idx);
   void drawSpriteDataSC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
                         uint8_t *data, uint8_t color);
+  void drawSpriteDataSCDS(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
+                          uint8_t *data, uint8_t color);
   inline void drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, uint16_t &xpos,
                                     uint16_t bgcol, uint8_t bitnr,
                                     uint16_t *tftcolor)
@@ -58,30 +58,33 @@ private:
   void drawSpriteDataMC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
                         uint8_t *data, uint8_t color10, uint8_t color01,
                         uint8_t color11);
-  void drawSpritesOnRasterline(uint8_t line);
+  void drawSpriteDataMCDS(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
+                          uint8_t *data, uint8_t color10, uint8_t color01,
+                          uint8_t color11);
+  void drawSprites(uint8_t line);
   inline void checkFrameColor() __attribute__((always_inline));
 
 public:
+  // profiling info
   uint8_t cntRefreshs;
 
+  uint8_t *colormap;
   uint8_t *charset;
   uint8_t *chrom;
 
-  std::atomic<uint8_t> vicreg[0x40];
-  std::atomic<uint8_t> latchd011;
-  std::atomic<uint8_t> latchd012;
-  std::atomic<uint16_t> vicmem;
-  std::atomic<uint16_t> bitmapstart;
-  std::atomic<uint16_t> screenmemstart;
-  std::atomic<uint16_t> rasterline;
-  std::atomic<bool> drawnotevenodd;
-  std::atomic<bool> rsync;
+  uint8_t vicreg[0x40];
+  uint8_t latchd011;
+  uint8_t latchd012;
+  uint16_t vicmem;
+  uint16_t bitmapstart;
+  uint16_t screenmemstart;
+  uint16_t rasterline;
+  bool drawnotevenodd;
   uint8_t syncd020;
 
-  bool init(uint8_t *memory, uint8_t *charrom, uint16_t *tftbitmap,
-            uint8_t *colormapmem);
+  bool init(uint8_t *ram, uint8_t *charrom, uint16_t *bitmap);
   void refresh();
-  bool checkVICInt();
-  bool drawRasterline();
+  bool nextRasterline();
+  void drawRasterline();
 };
 #endif // VIC_H

@@ -22,25 +22,23 @@
 
 static const uint8_t INTERRUPTKERNALRESOLUTION = 100;
 
-bool isReady4Refresh = false;
-
-uint16_t *bitmapmem;
-uint8_t *colormapmem;
+// memory used in both cores is allocated in Main::setup()
 uint8_t *ram;
-bool checkExternalCommand = false;
-uint16_t checkExternalCommandCnt = 0;
+uint16_t *bitmapmem;
+uint8_t *kbbuffer;
 
 CPUC64 cpu;
 VIC vic;
 CIA cia1;
 CIA cia2;
 BLEKB blekb;
+
+bool checkExternalCommand = false;
+uint16_t checkExternalCommandCnt = 0;
 ExternalCmds externalCmds;
 
 hw_timer_t *interruptProfiling = NULL;
-hw_timer_t *interruptRasterLine = NULL;
 hw_timer_t *interruptKernal = NULL;
-
 TaskHandle_t cpuTask;
 
 void IRAM_ATTR interruptProfilingFunc() {
@@ -50,27 +48,6 @@ void IRAM_ATTR interruptProfilingFunc() {
   vic.cntRefreshs = 0;
   Log.noticeln("noc = %d", cpu.numofcyclespersecond);
   cpu.numofcyclespersecond = 0;
-}
-
-void IRAM_ATTR interruptRasterLineFunc() {
-  bool vicint = vic.checkVICInt();
-  if (vicint && (!cpu.iflag.load(std::memory_order_acquire)) &&
-      (externalCmds.hostcmdcode == ExternalCmds::NOHOSTCMD)) {
-    cpu.irq.store(true, std::memory_order_release);
-  }
-  if (!isReady4Refresh) {
-    isReady4Refresh = vic.drawRasterline();
-  }
-  if (vic.rsync.load(std::memory_order_acquire)) {
-    vic.rsync.store(false, std::memory_order_release);
-    // CPU too fast? -> throtteling CPU
-    if (cpu.numofcycles > 20000) {
-      cpu.cputhrottelingcnt.store((cpu.numofcycles - 20000) / 3,
-                                  std::memory_order_release);
-      cpu.numofcyclespersecond += cpu.numofcycles;
-      cpu.numofcycles = 0;
-    }
-  }
 }
 
 void IRAM_ATTR interruptKernalFunc() {
@@ -87,28 +64,17 @@ void IRAM_ATTR interruptKernalFunc() {
     }
   }
   // CIA 1 Timer A
-  bool cia1Aint = cia1.checkTimerA(INTERRUPTKERNALRESOLUTION);
-  // trigger interrupt?
-  if (cia1Aint && (!cpu.iflag.load(std::memory_order_acquire))) {
+  if (cia1.checkTimerA(INTERRUPTKERNALRESOLUTION)) {
     cpu.irq.store(true, std::memory_order_release);
   }
   // CIA 1 Timer B
-  bool cia1Bint = cia1.checkTimerB(INTERRUPTKERNALRESOLUTION);
-  // trigger interrupt?
-  if (cia1Bint && (!cpu.iflag.load(std::memory_order_acquire))) {
+  if (cia1.checkTimerB(INTERRUPTKERNALRESOLUTION)) {
     cpu.irq.store(true, std::memory_order_release);
   }
 }
 
 void cpuCode(void *parameter) {
   Log.noticeln("cpuTask running on core %d", xPortGetCoreID());
-
-  // interrupt each 64 us -> start of next raster line
-  interruptRasterLine = timerBegin(0, 80, true);
-  timerAttachInterrupt(interruptRasterLine, &interruptRasterLineFunc, true);
-  timerAlarmWrite(interruptRasterLine, 64, true);
-  timerAlarmEnable(interruptRasterLine);
-
   cpu.run();
   // cpu runs forever -> no vTaskDelete(NULL);
 }
@@ -122,26 +88,18 @@ void Main::setup() {
     }
   }
 
-  // init VIC
   // allocate bitmap memory to be transfered to LCD
   // (consider xscroll and yscroll offset)
-  bitmapmem =
-      (uint16_t *)calloc(320 * (200 + 7) + 7,
-                         sizeof(uint16_t)); // in Konstruktor der Klasse VIC?
+  bitmapmem = (uint16_t *)calloc(320 * (200 + 7) + 7, sizeof(uint16_t));
   if (bitmapmem == nullptr) {
     Log.noticeln("could not allocate bitmap memory");
     while (true) {
     }
   }
-  colormapmem = (uint8_t *)calloc(
-      40 * 25, sizeof(uint8_t)); // in Konstruktor der Klasse VIC?
-  if (colormapmem == nullptr) {
-    Log.noticeln("could not allocate colormap memory");
-    while (true) {
-    }
-  }
-  if (!vic.init(ram, charset_rom, bitmapmem, colormapmem)) {
-    Log.noticeln("error in init. of ST7789V");
+
+  // init VIC
+  if (!vic.init(ram, charset_rom, bitmapmem)) {
+    Log.noticeln("error in init. of VIC");
     while (true) {
     }
   }
@@ -155,7 +113,7 @@ void Main::setup() {
   }
 
   // init ble keyboard
-  uint8_t *kbbuffer = (uint8_t *)malloc(256);
+  kbbuffer = (uint8_t *)malloc(256);
   if (kbbuffer == nullptr) {
     Log.noticeln("could not allocate KB buffer");
     while (true) {
@@ -168,8 +126,7 @@ void Main::setup() {
   cia2.init();
 
   // init CPU
-  cpu.init(ram, basic_rom, kernal_rom, charset_rom, &vic, colormapmem, &cia1,
-           &cia2, &blekb);
+  cpu.init(ram, basic_rom, kernal_rom, charset_rom, &vic, &cia1, &cia2, &blekb);
   xTaskCreatePinnedToCore(cpuCode,  // Function to implement the task
                           "CPU",    // Name of the task
                           10000,    // Stack size in words
@@ -178,14 +135,6 @@ void Main::setup() {
                           &cpuTask, // Task handle
                           0);       // Core where the task should run
 
-  // interrupt each 64 us -> start of next raster line
-  /*
-  interruptRasterLine = timerBegin(0, 80, true);
-  timerAttachInterrupt(interruptRasterLine, &interruptRasterLineFunc, true);
-  timerAlarmWrite(interruptRasterLine, 64, true);
-  timerAlarmEnable(interruptRasterLine);
-  */
-
   // interrupt each INTERRUPTKERNALRESOLUTION us -> standard kernal routine
   // each 16.666 ms
   interruptKernal = timerBegin(1, 80, true);
@@ -193,7 +142,7 @@ void Main::setup() {
   timerAlarmWrite(interruptKernal, INTERRUPTKERNALRESOLUTION, true);
   timerAlarmEnable(interruptKernal);
 
-  // interrupt each 1 s -> measure times
+  // profiling: interrupt each second
   /*
   interruptProfiling = timerBegin(2, 80, true);
   timerAttachInterrupt(interruptProfiling, &interruptProfilingFunc, true);
@@ -201,7 +150,7 @@ void Main::setup() {
   timerAlarmEnable(interruptProfiling);
   */
 
-  // init HostCmds
+  // init ExternalCmds
   externalCmds.init(ram, &cpu, &vic, &cia1, &cia2, &blekb);
 }
 
@@ -210,8 +159,5 @@ void Main::loop() {
     checkExternalCommand = false;
     externalCmds.checkExternalCmd();
   }
-  if (isReady4Refresh) {
-    isReady4Refresh = false;
-    vic.refresh();
-  }
+  vic.refresh();
 }

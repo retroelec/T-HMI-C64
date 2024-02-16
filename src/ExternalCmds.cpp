@@ -41,7 +41,7 @@ void ExternalCmds::checkExternalCmd() {
     return;
   case LOAD:
     Log.noticeln("load from sdcard...");
-    cpu->cpuhalted.store(true, std::memory_order_release);
+    cpu->cpuhalted = true;
     if (sdcard.init()) {
       uint8_t cury = ram[0xd6];
       uint8_t curx = ram[0xd3];
@@ -58,7 +58,7 @@ void ExternalCmds::checkExternalCmd() {
     } else {
       Log.noticeln("error init sdcard");
     }
-    cpu->cpuhalted.store(false, std::memory_order_release);
+    cpu->cpuhalted = false;
     break;
   case RECEIVEDATA:
     Log.noticeln("enter hostcmd_receivedata");
@@ -99,17 +99,11 @@ void ExternalCmds::checkExternalCmd() {
   case SHOWREG:
     Log.noticeln("pc = %x, a = %x, x = %x, y = %x, sr = %B", cpu->getPC(),
                  cpu->getA(), cpu->getX(), cpu->getY(), cpu->getSR());
-    Log.noticeln("reg1 = %x, ba = %t, bd = %t, be = %t, dio = %t",
-                 cpu->register1, cpu->bankARAM, cpu->bankDRAM, cpu->bankERAM,
-                 cpu->bankDIO);
     for (uint8_t i = 0x11; i <= 0x1a; i++) {
-      Log.noticeln("vic[%x] = %B", i,
-                   vic->vicreg[i].load(std::memory_order_acquire));
+      Log.noticeln("vic[%x] = %B", i, vic->vicreg[i]);
     }
-    Log.noticeln("l11 = %B, l12 = %B, vicmem = %x",
-                 vic->latchd011.load(std::memory_order_acquire),
-                 vic->latchd012.load(std::memory_order_acquire),
-                 vic->vicmem.load(std::memory_order_acquire));
+    Log.noticeln("l11 = %B, l12 = %B, vicmem = %x", vic->latchd011,
+                 vic->latchd012, vic->vicmem);
     for (uint8_t i = 0x04; i <= 0x0f; i++) {
       Log.noticeln("cia1[%x] = %B", i,
                    cia1->ciareg[i].load(std::memory_order_acquire));
@@ -141,19 +135,16 @@ void ExternalCmds::checkExternalCmd() {
     break;
   case RESET:
     cpu->cpuhalted = true;
-    vic->vicreg[0x11].store(0x1b, std::memory_order_release);
-    vic->vicreg[0x16].store(0xc8, std::memory_order_release);
-    vic->vicreg[0x18].store(0x15, std::memory_order_release);
+    vic->vicreg[0x11] = 0x1b;
+    vic->vicreg[0x16] = 0xc8;
+    vic->vicreg[0x18] = 0x15;
     cia2->ciareg[0x00].store(0x97, std::memory_order_release);
     cpu->setPC(0xfce2);
     cpu->cpuhalted = false;
     break;
   case TOGGLEVICDRAW:
-    vic->drawnotevenodd.store(
-        !vic->drawnotevenodd.load(std::memory_order_acquire),
-        std::memory_order_release);
-    Log.noticeln("drawnotevenodd = %B",
-                 vic->drawnotevenodd.load(std::memory_order_acquire));
+    vic->drawnotevenodd = !vic->drawnotevenodd;
+    Log.noticeln("drawnotevenodd = %B", vic->drawnotevenodd);
     break;
   case SETJOYSTICKMODE:
     cpu->joystickmode++;

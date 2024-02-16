@@ -2,12 +2,13 @@
 
 C64 emulator for the development board Lilygo T-HMI equipped with an ESP32-S3 chip, a 2.8 inch touch display LCD screen (ST7789V driver) and a SD card slot.
 
+<img src="doc/donkey_kong.png" alt="class diagram" width="600"/>
+
+## Hardware
+
 From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
 
 <img src="doc/T-HMI.jpg" alt="T-HMI" width="600"/>
-
-
-## Hardware
 
 ### ESP32-S3
 
@@ -16,8 +17,8 @@ The two cores are identical in practice and share the same memory.
 The tasks responsible for handling wireless networking (Wi-Fi or Bluetooth) are pinned to CPU 0 by default
 (see [Espressif - Task Priorities](https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-guides/performance/speed.html)).
 
-For this project core 0 is used to emulate the 6510 CPU and to copy graphic data to a bitmap.
-All other application tasks (CIA timers, copy graphic bitmap to LCD) are done on core 1.
+Actually core 0 is used to emulate the 6510 CPU and the VIC and core 1 is used to emulate CIA timers,
+copy graphic bitmap to LCD and handling "external commands".
 
 ### Display
 
@@ -179,28 +180,14 @@ As there is no hardware based solution to this problem, I choosed to rely on the
 To ensure that changes to a std::atomic variable are visible between different processor cores and cache inconsistencies are avoided,
 memory_order_release for writing and memory_order_acquire for reading can be used as a synchronization mechanism.
 
-### CPU emulation
+### Emulation details
 
-The emulation of the C64 CPU is sometimes faster than the 1 MHz of a real C64. A simple throtteling mechanism has been implemented to 
-reduce the performance of the CPU in these cases.
-
-### VIC emulation
-
-The image is built line by line in a timer interrupt (every 64us), transforming C64 data into a 16-bit color array.
+Emulation of CPU and VIC (on core 0) are tightly coupled: After 63 CPU cycles the next raster line is handeled. This procedure is necessary to run games
+which use raster line interrupts. However, by default only each second row is copied to a 16-bit color array per frame
+(changing between even and odd rows each frame), otherwise the CPU performance would be slowed down noticeable.
 Sprite data is also drawn during this process.
-After 200 rows are written to the 16-bit color array, the processed data is transferred to the LCD in the main loop.
-I implemented two different approaches to draw the lines:
 
-- approach 1: draw each line one after another
-- approach 2: draw even and odd lines successively
-
-For approach 1 a frame rate of 28-29 fps and for approach 2 a frame rate of 25 fps is achived.
-These frame rates are enough to run games smoothly.
-For most games approach 2 delivers better results
-(e.g. Donkey Kong: barely flickering of sprites with approach 2, but with approach 1 the ape sprites flicker sometimes).
-Therefore approach 2 is the default, but may be changed using an external command.
-Possible reason: Approach 2 allows most of the tasks (data transformation for the current line + eventually triggering a raster line interrupt)
-to be completed in the corresponding ESP timer interrupt before the next one starts.
+On core 1 the data of the 16-bit color array is copied to the LCD screen. A frame rate of about 29 fps is achived.
 
 ### Emulation status
 
@@ -208,25 +195,23 @@ First of all: This is a hobby project :)
 
 All hardware ports not explicitly mentioned including their corresponding registers are not emulated (e.g. user port and serial port).
 
-"Software stuff" not emulated resp. poorly emulated (list probably not conclusive):
+"Software stuff" not emulated resp. poorly emulated resp. things to do (list probably not conclusive):
 
 - no SID emulation (and no plans to do this)
 - no tape/disk drive emulation
 - keyboard emulation using BLE has some problems:
   keyboard is slow, sometime a keystroke is missed, cursor left does not work, ...
 - joystick and keyboard input cannot be applied "at the same time": joystick must be switched off to use keyboard
-- "lightpen" is not supported (could be simulated using the touch screen of the LCD, but no plans to do this)
 - some VIC registers are not implemented (yet): $d01b,  $d01d
 - some VIC registers are only partly implemented (yet): $d011 (bit 3+4), $d016 (bit 3)
 - no "clipping" of sprites in x direction: they are only visible, if they are completely visible
 - some CIA registers are not implemented (yet): $d[c|d]02, $d[c|d]03, $d[c|d]08, $d[c|d]09, $d[c|d]0a, $d[c|d]0b,
 - some CIA registers are only partly implemented (yet): $dc0d (bit 2), $dc0e (bit 7), $dc0f (bit 7)
 - not all "illegal" opcodes of the 6502 CPU are implemented yet
-- line 200 is not always displayed correctly
+- line 200 is not displayed correctly
 - code cleanup is necessary
-- reduce flickering for some games (appear presumably due to raster interrupts)
-
-Additionally a better BLE client, which works on all platforms, would be nice.
+- sometimes CPU is blocked after loading a game
+- a better BLE client, which works on all platforms, would be nice
 
 ### Games
 
@@ -245,27 +230,24 @@ Games that are playable:
 - castle terror
 - bagitman
 - krakout (only "bat is on the" option can be changed at start screen)
-
-<img src="doc/donkey_kong.png" alt="class diagram" width="600"/>
-
-Some other games run on the emulator, but screen is flickering (badly):
-
-- miner 2049er (still playable)
-- dig dug (still playable)
-- quartet (still playable)
-- international soccer (only mild flickering, playable)
-- boulder dash
-- tapper
+- miner 2049er
+- dig dug (background is mildly flickering)
+- quartet
+- international soccer
 - choplifter
+- pole position
+
+Games with some problems:
+
+- hero (sprites flickering, wrong color of magnetic walls, still playable)
+- boulder dash (sprites flickering, wrong colors)
+- q*bert (sprites flickering, graphic errors after game over)
+- fort apocalypse (sprites flickering, sometimes player sprite disappears)
 
 Other games are not working (at the moment):
 
-- q*bert (very slow at start, crashing as game ends)
-- hero (slow, really bad flickering)
-- fort apocalypse (bad flickering, loosing lifes due to this flickering)
 - burger time (crashing)
 - ghost and gobblins (crashing)
 - great gianas sister (crashing)
 - hyper sports (crashing)
-- pole position (very slow at start, bad flickering)
 

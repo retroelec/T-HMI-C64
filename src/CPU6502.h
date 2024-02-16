@@ -444,14 +444,14 @@ protected:
   void setPCToIntVec(uint16_t intvect);
 
 public:
-  // number of cycles since last adjustment (read and reset externally)
+  // number of cycles since last adjustment
   uint32_t numofcycles;
 
   // stop cpu
   std::atomic<bool> cpuhalted;
 
   // interrupt flags
-  std::atomic<bool> iflag;
+  bool iflag;
   std::atomic<bool> irq;
 
   // virtual methods, may be overriden for logging etc.

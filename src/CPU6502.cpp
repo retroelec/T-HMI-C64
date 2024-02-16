@@ -288,7 +288,7 @@ void CPU6502::srfromflags() {
     sr |= 1;
   if (zflag)
     sr |= 2;
-  if (iflag.load(std::memory_order_acquire))
+  if (iflag)
     sr |= 4;
   if (dflag)
     sr |= 8;
@@ -307,9 +307,9 @@ void CPU6502::flagsfromsr() {
   zflag = false;
   if ((sr & 2) == 2)
     zflag = true;
-  iflag.store(false, std::memory_order_release);
+  iflag = false;
   if ((sr & 4) == 4)
-    iflag.store(true, std::memory_order_release);
+    iflag = true;
   dflag = false;
   if ((sr & 8) == 8)
     dflag = true;
@@ -712,7 +712,7 @@ void CPU6502::cmd6502lsrZeropageX() {
 }
 
 void CPU6502::cmd6502cli() {
-  iflag.store(false, std::memory_order_release);
+  iflag = false;
   numofcycles += 2;
 }
 
@@ -835,7 +835,7 @@ void CPU6502::cmd6502rorZeropageX() {
 }
 
 void CPU6502::cmd6502sei() {
-  iflag.store(true, std::memory_order_release);
+  iflag = true;
   numofcycles += 2;
 }
 
@@ -1821,7 +1821,7 @@ void CPU6502::setPCToIntVec(uint16_t intvect) {
   // clear d-flag
   dflag = false;
   // set interrupt disable flag
-  iflag.store(true, std::memory_order_release);
+  iflag = true;
   // set pc
   pc = intvect;
 }
@@ -1830,7 +1830,7 @@ void CPU6502::run() {
   // pc *must* be set externally!
   cpuhalted = false;
   sp = 0xFF;
-  iflag.store(true, std::memory_order_release);
+  iflag = true;
   dflag = false;
   bflag = false;
   irq.store(false, std::memory_order_release);
@@ -1841,7 +1841,9 @@ void CPU6502::run() {
     }
     if (irq.load(std::memory_order_acquire)) {
       irq.store(false, std::memory_order_release);
-      setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8));
+      if (!iflag) {
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8));
+      }
     }
     execute(getMem(pc++));
   }

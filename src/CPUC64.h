@@ -26,7 +26,7 @@
 
 class CPUC64 : public CPU6502 {
 private:
-  uint8_t *memory;
+  uint8_t *ram;
   uint8_t *basicrom;
   uint8_t *kernalrom;
   uint8_t *charrom;
@@ -35,6 +35,14 @@ private:
   CIA *cia1;
   CIA *cia2;
   BLEKB *blekb;
+
+  uint8_t sidreg[0x100];
+
+  bool bankARAM;
+  bool bankDRAM;
+  bool bankERAM;
+  bool bankDIO;
+  uint8_t register1;
 
   inline void adaptVICBaseAddrs(bool fromcia) __attribute__((always_inline));
   inline void decodeRegister1(uint8_t val) __attribute__((always_inline));
@@ -47,13 +55,8 @@ public:
   uint8_t getSP();
   uint8_t getSR();
   uint16_t getPC();
-  bool bankARAM;
-  bool bankDRAM;
-  bool bankERAM;
-  bool bankDIO;
-  uint8_t register1;
-  std::atomic<uint16_t> cputhrottelingcnt;
   uint32_t numofcyclespersecond;
+  bool debugcpu;
 
   enum JOYSTICKM { NOJOYSTICK = 0, JOYSTICKP1 = 1, JOYSTICKP2 = 2 };
   uint8_t joystickmode;
@@ -63,13 +66,11 @@ public:
   inline void setMem(uint16_t addr, uint8_t val) __attribute__((always_inline));
 
   void cmd6502illegal() override;
-  void cmd6502nop1a() override;
-  void cmd6502nopfa() override;
+  // void cmd6502nop1a() override;
   void run() override;
 
-  void init(uint8_t *memory, uint8_t *basicrom, uint8_t *kernalrom,
-            uint8_t *charrom, VIC *vic, uint8_t *colormap, CIA *cia1, CIA *cia2,
-            BLEKB *blekb);
+  void init(uint8_t *ram, uint8_t *basicrom, uint8_t *kernalrom,
+            uint8_t *charrom, VIC *vic, CIA *cia1, CIA *cia2, BLEKB *blekb);
   void setPC(uint16_t pc);
 };
 

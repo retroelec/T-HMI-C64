@@ -31,16 +31,15 @@ uint8_t CPUC64::getMem(uint16_t addr) {
     if (addr <= 0xd3ff) {
       uint8_t vicidx = (addr - 0xd000) % 0x40;
       if (vicidx == 0x11) {
-        return vic->vicreg[vicidx].load(std::memory_order_acquire) |
-               ((vic->rasterline.load(std::memory_order_acquire) >> 1) & 0x80);
+        return vic->vicreg[vicidx] | ((vic->rasterline >> 1) & 0x80);
       } else if (vicidx == 0x12) {
-        return vic->rasterline.load(std::memory_order_acquire) & 0xff;
+        return vic->rasterline & 0xff;
       } else if ((vicidx == 0x1e) || (vicidx == 0x1f)) {
-        uint8_t val = vic->vicreg[vicidx].load(std::memory_order_acquire);
-        vic->vicreg[vicidx].store(0, std::memory_order_release);
+        uint8_t val = vic->vicreg[vicidx];
+        vic->vicreg[vicidx] = 0;
         return val;
       } else {
-        return vic->vicreg[vicidx].load(std::memory_order_acquire);
+        return vic->vicreg[vicidx];
       }
     }
     // ** SID resp RNG **
@@ -49,11 +48,15 @@ uint8_t CPUC64::getMem(uint16_t addr) {
       if (sididx == 0x1b) {
         uint32_t rand = esp_random();
         return (uint8_t)(rand & 0xff);
+      } else if (sididx == 0x1c) {
+        return 0;
+      } else {
+        return sidreg[sididx];
       }
     }
     // ** Colorram **
     else if (addr <= 0xdbff) {
-      return colormap[addr - 0xd800];
+      return vic->colormap[addr - 0xd800];
     }
     // ** CIA 1 **
     else if (addr <= 0xdcff) {
@@ -114,7 +117,7 @@ uint8_t CPUC64::getMem(uint16_t addr) {
     return register1;
   }
   // ram
-  return memory[addr];
+  return ram[addr];
 }
 
 void CPUC64::decodeRegister1(uint8_t val) {
@@ -166,17 +169,17 @@ void CPUC64::decodeRegister1(uint8_t val) {
 }
 
 void CPUC64::adaptVICBaseAddrs(bool fromcia) {
-  uint8_t val = vic->vicreg[0x18].load(std::memory_order_acquire);
+  uint8_t val = vic->vicreg[0x18];
   uint16_t val1 = (val & 0xf0) << 6;
-  uint16_t vicmem = vic->vicmem.load(std::memory_order_acquire);
+  uint16_t vicmem = vic->vicmem;
   // screenmem is used for text mode and bitmap mode
-  vic->screenmemstart.store(vicmem + val1, std::memory_order_release);
-  bool bmm = vic->vicreg[0x11].load(std::memory_order_acquire) & 32;
+  vic->screenmemstart = vicmem + val1;
+  bool bmm = vic->vicreg[0x11] & 32;
   if ((bmm) || fromcia) {
     if ((val & 8) == 0) {
-      vic->bitmapstart.store(vicmem, std::memory_order_release);
+      vic->bitmapstart = vicmem;
     } else {
-      vic->bitmapstart.store(vicmem + 0x2000, std::memory_order_release);
+      vic->bitmapstart = vicmem + 0x2000;
     }
   }
   uint16_t charmemstart;
@@ -189,7 +192,7 @@ void CPUC64::adaptVICBaseAddrs(bool fromcia) {
     } else if ((charmemstart == 0x1000) || (charmemstart == 0x9000)) {
       vic->charset = vic->chrom;
     } else {
-      vic->charset = memory + charmemstart;
+      vic->charset = ram + charmemstart;
     }
   }
 }
@@ -200,30 +203,35 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
     if (addr <= 0xd3ff) {
       uint8_t vicidx = (addr - 0xd000) % 0x40;
       if (vicidx == 0x11) {
-        vic->latchd011.store(val,
-                             std::memory_order_release); // only bit 7 of latch
-                                                         // register is used
-        vic->vicreg[vicidx].store(val & 127, std::memory_order_release);
-        // adapt VIC base addresses
+        // only bit 7 of latch register d011 is used
+        vic->latchd011 = val;
+        vic->vicreg[vicidx] = val & 127;
         adaptVICBaseAddrs(false);
       } else if (vicidx == 0x12) {
-        vic->latchd012.store(val, std::memory_order_release);
+        vic->latchd012 = val;
+      } else if (vicidx == 0x16) {
+        vic->vicreg[vicidx] = val;
+        adaptVICBaseAddrs(false);
       } else if (vicidx == 0x18) {
-        vic->vicreg[vicidx].store(val, std::memory_order_release);
-        // adapt VIC base addresses
+        vic->vicreg[vicidx] = val;
         adaptVICBaseAddrs(false);
       } else if (vicidx == 0x19) {
-        vic->vicreg[vicidx].store(
-            0, std::memory_order_release); // just clear all interrupt bits
+        // just clear all interrupt bits
+        vic->vicreg[vicidx] = 0;
       } else if ((vicidx == 0x1e) || (vicidx == 0x1f)) {
-        vic->vicreg[vicidx].store(0, std::memory_order_release);
+        vic->vicreg[vicidx] = 0;
       } else {
-        vic->vicreg[vicidx].store(val, std::memory_order_release);
+        vic->vicreg[vicidx] = val;
       }
     }
+    // ** SID **
+    else if (addr <= 0xd7ff) {
+      uint8_t sididx = (addr - 0xd400) % 0x100;
+      sidreg[sididx] = val;
+    }
     // ** Colorram **
-    else if ((addr >= 0xd800) && (addr <= 0xdbff)) {
-      colormap[addr - 0xd800] = val;
+    else if (addr <= 0xdbff) {
+      vic->colormap[addr - 0xd800] = val;
     }
     // ** CIA 1 **
     else if (addr <= 0xdcff) {
@@ -293,16 +301,16 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
         uint8_t bank = val & 3;
         switch (bank) {
         case 0:
-          vic->vicmem.store(0xc000, std::memory_order_release);
+          vic->vicmem = 0xc000;
           break;
         case 1:
-          vic->vicmem.store(0x8000, std::memory_order_release);
+          vic->vicmem = 0x8000;
           break;
         case 2:
-          vic->vicmem.store(0x4000, std::memory_order_release);
+          vic->vicmem = 0x4000;
           break;
         case 3:
-          vic->vicmem.store(0x0000, std::memory_order_release);
+          vic->vicmem = 0x0000;
           break;
         }
         cia2->ciareg[ciaidx] = val;
@@ -374,7 +382,7 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
   }
   // ** ram **
   else {
-    memory[addr] = val;
+    ram[addr] = val;
   }
 }
 
@@ -383,14 +391,12 @@ void CPUC64::cmd6502illegal() {
   Log.noticeln("illegal code, cpu halted, pc = %x", pc - 1);
 }
 
+/*
 void CPUC64::cmd6502nop1a() {
   Log.noticeln("nop: %d", micros());
   numofcycles += 2;
 }
-
-void CPUC64::cmd6502nopfa() {
-  // no increment of numofcycles for throtteling!
-}
+*/
 
 uint8_t CPUC64::getA() { return a; }
 
@@ -408,45 +414,59 @@ void CPUC64::run() {
   // pc *must* be set externally!
   cpuhalted = false;
   sp = 0xFF;
-  iflag.store(true, std::memory_order_release);
+  iflag = true;
   dflag = false;
   bflag = false;
   irq.store(false, std::memory_order_release);
   numofcycles = 0;
   while (true) {
-    if (cpuhalted.load(std::memory_order_acquire)) {
+    if (cpuhalted) {
       continue;
-    }
-    while (cputhrottelingcnt.load(std::memory_order_acquire) > 0) {
-      cputhrottelingcnt.fetch_sub(1, std::memory_order_release);
-      execute(0xfa); // execute fa nop's (no increment of numofcycles)
     }
     if (irq.load(std::memory_order_acquire)) {
       irq.store(false, std::memory_order_release);
-      setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8));
+      if (!iflag) {
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8));
+      }
     }
     execute(getMem(pc++));
+    if (numofcycles >= 63) {
+      numofcyclespersecond += numofcycles;
+      numofcycles = 0;
+      bool vicint = vic->nextRasterline();
+      if (vicint && (!iflag)) {
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8));
+        for (uint8_t i = 0; i < 8; i++) {
+          execute(getMem(pc++));
+        }
+      }
+      vic->drawRasterline();
+    }
+    /*
+    if (debugcpu) {
+      Log.noticeln("pc = %x, a = %x, x = %x, y = %x, sr = %B", pc, a, x, y, sr);
+    }
+    */
   }
 }
 
-void CPUC64::init(uint8_t *memory, uint8_t *basicrom, uint8_t *kernalrom,
-                  uint8_t *charrom, VIC *vic, uint8_t *colormap, CIA *cia1,
-                  CIA *cia2, BLEKB *blekb) {
-  this->memory = memory;
+void CPUC64::init(uint8_t *ram, uint8_t *basicrom, uint8_t *kernalrom,
+                  uint8_t *charrom, VIC *vic, CIA *cia1, CIA *cia2,
+                  BLEKB *blekb) {
+  this->ram = ram;
   this->basicrom = basicrom;
   this->kernalrom = kernalrom;
   this->charrom = charrom;
   this->vic = vic;
-  this->colormap = colormap;
   this->cia1 = cia1;
   this->cia2 = cia2;
   this->blekb = blekb;
   joystickmode = 0;
   kbjoystickmode = 0;
+  setMem(0, 0x2f);
   setMem(1, 0x37);
-  cputhrottelingcnt.store(0, std::memory_order_release);
   numofcyclespersecond = 0;
-
+  debugcpu = false;
   uint16_t addr = 0xfffc - 0xe000;
   pc = kernalrom[addr] + (kernalrom[addr + 1] << 8);
 }
