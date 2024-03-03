@@ -19,12 +19,16 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 
+static const uint8_t NUMOFCYCLES_KEYPRESSEDDOWN = 4;
+
 uint8_t *buffer;
 uint8_t bufidxprod;
 uint8_t bufidxcons;
 bool deviceConnected;
 uint8_t shiftctrlcode;
-uint8_t kbcodePickedUp;
+uint8_t kbcode1;
+uint8_t kbcode2;
+uint8_t keypresseddowncnt;
 
 class BLEKBServerCallback : public BLEServerCallbacks {
   void onConnect(BLEServer *pServer) { deviceConnected = true; };
@@ -37,15 +41,22 @@ class BLEKBServerCallback : public BLEServerCallbacks {
 class BLEKBCharacteristicCallback : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     std::string value = pCharacteristic->getValue();
-    if (value.length() >= 32) { // data
+    if (value.length() >= 4) { // data
       for (uint8_t i = 0; i < value.length(); i++) {
-        buffer[bufidxprod++] = (uint8_t)value[i];
+        buffer[i] = (uint8_t)value[i];
         vTaskDelay(1);
       }
-    } else { // keyboard code or only a few data
+      bufidxcons = 0;
+      bufidxprod = value.length();
+    } else { // keyboard codes
+      // BLE client sends 3 codes for each key: dc00, dc01, "shiftctrlcode"
+      // shiftctrlcode: bit 0 -> left shift
+      //                bit 7 -> external command (cmd, 0, 128)
       for (uint8_t i = 0; i < value.length(); i++) {
-        buffer[bufidxprod++] = (uint8_t)value[i];
+        buffer[i] = (uint8_t)value[i];
       }
+      shiftctrlcode = buffer[2];
+      keypresseddowncnt = 0;
     }
     pCharacteristic->setValue("K");
     pCharacteristic->notify();
@@ -55,12 +66,12 @@ class BLEKBCharacteristicCallback : public BLECharacteristicCallbacks {
 void BLEKB::init(std::string service_uuid, std::string characteristic_uuid,
                  uint8_t *kbbuffer) {
   // init buffer
+  keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
   bufidxprod = 0;
   bufidxcons = 0;
-  kbcodePickedUp = true;
   buffer = kbbuffer;
   kbcode1 = 0xff;
-  kbcode2 = 0;
+  kbcode2 = 0xff;
 
   // init BLE
   deviceConnected = false;
@@ -79,33 +90,39 @@ void BLEKB::init(std::string service_uuid, std::string characteristic_uuid,
 }
 
 uint8_t BLEKB::getKBCode() {
-  // BLE client sends 3 codes for each key: dc00, dc01, "shiftctrlcode"
-  // shiftctrlcode: bit 0 -> left shift
-  //                bit 7 -> host command (cmd, 0, 128)
-  if (bufidxprod != bufidxcons) {
-    kbcode2 = buffer[bufidxcons++];
-    kbcode1 = buffer[bufidxcons++];
-    shiftctrlcode = buffer[bufidxcons++];
-    kbcodePickedUp = false;
-    if ((shiftctrlcode & 128) != 0) {
-      return kbcode2;
-    }
-  } else if (kbcodePickedUp) {
+  // "external" command?
+  if ((shiftctrlcode & 128) != 0) {
+    shiftctrlcode = 0;
     kbcode1 = 0xff;
-    kbcode2 = 0;
+    keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
+    return buffer[0];
+  }
+  // key is "pressed down" at least for 50 ms
+  if (keypresseddowncnt < NUMOFCYCLES_KEYPRESSEDDOWN) {
+    kbcode2 = buffer[0];
+    kbcode1 = buffer[1];
+    keypresseddowncnt++;
+  } else {
+    kbcode1 = 0xff;
+    kbcode2 = 0xff;
   }
   return 0;
 }
 
 uint8_t BLEKB::decode(uint8_t dc00) {
-  kbcodePickedUp = true;
   if (dc00 == 0) {
     return kbcode1;
   } else {
-    if ((dc00 == 0xfd) && ((shiftctrlcode & 1) != 0)) {
+    if (((~dc00 & 2) != 0) && ((shiftctrlcode & 1) != 0)) {
       // left shift pressed
-      return kbcode1 & 0x7f;
-    } else if (dc00 == kbcode2) {
+      if (kbcode2 == 0xfd) {
+        // handle scan of key codes in the same "row"
+        return kbcode1 & 0x7f;
+      } else {
+        return 0x7f;
+      }
+    }
+    if (dc00 == kbcode2) {
       return kbcode1;
     } else {
       return 0xff;

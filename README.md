@@ -43,9 +43,23 @@ Connections:
   
 Switch voltage to 3.3V on the iduino module.
 
+If you do not use an iduino joystick or choose to use other pins on the development board,
+you may have to adapt the following constants in src/Config.h:
+
+- ADC_JOYSTICK_X
+- ADC_JOYSTICK_Y
+- JOYSTICK_FIRE_PIN
+
 ## Usage
 
-### Arduino Setup
+### Files
+
+- T-HMI-C64.ino : Arduino .ino file of the C64 emulator, use in the Arduino IDE to upload the emulator to the T-HMI
+- src/* : C64 emulator source code
+- THMIC64KB/thmic64kb.apk : Android APK file to be uploaded to your Android smartphone
+- THMIC64KB/app/src/ : source code of Android app
+
+### Arduino setup
 
 From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
 In Arduino Preferences, on the Settings tab, enter the [Espressif Arduino ESP32 Package](https://espressif.github.io/arduino-esp32/package_esp32_index.json)
@@ -71,32 +85,25 @@ I used the following settings in the Tools menu of the Arduino IDE 2.2.1:
 | Upload mode                          | UART0 / Hardware CDC              |
 | USB Mode                             | Hardware CDC and JTAG             |
 
-### Configure and upload emulator
+### Upload emulator
 
-If desired adapt the following constants in src/Config.h for BLE access:
+Just open the file T-HMI-C64.ino in Arduino and upload the emulator (menu Sketch - Upload or press ctrl-u).
 
-- SERVICE_UUID
-- CHARACTERISTIC_UUID
-
-If you do not use an iduino joystick or choose to use other pins on the development board,
-you may have to adapt the following constants in src/Config.h:
-
-- ADC_JOYSTICK_X
-- ADC_JOYSTICK_Y
-- JOYSTICK_FIRE_PIN
-
-Then just open the file T-HMI-C64.ino in Arduino and upload the emulator (menu Sketch - Upload or press ctrl-u).
-
-### BLE Connect to T-HMI
+### BLE Connection
 
 After uploading the emulator to the T-HMI development board, the C64 startup screen appears.
 The emulator starts also a BLE (Bluetooth Low Energy) server to receive keystrokes from a client.
+(The needed UUIDs are defined in src/Config.h: SERVICE_UUID and CHARACTERISTIC_UUID.)
+Actually there are two clients available.
+
+#### Linux client espkb.py
+
 For linux I wrote a small python script named espkb.py (not working under MS Windows). It has to be started in a terminal window.
 It first connects to the BLE server of the ESP32. After that it sends keystrokes typed in the terminal window to the emulator.
-
 Before starting espkb.py you have to set the variable device_address to the mac address of the ESP32.
-If you did adapt the CHARACTERISTIC_UUID in src/Config.h you also have to set the variable characteristic_uuid in espkb.py accordingly.
+(If you did adapt the CHARACTERISTIC_UUID in src/Config.h you also have to set the variable characteristic_uuid in espkb.py accordingly.)
 You need super user access rights to start the espkb.py script.
+To use the script you have to install additional python packages (pygatt, pynput).
 
 Besides sending "normal" C64 keystrokes, it is also possible to send "commands" to the emulator.
 The following "external commands" are available:
@@ -111,26 +118,47 @@ The following "external commands" are available:
 - f6: reset C64
 - f7: toggle between 'draw each line one after another' and 'draw even and odd lines successively'
 
+Unfortunatelly the BLE connection is not very stable, keys are transfered slowly and sometimes a keystroke is missed.
+So it is discouraged to use this client.
+
+#### Android client
+
+I wrote a simple Android app which emulates a C64 keyboard for the emulator.
+You can either install the app using an Android IDE or directly install the APK file on your Android smartphone.
+
+<img src="doc/THMIC64KB.png" alt="THMIC64KB" width="600"/>
+
+Once the app is installed and launched, you must accept the requested permissions
+(access to the precise location (*not* coarse location), permission to search for BLE devices).
+If you start the emulator (i.e. power on the T-HMI) before starting the app, the app will automatically connect to the BLE server.
+Otherwise you can move the "BLE connection" switch to the right to connect to the BLE server. You also have to do this manually
+after reseting the development board (e.g. if you want to start a new game).
+
+Besides the normal C64 keys this virtual keyboard also provides red extra buttons to send "external commands".
+Actually the LOAD and the JOYSTICK buttons are available:
+
+- LOAD: load a C64 program from SD card
+- JOYSTICK: toggle between "joystick in port 1", "joystick in port 2", "no joystick"
+
+Up to now the following keys are not implemented: Commodore key, CTRL key, RESTORE key
+
+BLE connection is stable, fast and reliable - you should use this BLE client.
+
 ### Load and start a game
 
 You first have to copy C64 games in prg format (only supported format!) to an SD card
 (game names must be in lower case letters, max. 16 characters).
 
 As there is no C64 tape/disk drive emulation available up to now, the file must be loaded
-into memory using the external command "load prg from sdcard".
+into memory using an "external command".
 To do this, you first type in the name of the game so it shows up on the C64 text screen.
-You then press F12 to toggle to the external mode (if necessary).
-You then press F2 to load the game. Use the cursor key "down" to go to the next line and type "run"
-to start the game.
-Pressing F9 the first time activates joystick in port 1 (joystick mode 1), pressing F9 again activates joystick in port 2 (joystick mode 2)
-and pressing F9 again deactivates the joystick (joystick mode 0).
-
-If a game needs keyboard input(s) to be started / configured (e.g. you have to press F1 to start Donkey Kong),
-you eventually have to toggle to c64 mode (by pressing F12) AND you have to disable the joysticks
-(if already enabled, by pressing F9 until joystick mode 0 is choosen resp. joystick is diabled).
-After the start the joystick must be enabled (again) by pressing F9.
-(See also point "joystick and keyboard input cannot be applied "at the same time": joystick must be switched off to use keyboard"
-in the "Emulation status list".)
+You then press the LOAD button on your Android phone.
+Use the button RETURN or "cursor key down" to go to the next line
+and type "RUN" followed by pressing the button RETURN to start the game.
+To use the joystick you have to enable / determine the port of the joystick:
+Clicking the JOYSTICK button the first time activates joystick in port 1,
+clicking the JOYSTICK button again activates joystick in port 2,
+clicking the JOYSTICK button again disables the joystick.
 
 ## Software
 
@@ -145,24 +173,8 @@ Keyboard inputs are sent to the ESP32 via BLE. Three bytes must be sent for each
 - Value for the $DC00 register
 - Value for the $DC01 register
 - Control code:
-  - Bit 0 is set when the "left shift" key is pressed
-  - Bit 5 is set for the emulation of a joystick in Port 1
-  - Bit 6 is set for the emulation of a joystick in Port 2
-  - Bit 7 is set when an "External Command" is sent
-
-On the ESP32, a BLE server receives the codes and store them in a buffer.
-Every 16.66 ms the three codes are read from the buffer using the getKBCode() method in the "interrupt kernel function" and stored in BLEKB.
-
-When reading the memory location $DC01, the content of the $DC00 memory location is compared with the value sent via BLE for $DC00.
-If they match, the value sent via BLE for $DC01 is returned (using the decode() method). This process reflects the procedure of the corresponding kernel routine,
-which writes a specific value to the $DC00 register and then reads the $DC01 register to determine the pressed key.
-
-Simulated joystick inputs must first be enabled via a specific external command, determining which joystick port is activated.
-The cursor keys and the left control key are then interpreted as joystick inputs.
-For joystick inputs from Port 1, the $DC01 register is read, returning the corresponding codes.
-For joystick inputs from Port 0, the $DC00 register is read, delivering joystick inputs from Port 2 accordingly when accessing this register.
-Joystick simulation using the keyboard is not good enough to play games, but it can be used, e.g., to start a game by pressing the control key which
-simulates the fire button of a joystick (if no real joystick is available).
+  - Bit 0 is set when a shift key is pressed
+  - Bit 7 is set when an "external command" is sent
 
 ### Memory synchronization
 
@@ -195,23 +207,23 @@ First of all: This is a hobby project :)
 
 All hardware ports not explicitly mentioned including their corresponding registers are not emulated (e.g. user port and serial port).
 
-"Software stuff" not emulated resp. poorly emulated resp. things to do (list probably not conclusive):
+"Software stuff" not emulated resp. poorly emulated resp. things to do resp. known bugs (list probably not conclusive):
 
 - no SID emulation (and no plans to do this)
 - no tape/disk drive emulation
-- keyboard emulation using BLE has some problems:
-  keyboard is slow, sometime a keystroke is missed, cursor left does not work, ...
-- joystick and keyboard input cannot be applied "at the same time": joystick must be switched off to use keyboard
-- some VIC registers are not implemented (yet): $d01b,  $d01d
+- Android app: implement Commodore key, CTRL key, RESTORE key
+- some VIC registers are not implemented (yet): $d01b
 - some VIC registers are only partly implemented (yet): $d011 (bit 3+4), $d016 (bit 3)
-- no "clipping" of sprites in x direction: they are only visible, if they are completely visible
+- no "clipping" of sprites in x direction: they are only visible if they are completely visible
 - some CIA registers are not implemented (yet): $d[c|d]02, $d[c|d]03, $d[c|d]08, $d[c|d]09, $d[c|d]0a, $d[c|d]0b,
 - some CIA registers are only partly implemented (yet): $dc0d (bit 2), $dc0e (bit 7), $dc0f (bit 7)
 - not all "illegal" opcodes of the 6502 CPU are implemented yet
 - line 200 is not displayed correctly
 - code cleanup is necessary
 - sometimes CPU is blocked after loading a game
-- a better BLE client, which works on all platforms, would be nice
+- no joystick emulation using BLE
+- some games are not running properly
+- some games are not working at all
 
 ### Games
 
@@ -225,7 +237,7 @@ Games that are playable:
 - galaxy
 - burnin rubber
 - lode runner
-- donkey kong (rarly crashes)
+- donkey kong
 - bubble bobble
 - castle terror
 - bagitman
@@ -237,14 +249,14 @@ Games that are playable:
 - choplifter
 - pole position
 
-Games with some problems:
+Games not running properly:
 
-- hero (sprites flickering, wrong color of magnetic walls, still playable)
+- hero (sprites flickering, magnetic walls are too dark(?), still playable)
 - boulder dash (sprites flickering, wrong colors)
 - q*bert (sprites flickering, graphic errors after game over)
 - fort apocalypse (sprites flickering, sometimes player sprite disappears)
 
-Other games are not working (at the moment):
+Games not working at all:
 
 - burger time (crashing)
 - ghost and gobblins (crashing)

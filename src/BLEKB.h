@@ -22,9 +22,6 @@
 
 class BLEKB {
 public:
-  uint8_t kbcode1;
-  uint8_t kbcode2;
-
   void init(std::string service_uuid, std::string characteristic_uuid,
             uint8_t *kbbuffer);
   // keyboard

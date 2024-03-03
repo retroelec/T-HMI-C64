@@ -77,9 +77,6 @@ uint8_t CPUC64::getMem(uint16_t addr) {
         if (joystickmode == JOYSTICKM::JOYSTICKP2) {
           // real joystick
           return Joystick::getValue();
-        } else if (kbjoystickmode == JOYSTICKM::JOYSTICKP2) {
-          // keyboard emulated joystick (port 2)
-          return blekb->kbcode2;
         } else {
           return 0x7f;
         }
@@ -88,14 +85,11 @@ uint8_t CPUC64::getMem(uint16_t addr) {
           // real joystick, but still check for keyboard input
           uint8_t pressedkey =
               blekb->decode(cia1->ciareg[0x00].load(std::memory_order_acquire));
-          if (pressedkey = 0xff) {
+          if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             return Joystick::getValue();
           }
           return pressedkey;
-        } else if (kbjoystickmode == JOYSTICKM::JOYSTICKP1) {
-          // keyboard emulated joystick (port 1)
-          return blekb->kbcode2;
         } else {
           // keyboard
           return blekb->decode(

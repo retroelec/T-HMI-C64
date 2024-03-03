@@ -1,0 +1,693 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#555555"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/keyf1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:backgroundTint="#777777"
+            android:text="f 1"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyf3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:backgroundTint="#777777"
+            android:text="f 3"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyf5"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:backgroundTint="#777777"
+            android:text="f 5"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyf7"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:backgroundTint="#777777"
+            android:text="f 7"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyload"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:backgroundTint="#cc7777"
+            android:text="LOAD"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyjoystick"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:backgroundTint="#cc7777"
+            android:text="JOYSTICK"
+            android:textColor="@android:color/white" />
+
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#555555"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/keyleftarrow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u2190"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/key1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="1"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/key2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="2"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/key3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="3"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/key4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="4"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/key5"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="5"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/key6"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="6"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/key7"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="7"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/key8"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="8"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/key9"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="9"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/key0"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="0"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyplus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="+"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyminus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="-"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keypound"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="£"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyhome"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u2302"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keydel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u232b"
+            android:textColor="@android:color/white" />
+
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#555555"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/keyctrl"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:backgroundTint="#2b2121"
+            android:text="CTRL"
+            android:textColor="@android:color/white"
+            android:textSize="6sp" />
+
+        <Button
+            android:id="@+id/keyq"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="Q"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyw"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="W"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keye"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="E"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyr"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="R"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyt"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="T"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="Y"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyu"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="U"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyi"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="I"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="O"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="P"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyat"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\@"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keymul"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="*"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyarrowup"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u2191"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyrestore"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:backgroundTint="#2b2121"
+            android:text="RESTORE"
+            android:textColor="@android:color/white"
+            android:textSize="6sp" />
+
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#555555"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/keyrunstop"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u23f9"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyshiftlock"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u21ea"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keya"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="A"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keys"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="S"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyd"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="D"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyf"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="F"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyg"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="G"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyh"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="H"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyj"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="J"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyk"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="K"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyl"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="L"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keycolon"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text=":"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keysemicolon"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text=";"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyequal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="="
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyreturn"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:backgroundTint="#2b2121"
+            android:text="RETURN"
+            android:textColor="@android:color/white"
+            android:textSize="6sp" />
+
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#555555"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/keycommodore"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u2661"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyshiftleft"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:backgroundTint="#2b2121"
+            android:text="SHIFT"
+            android:textColor="@android:color/white"
+            android:textSize="6sp" />
+
+        <Button
+            android:id="@+id/keyz"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="Z"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyx"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="X"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyc"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="C"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyv"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="V"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyb"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="B"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyn"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="N"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keym"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="M"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keycomma"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text=","
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyperiod"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="."
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyslash"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="/"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keyshiftright"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:backgroundTint="#2b2121"
+            android:text="SHIFT"
+            android:textColor="@android:color/white"
+            android:textSize="6sp" />
+
+        <Button
+            android:id="@+id/keycrsrup"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u2191"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keycrsrdown"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u2193"
+            android:textColor="@android:color/white" />
+
+    </TableRow>
+
+    <TableRow
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#555555"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/keyspace"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="9"
+            android:backgroundTint="#2b2121"
+            android:text=""
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keycrsrleft"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u2190"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keycrsrright"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="#2b2121"
+            android:text="\u2192"
+            android:textColor="@android:color/white" />
+
+    </TableRow>
+
+</merge>
