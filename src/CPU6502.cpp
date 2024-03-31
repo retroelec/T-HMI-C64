@@ -40,43 +40,35 @@ void CPU6502::modeAbsolute() {
 }
 
 void CPU6502::modeAbsoluteX() {
-  uint16_t zl1 = getMem(pc++);
+  zl = getMem(pc++);
   zh = getMem(pc++);
-  zl1 += x;
-  z = (zl1 + (zh << 8));
+  z = (x + zl + (zh << 8));
 }
 
 void CPU6502::modeAbsoluteY() {
-  uint16_t zl1 = getMem(pc++);
+  zl = getMem(pc++);
   zh = getMem(pc++);
-  zl1 += y;
-  z = (zl1 + (zh << 8));
+  z = (y + zl + (zh << 8));
 }
 
 void CPU6502::modeIndirectX() {
   uint8_t ql = getMem(pc++);
   ql += x;
   zl = getMem(ql++);
-  zh = getMem(ql++);
+  zh = getMem(ql);
   z = (zl + (zh << 8));
 }
 
 void CPU6502::modeIndirectY() {
   uint16_t q = getMem(pc++);
-  uint16_t zl1 = getMem(q++) + y;
-  zh = getMem(q++);
-  z = (zl1 + (zh << 8));
+  zl = getMem(q++);
+  zh = getMem(q);
+  z = (y + zl + (zh << 8));
 }
 
 void CPU6502::setNZ(uint8_t r) {
-  if (r == 0)
-    zflag = true;
-  else
-    zflag = false;
-  if ((r & 128) == 128)
-    nflag = true;
-  else
-    nflag = false;
+  zflag = !r;
+  nflag = r & 0x80;
 }
 
 void CPU6502::atestandsetNZ() { setNZ(a); }
@@ -87,83 +79,60 @@ void CPU6502::ytestandsetNZ() { setNZ(y); }
 
 void CPU6502::adcbase(uint8_t r) {
   if (!dflag) {
-    uint16_t a1 = a;
-    a1 += r;
-    if (cflag)
+    uint16_t a1 = a + r;
+    if (cflag) {
       a1++;
-    vflag = false;
-    if (a1 > 127)
-      vflag = true;
-    cflag = false;
-    if (a1 >= 0x100) {
-      a1 -= 0x100;
-      cflag = true;
     }
-    setNZ(a1);
-    a = a1;
+    uint8_t a2 = a1;
+    vflag = (a ^ a2) & (r ^ a2) & 0x80;
+    cflag = a1 >> 8;
+    zflag = !a2;
+    nflag = a2 & 0x80;
+    a = a2;
   } else {
-    // AL = (A & $0F) + (B & $0F) + C
+    uint16_t a2 = a + r;
     uint8_t al = (a & 0x0F) + (r & 0x0F);
-    if (cflag)
+    if (cflag) {
       al++;
-    // If AL >= $0A, then AL = ((AL + $06) & $0F) + $10
+      a2++;
+    }
+    zflag = !(a2 & 0xff);
     if (al >= 0x0A) {
       al = ((al + 0x06) & 0x0F) + 0x10;
     }
-    // A = (A & $F0) + (B & $F0) + AL
     uint16_t a1 = (a & 0xF0) + (r & 0xF0) + al;
-    // Note that A can be >= $100 at this point
-    // If (A >= $A0), then A = A + $60
-    if (a1 >= 0xA0)
+    vflag = (a ^ a1) & (r ^ a1) & 0x80;
+    nflag = a1 & 0x80;
+    cflag = (a1 >= 0xA0);
+    if (a1 >= 0xA0) {
       a1 += 0x60;
-    // ; The accumulator result is the lower 8 bits of A
-    // The carry result is 1 if A >= $100, and is 0 if A < $100
-    cflag = false;
-    if (a1 >= 0x100)
-      cflag = true;
-    a1 &= 0xFF;
-    setNZ(a1);
+    }
     a = a1;
   }
 }
 
-void CPU6502::sbcbase(uint8_t r) {
+void CPU6502::sbcbase(uint8_t r1) {
   if (!dflag) {
-    int16_t a1 = a;
-    a1 -= r;
-    if (!cflag)
-      a1--;
-    vflag = false;
-    if ((a1 < -128) || (a1 > 127))
-      vflag = true;
-    cflag = true;
-    if (a1 < 0) {
-      a1 += 0x100;
-      cflag = false;
-    }
-    setNZ(a1);
-    a = a1;
+    adcbase(~r1);
   } else {
-    // AL = (A & $0F) - (B & $0F) + C-1
-    int8_t al = (a & 0x0F) - (r & 0x0F);
-    if (!cflag)
-      al--;
-    // A = A - B + C-1
-    int16_t a1 = a - r;
-    if (!cflag)
-      a1--;
-    cflag = true;
-    // If A < 0, then A = A - $60
-    if (a1 < 0) {
-      a1 -= 0x60;
-      cflag = false;
+    uint8_t r = ~r1;
+    uint16_t a2 = a + r;
+    uint8_t al = (a & 0x0F) + (r & 0x0F);
+    if (cflag) {
+      al++;
+      a2++;
     }
-    // If AL < 0, then A = A - $06
-    if (al < 0)
-      a1 -= 0x06;
-    // The accumulator result is the lower 8 bits of A
-    a1 &= 0xFF;
-    setNZ(a1);
+    zflag = !(a2 & 0xff);
+    if (al < 0x10) {
+      al = ((al + 0x0a) & 0x0F);
+    }
+    uint16_t a1 = (a & 0xF0) + (r & 0xF0) + al;
+    vflag = (a ^ a1) & (r ^ a1) & 0x80;
+    nflag = a1 & 0x80;
+    cflag = a1 >> 8;
+    if (a1 < 0x100) {
+      a1 += 0xA0;
+    }
     a = a1;
   }
 }
@@ -195,7 +164,7 @@ void CPU6502::cmpbase(uint8_t r1, uint8_t r2) {
 uint8_t CPU6502::aslbase0(uint8_t r) {
   uint16_t r1 = r << 1;
   cflag = false;
-  if ((r1 & 0x100) == 0x100) {
+  if (r1 & 0x100) {
     cflag = true;
     r1 &= 0xFF;
   }
@@ -210,10 +179,7 @@ void CPU6502::aslbase() {
 }
 
 uint8_t CPU6502::lsrbase0(uint8_t r) {
-  cflag = false;
-  if ((r & 0x01) == 0x01) {
-    cflag = true;
-  }
+  cflag = r & 0x01;
   r >>= 1;
   setNZ(r);
   return r;
@@ -231,7 +197,7 @@ uint8_t CPU6502::rolbase0(uint8_t r) {
     r1 |= 1;
   }
   cflag = false;
-  if ((r1 & 0x100) == 0x100) {
+  if (r1 & 0x100) {
     cflag = true;
     r1 &= 0xFF;
   }
@@ -250,10 +216,7 @@ uint8_t CPU6502::rorbase0(uint8_t r) {
   if (cflag) {
     r1 |= 0x100;
   }
-  cflag = false;
-  if ((r1 & 0x01) == 0x01) {
-    cflag = true;
-  }
+  cflag = r1 & 0x01;
   r1 >>= 1;
   setNZ(r1);
   return r1;
@@ -267,19 +230,10 @@ void CPU6502::rorbase() {
 
 void CPU6502::bitBase() {
   uint8_t r = getMem(z);
-  if ((r & 128) != 0)
-    nflag = true;
-  else
-    nflag = false;
-  if ((r & 64) != 0)
-    vflag = true;
-  else
-    vflag = false;
+  nflag = r & 128;
+  vflag = r & 64;
   r &= a;
-  if (r == 0)
-    zflag = true;
-  else
-    zflag = false;
+  zflag = r == 0;
 }
 
 void CPU6502::srfromflags() {
@@ -301,27 +255,13 @@ void CPU6502::srfromflags() {
 }
 
 void CPU6502::flagsfromsr() {
-  cflag = false;
-  if ((sr & 1) == 1)
-    cflag = true;
-  zflag = false;
-  if ((sr & 2) == 2)
-    zflag = true;
-  iflag = false;
-  if ((sr & 4) == 4)
-    iflag = true;
-  dflag = false;
-  if ((sr & 8) == 8)
-    dflag = true;
-  bflag = false;
-  if ((sr & 16) == 16)
-    bflag = true;
-  vflag = false;
-  if ((sr & 64) == 64)
-    vflag = true;
-  nflag = false;
-  if ((sr & 128) == 128)
-    nflag = true;
+  cflag = sr & 1;
+  zflag = sr & 2;
+  iflag = sr & 4;
+  dflag = sr & 8;
+  bflag = sr & 16;
+  vflag = sr & 64;
+  nflag = sr & 128;
 }
 
 void CPU6502::pushtostack(uint8_t r) {
@@ -339,11 +279,8 @@ uint8_t CPU6502::pullfromstack() {
 void CPU6502::cmd6502illegal() { cpuhalted = true; }
 
 void CPU6502::cmd6502brk() {
-  bflag = true;
-  // ueberlese 1 uint8_t
   pc++;
-  // BRK-Vektor
-  setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8));
+  setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), true);
   numofcycles += 7;
 }
 
@@ -374,7 +311,10 @@ void CPU6502::php() {
   pushtostack(sr);
 }
 
-void CPU6502::cmd6502php() { php(); }
+void CPU6502::cmd6502php() {
+  bflag = true;
+  php();
+}
 
 void CPU6502::cmd6502oraImmediate() {
   uint8_t r = getMem(pc++);
@@ -465,12 +405,12 @@ void CPU6502::cmd6502jsr() {
   uint8_t ql = getMem(pc++);
   uint8_t qh = getMem(pc);
   uint16_t q = (ql + (qh << 8));
-  // push aktuelle Adresse auf 6502-Stack
+  // push actual address to 6502 stack
   uint8_t pcl = pc & 0xFF;
   uint8_t pch = (pc >> 8);
   pushtostack(pch);
   pushtostack(pcl);
-  // setze Zieladresse
+  // set destination address
   pc = q;
   numofcycles += 6;
 }
@@ -612,9 +552,9 @@ void CPU6502::cmd6502rolAbsoluteX() {
 }
 
 void CPU6502::cmd6502rti() {
-  // hole Statusregister vom Stack
+  // get status register from stack
   plp();
-  // hole Ruecksprungadresse vom Stack
+  // get return address from stack
   uint8_t pcl = pullfromstack();
   uint8_t pch = pullfromstack();
   pc = (pcl + (pch << 8));
@@ -1808,15 +1748,23 @@ void CPU6502::cmd6502dcpAbsoluteY() {
   numofcycles += 7;
 }
 
+void CPU6502::cmd6502xaaImmediate() {
+  uint8_t r = getMem(pc++);
+  a = (a | 0xfe) & x & r;
+  atestandsetNZ();
+  numofcycles += 2;
+}
+
 void CPU6502::execute(uint8_t idx) { (this->*cmdarr6502[idx])(); }
 
-void CPU6502::setPCToIntVec(uint16_t intvect) {
+void CPU6502::setPCToIntVec(uint16_t intvect, bool intfrombrk) {
   // push actual address to 6502 stack
   uint8_t pcl = pc & 0xFF;
   uint8_t pch = (pc >> 8);
   pushtostack(pch);
   pushtostack(pcl);
   // push state to 6502 stack
+  bflag = intfrombrk;
   php();
   // clear d-flag
   dflag = false;
@@ -1842,7 +1790,7 @@ void CPU6502::run() {
     if (irq.load(std::memory_order_acquire)) {
       irq.store(false, std::memory_order_release);
       if (!iflag) {
-        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8));
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
       }
     }
     execute(getMem(pc++));

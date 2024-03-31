@@ -18,7 +18,7 @@
 #define VIC_H
 
 #include "ST7789V.h"
-#include <stdint.h>
+#include <cstdint>
 
 class VIC {
 private:

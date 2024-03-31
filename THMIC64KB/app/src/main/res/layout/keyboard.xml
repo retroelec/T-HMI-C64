@@ -53,15 +53,6 @@
             android:text="LOAD"
             android:textColor="@android:color/white" />
 
-        <Button
-            android:id="@+id/keyjoystick"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="2"
-            android:backgroundTint="#cc7777"
-            android:text="JOYSTICK"
-            android:textColor="@android:color/white" />
-
     </TableRow>
 
     <TableRow

@@ -22,7 +22,7 @@
 #include "CPU6502.h"
 #include "Joystick.h"
 #include "VIC.h"
-#include <stdint.h>
+#include <cstdint>
 
 class CPUC64 : public CPU6502 {
 private:
@@ -58,7 +58,6 @@ public:
   uint32_t numofcyclespersecond;
   bool debugcpu;
 
-  enum JOYSTICKM { NOJOYSTICK = 0, JOYSTICKP1 = 1, JOYSTICKP2 = 2 };
   uint8_t joystickmode;
   uint8_t kbjoystickmode;
 

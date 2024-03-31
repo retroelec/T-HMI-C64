@@ -22,7 +22,7 @@
 #include "CPUC64.h"
 #include "SDCard.h"
 #include "VIC.h"
-#include <stdint.h>
+#include <cstdint>
 
 class ExternalCmds {
 private:
@@ -37,8 +37,12 @@ private:
 public:
   enum cmds {
     NOHOSTCMD = 0,
-    SETJOYSTICKMODE = 1,
-    SETKBJOYSTICKMODE = 2,
+    JOYSTICKMODE1 = 1,
+    JOYSTICKMODE2 = 2,
+    KBJOYSTICKMODE1 = 3,
+    KBJOYSTICKMODE2 = 4,
+    JOYSTICKMODEOFF = 5,
+    KBJOYSTICKMODEOFF = 6,
     LOAD = 11,
     RECEIVEDATA = 12,
     SHOWREG = 13,

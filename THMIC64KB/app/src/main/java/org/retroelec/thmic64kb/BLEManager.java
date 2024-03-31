@@ -66,6 +66,7 @@ public class BLEManager {
             }
         }
 
+        /*
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
@@ -83,6 +84,7 @@ public class BLEManager {
                 Log.e("THMIC64", "ble answer: wrong characteristic");
             }
         }
+        */
     };
 
     public void sendData(byte[] data) {

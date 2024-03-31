@@ -17,8 +17,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <cstdint>
 #include <driver/adc.h>
-#include <stdint.h>
 #include <string>
 
 namespace Config {

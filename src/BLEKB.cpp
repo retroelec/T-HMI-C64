@@ -21,6 +21,15 @@
 
 static const uint8_t NUMOFCYCLES_KEYPRESSEDDOWN = 4;
 
+static const uint8_t VIRTUALJOYSTICKLEFT_ACTIVATED = 0x01;
+static const uint8_t VIRTUALJOYSTICKLEFT_DEACTIVATED = 0x81;
+static const uint8_t VIRTUALJOYSTICKRIGHT_ACTIVATED = 0x02;
+static const uint8_t VIRTUALJOYSTICKRIGHT_DEACTIVATED = 0x82;
+static const uint8_t VIRTUALJOYSTICKUP_ACTIVATED = 0x04;
+static const uint8_t VIRTUALJOYSTICKUP_DEACTIVATED = 0x84;
+static const uint8_t VIRTUALJOYSTICKDOWN_ACTIVATED = 0x08;
+static const uint8_t VIRTUALJOYSTICKDOWN_DEACTIVATED = 0x88;
+
 uint8_t *buffer;
 uint8_t bufidxprod;
 uint8_t bufidxcons;
@@ -29,6 +38,7 @@ uint8_t shiftctrlcode;
 uint8_t kbcode1;
 uint8_t kbcode2;
 uint8_t keypresseddowncnt;
+uint8_t virtjoystickvalue;
 
 class BLEKBServerCallback : public BLEServerCallbacks {
   void onConnect(BLEServer *pServer) { deviceConnected = true; };
@@ -48,7 +58,7 @@ class BLEKBCharacteristicCallback : public BLECharacteristicCallbacks {
       }
       bufidxcons = 0;
       bufidxprod = value.length();
-    } else { // keyboard codes
+    } else if (value.length() == 3) { // keyboard codes
       // BLE client sends 3 codes for each key: dc00, dc01, "shiftctrlcode"
       // shiftctrlcode: bit 0 -> left shift
       //                bit 7 -> external command (cmd, 0, 128)
@@ -57,9 +67,16 @@ class BLEKBCharacteristicCallback : public BLECharacteristicCallbacks {
       }
       shiftctrlcode = buffer[2];
       keypresseddowncnt = 0;
+    } else if (value.length() == 1) { // virtual joystick
+      uint8_t virtjoy = (uint8_t)value[0];
+      bool deactivated = virtjoy & 0x80;
+      uint8_t direction = virtjoy & 0x7f;
+      if (deactivated) {
+        virtjoystickvalue |= (1 << direction);
+      } else {
+        virtjoystickvalue &= ~(1 << direction);
+      }
     }
-    pCharacteristic->setValue("K");
-    pCharacteristic->notify();
   }
 };
 
@@ -72,6 +89,9 @@ void BLEKB::init(std::string service_uuid, std::string characteristic_uuid,
   buffer = kbbuffer;
   kbcode1 = 0xff;
   kbcode2 = 0xff;
+
+  // init virtual joystick
+  virtjoystickvalue = 0xff;
 
   // init BLE
   deviceConnected = false;
@@ -129,6 +149,8 @@ uint8_t BLEKB::decode(uint8_t dc00) {
     }
   }
 }
+
+uint8_t BLEKB::getKBJoyValue() { return virtjoystickvalue; }
 
 bool BLEKB::getData(uint8_t *data) {
   if (bufidxprod != bufidxcons) {

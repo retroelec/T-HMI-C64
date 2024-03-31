@@ -18,7 +18,7 @@
 #define CIA_H
 
 #include <atomic>
-#include <stdint.h>
+#include <cstdint>
 
 // register dc0d:
 // - Interrupt Control Register when written to

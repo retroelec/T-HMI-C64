@@ -17,7 +17,7 @@
 #ifndef BLEKB_H
 #define BLEKB_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 
 class BLEKB {
@@ -27,6 +27,7 @@ public:
   // keyboard
   uint8_t getKBCode();
   uint8_t decode(uint8_t dc00);
+  uint8_t getKBJoyValue();
   // transfer data
   bool getData(uint8_t *data);
 };

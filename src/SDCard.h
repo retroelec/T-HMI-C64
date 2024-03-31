@@ -20,7 +20,7 @@
 #include "Config.h"
 #include <FS.h>
 #include <SD_MMC.h>
-#include <stdint.h>
+#include <cstdint>
 
 class SDCard {
 private:

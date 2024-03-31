@@ -17,7 +17,7 @@
 #ifndef ST7789V_H
 #define ST7789V_H
 
-#include <stdint.h>
+#include <cstdint>
 
 class ST7789V {
 private:

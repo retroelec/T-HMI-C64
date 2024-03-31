@@ -146,19 +146,29 @@ void ExternalCmds::checkExternalCmd() {
     vic->drawnotevenodd = !vic->drawnotevenodd;
     Log.noticeln("drawnotevenodd = %B", vic->drawnotevenodd);
     break;
-  case SETJOYSTICKMODE:
-    cpu->joystickmode++;
-    if (cpu->joystickmode > CPUC64::JOYSTICKM::JOYSTICKP2) {
-      cpu->joystickmode = CPUC64::JOYSTICKM::NOJOYSTICK;
-    }
+  case JOYSTICKMODE1:
+    cpu->joystickmode = 1;
     Log.noticeln("joystickmode = %x", cpu->joystickmode);
     break;
-  case SETKBJOYSTICKMODE:
-    cpu->kbjoystickmode++;
-    if (cpu->kbjoystickmode > CPUC64::JOYSTICKM::JOYSTICKP2) {
-      cpu->kbjoystickmode = CPUC64::JOYSTICKM::NOJOYSTICK;
-    }
+  case JOYSTICKMODE2:
+    cpu->joystickmode = 2;
+    Log.noticeln("joystickmode = %x", cpu->joystickmode);
+    break;
+  case JOYSTICKMODEOFF:
+    cpu->joystickmode = 0;
+    Log.noticeln("joystickmode = %x", cpu->joystickmode);
+    break;
+  case KBJOYSTICKMODE1:
+    cpu->kbjoystickmode = 1;
     Log.noticeln("kbjoystickmode = %x", cpu->kbjoystickmode);
+    break;
+  case KBJOYSTICKMODE2:
+    cpu->kbjoystickmode = 2;
+    Log.noticeln("kbjoystickmode = %x", cpu->kbjoystickmode);
+    break;
+  case KBJOYSTICKMODEOFF:
+    cpu->kbjoystickmode = 0;
+    Log.noticeln("joystickmode = %x", cpu->kbjoystickmode);
     break;
   }
   ExternalCmds::hostcmdcode = NOHOSTCMD;

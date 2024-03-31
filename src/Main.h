@@ -24,7 +24,7 @@
 #include "ExternalCmds.h"
 #include "Joystick.h"
 #include "VIC.h"
-#include <stdint.h>
+#include <cstdint>
 
 class Main {
 public:

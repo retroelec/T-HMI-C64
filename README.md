@@ -29,6 +29,7 @@ The display can be rotated to support the resolution of a C64 (320x200).
 ### Joystick
 
 I connected an "iduino joystick shield" to the T-HMI development board.
+The joystick is optional (as there exists also a virtual joystick) but recommended.
 It has an analog 2-axis thumb joystick and several buttons.
 
 <img src="doc/joystick.png" alt="joystick" width="400"/>
@@ -85,6 +86,13 @@ I used the following settings in the Tools menu of the Arduino IDE 2.2.1:
 | Upload mode                          | UART0 / Hardware CDC              |
 | USB Mode                             | Hardware CDC and JTAG             |
 
+Further the following Arduino libraries are needed (in brackets the version I used):
+
+- FS (2.0.0)
+- SD_MMC (2.0.0)
+- ESP32 BLE Arduino (2.0.0)
+- ArduinoLog (1.1.1)
+
 ### Upload emulator
 
 Just open the file T-HMI-C64.ino in Arduino and upload the emulator (menu Sketch - Upload or press ctrl-u).
@@ -93,35 +101,6 @@ Just open the file T-HMI-C64.ino in Arduino and upload the emulator (menu Sketch
 
 After uploading the emulator to the T-HMI development board, the C64 startup screen appears.
 The emulator starts also a BLE (Bluetooth Low Energy) server to receive keystrokes from a client.
-(The needed UUIDs are defined in src/Config.h: SERVICE_UUID and CHARACTERISTIC_UUID.)
-Actually there are two clients available.
-
-#### Linux client espkb.py
-
-For linux I wrote a small python script named espkb.py (not working under MS Windows). It has to be started in a terminal window.
-It first connects to the BLE server of the ESP32. After that it sends keystrokes typed in the terminal window to the emulator.
-Before starting espkb.py you have to set the variable device_address to the mac address of the ESP32.
-(If you did adapt the CHARACTERISTIC_UUID in src/Config.h you also have to set the variable characteristic_uuid in espkb.py accordingly.)
-You need super user access rights to start the espkb.py script.
-To use the script you have to install additional python packages (pygatt, pynput).
-
-Besides sending "normal" C64 keystrokes, it is also possible to send "commands" to the emulator.
-The following "external commands" are available:
-
-- f12: toggle between external and c64 mode for f1-f8 (default: c64 mode)
-- f9: set joystick
-- f1: show cpu + chip registers
-- f2: load prg from sdcard
-- f3: show memory
-- f4: send prg to esp by BLE
-- f5: set keyboard joystick
-- f6: reset C64
-- f7: toggle between 'draw each line one after another' and 'draw even and odd lines successively'
-
-Unfortunatelly the BLE connection is not very stable, keys are transfered slowly and sometimes a keystroke is missed.
-So it is discouraged to use this client.
-
-#### Android client
 
 I wrote a simple Android app which emulates a C64 keyboard for the emulator.
 You can either install the app using an Android IDE or directly install the APK file on your Android smartphone.
@@ -135,14 +114,20 @@ Otherwise you can move the "BLE connection" switch to the right to connect to th
 after reseting the development board (e.g. if you want to start a new game).
 
 Besides the normal C64 keys this virtual keyboard also provides red extra buttons to send "external commands".
-Actually the LOAD and the JOYSTICK buttons are available:
+Actually the LOAD and several JOYSTICK buttons are available:
 
 - LOAD: load a C64 program from SD card
-- JOYSTICK: toggle between "joystick in port 1", "joystick in port 2", "no joystick"
+- JOYSTICK 1: connected joystick can be used as a joystick in port 1
+- JOYSTICK 2: connected joystick can be used as a joystick in port 2
+- KBJOYSTICK 1: "virtual joystick" can be used as a joystick in port 1
+- KBJOYSTICK 2: "virtual joystick" can be used as a joystick in port 1
+
+<img src="doc/THMIC64KB_VirtJoystick.png" alt="Virtual Joystick" width="600"/>
+
+The virtual joystick has some drawbacks in terms of responsiveness.
+To play games, a hardware joystick ist recommended.
 
 Up to now the following keys are not implemented: Commodore key, CTRL key, RESTORE key
-
-BLE connection is stable, fast and reliable - you should use this BLE client.
 
 ### Load and start a game
 
@@ -155,10 +140,6 @@ To do this, you first type in the name of the game so it shows up on the C64 tex
 You then press the LOAD button on your Android phone.
 Use the button RETURN or "cursor key down" to go to the next line
 and type "RUN" followed by pressing the button RETURN to start the game.
-To use the joystick you have to enable / determine the port of the joystick:
-Clicking the JOYSTICK button the first time activates joystick in port 1,
-clicking the JOYSTICK button again activates joystick in port 2,
-clicking the JOYSTICK button again disables the joystick.
 
 ## Software
 
@@ -220,10 +201,10 @@ All hardware ports not explicitly mentioned including their corresponding regist
 - not all "illegal" opcodes of the 6502 CPU are implemented yet
 - line 200 is not displayed correctly
 - code cleanup is necessary
-- sometimes CPU is blocked after loading a game
-- no joystick emulation using BLE
+- rarly CPU is blocked after loading a game
 - some games are not running properly
 - some games are not working at all
+- virtual joystick is pretty ugly
 
 ### Games
 
@@ -248,18 +229,19 @@ Games that are playable:
 - international soccer
 - choplifter
 - pole position
+- pacman
+- hero (sprites flickering)
+- boulder dash
+- q*bert (small graphic errors at bottom)
+- fort apocalypse
+- ghost and gobblins (small graphic errors at top and bottom)
+- great gianas sister
+- hyper sports
+- blue max
 
-Games not running properly:
+Games not working:
 
-- hero (sprites flickering, magnetic walls are too dark(?), still playable)
-- boulder dash (sprites flickering, wrong colors)
-- q*bert (sprites flickering, graphic errors after game over)
-- fort apocalypse (sprites flickering, sometimes player sprite disappears)
-
-Games not working at all:
-
-- burger time (crashing)
-- ghost and gobblins (crashing)
-- great gianas sister (crashing)
-- hyper sports (crashing)
-
+- burger time
+- terra cresta
+- arkanoid
+- commando (fire button does not start game)

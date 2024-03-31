@@ -131,9 +131,9 @@ void Main::setup() {
                           "CPU",    // Name of the task
                           10000,    // Stack size in words
                           NULL,     // Task input parameter
-                          0,        // Priority of the task
+                          19,        // Priority of the task
                           &cpuTask, // Task handle
-                          0);       // Core where the task should run
+                          1);       // Core where the task should run
 
   // interrupt each INTERRUPTKERNALRESOLUTION us -> standard kernal routine
   // each 16.666 ms
@@ -143,12 +143,12 @@ void Main::setup() {
   timerAlarmEnable(interruptKernal);
 
   // profiling: interrupt each second
-  /*
+  /**/
   interruptProfiling = timerBegin(2, 80, true);
   timerAttachInterrupt(interruptProfiling, &interruptProfilingFunc, true);
   timerAlarmWrite(interruptProfiling, 1000000, true);
   timerAlarmEnable(interruptProfiling);
-  */
+  /**/
 
   // init ExternalCmds
   externalCmds.init(ram, &cpu, &vic, &cia1, &cia2, &blekb);
@@ -160,4 +160,5 @@ void Main::loop() {
     externalCmds.checkExternalCmd();
   }
   vic.refresh();
+  vTaskDelay(1);
 }

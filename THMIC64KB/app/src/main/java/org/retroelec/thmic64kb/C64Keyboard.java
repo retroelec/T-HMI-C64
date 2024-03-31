@@ -38,7 +38,6 @@ public class C64Keyboard extends LinearLayout {
 
     void initKBHashMap() {
         map.put("LOAD", new byte[]{(byte) 11, (byte) 0x00, (byte) 0x80});
-        map.put("JOYSTICK", new byte[]{(byte) 1, (byte) 0x00, (byte) 0x80});
         map.put("del", new byte[]{(byte) 0xfe, (byte) 0xfe, (byte) 0x00});
         map.put("home", new byte[]{(byte) 0xbf, (byte) 0xf7, (byte) 0x00});
         map.put("ctrl", new byte[]{(byte) 0x7f, (byte) 0xdf, (byte) 0x00});
@@ -214,7 +213,6 @@ public class C64Keyboard extends LinearLayout {
         Button keyf5;
         Button keyf7;
         Button keyload;
-        Button keyjoystick;
         Button keyleftarrow;
         Button key0;
         Button keyplus;
@@ -269,7 +267,6 @@ public class C64Keyboard extends LinearLayout {
         keyf5 = findViewById(R.id.keyf5);
         keyf7 = findViewById(R.id.keyf7);
         keyload = findViewById(R.id.keyload);
-        keyjoystick = findViewById(R.id.keyjoystick);
         keyleftarrow = findViewById(R.id.keyleftarrow);
         key1 = findViewById(R.id.key1);
         key2 = findViewById(R.id.key2);
@@ -352,10 +349,6 @@ public class C64Keyboard extends LinearLayout {
         });
         keyload.setOnClickListener(view -> {
             String key = "LOAD";
-            sendKey(context, key, map.get(key));
-        });
-        keyjoystick.setOnClickListener(view -> {
-            String key = "JOYSTICK";
             sendKey(context, key, map.get(key));
         });
         keyleftarrow.setOnClickListener(view -> {

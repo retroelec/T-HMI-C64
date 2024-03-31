@@ -30,11 +30,7 @@ uint8_t CPUC64::getMem(uint16_t addr) {
     // ** VIC **
     if (addr <= 0xd3ff) {
       uint8_t vicidx = (addr - 0xd000) % 0x40;
-      if (vicidx == 0x11) {
-        return vic->vicreg[vicidx] | ((vic->rasterline >> 1) & 0x80);
-      } else if (vicidx == 0x12) {
-        return vic->rasterline & 0xff;
-      } else if ((vicidx == 0x1e) || (vicidx == 0x1f)) {
+      if ((vicidx == 0x1e) || (vicidx == 0x1f)) {
         uint8_t val = vic->vicreg[vicidx];
         vic->vicreg[vicidx] = 0;
         return val;
@@ -74,20 +70,32 @@ uint8_t CPUC64::getMem(uint16_t addr) {
         cia1->latchdc0d.store(0, std::memory_order_release);
         return val;
       } else if (ciaidx == 0x00) {
-        if (joystickmode == JOYSTICKM::JOYSTICKP2) {
+        if (joystickmode == 2) {
           // real joystick
           return Joystick::getValue();
+        } else if (kbjoystickmode == 2) {
+          // keyboard joystick
+          return blekb->getKBJoyValue();
         } else {
           return 0x7f;
         }
       } else if (ciaidx == 0x01) {
-        if (joystickmode == JOYSTICKM::JOYSTICKP1) {
+        if (joystickmode == 1) {
           // real joystick, but still check for keyboard input
           uint8_t pressedkey =
               blekb->decode(cia1->ciareg[0x00].load(std::memory_order_acquire));
           if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             return Joystick::getValue();
+          }
+          return pressedkey;
+        } else if (kbjoystickmode == 1) {
+          // keyboard joystick, but still check for keyboard input
+          uint8_t pressedkey =
+              blekb->decode(cia1->ciareg[0x00].load(std::memory_order_acquire));
+          if (pressedkey == 0xff) {
+            // no key pressed -> return joystick value (of keyboard joystick)
+            return blekb->getKBJoyValue();
           }
           return pressedkey;
         } else {
@@ -199,7 +207,7 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
       if (vicidx == 0x11) {
         // only bit 7 of latch register d011 is used
         vic->latchd011 = val;
-        vic->vicreg[vicidx] = val & 127;
+        vic->vicreg[vicidx] = val & 0x7f;
         adaptVICBaseAddrs(false);
       } else if (vicidx == 0x12) {
         vic->latchd012 = val;
@@ -417,10 +425,11 @@ void CPUC64::run() {
     if (cpuhalted) {
       continue;
     }
+    // CIA 1 interrupt request?
     if (irq.load(std::memory_order_acquire)) {
       irq.store(false, std::memory_order_release);
       if (!iflag) {
-        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8));
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
       }
     }
     execute(getMem(pc++));
@@ -428,8 +437,9 @@ void CPUC64::run() {
       numofcyclespersecond += numofcycles;
       numofcycles = 0;
       bool vicint = vic->nextRasterline();
+      // VIC interrupt request?
       if (vicint && (!iflag)) {
-        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8));
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
         for (uint8_t i = 0; i < 8; i++) {
           execute(getMem(pc++));
         }

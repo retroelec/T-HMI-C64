@@ -7,15 +7,56 @@
     android:paddingTop="10dp"
     android:paddingRight="10dp">
 
-    <Switch
-        android:id="@+id/bleSwitch"
-        android:layout_width="wrap_content"
+    <TableRow
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:text="BLE Connection"
-        android:textStyle="bold"
-        android:textColor="@android:color/black"
-        android:checked="false" />
+        android:background="#555555"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <Switch
+            android:id="@+id/bleSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:checked="false"
+            android:text="BLE Connection"
+            android:textColor="@android:color/black"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/keykbjoystick1"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:backgroundTint="#cc7777"
+            android:text="KBJOYSTICK1"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/keykbjoystick2"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:backgroundTint="#cc7777"
+            android:text="KBJOYSTICK2"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/joystick1"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:backgroundTint="#cc7777"
+            android:text="JOYSTICK1"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/joystick2"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:backgroundTint="#cc7777"
+            android:text="JOYSTICK2"
+            android:textColor="@android:color/white" />
+
+    </TableRow>
 
     <org.retroelec.thmic64kb.C64Keyboard
         android:id="@+id/keyboard"

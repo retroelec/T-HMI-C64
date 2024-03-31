@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#b8a894"
+        android:paddingLeft="10dp"
+        android:paddingTop="30dp"
+        android:paddingRight="10dp">
+
+        <View
+            android:id="@+id/viewjoystick"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true" />
+
+        <ImageButton
+            android:id="@+id/arrowdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/viewjoystick"
+            android:layout_centerHorizontal="true"
+            android:background="@android:color/transparent"
+            android:src="@drawable/arrowdown"
+            android:contentDescription="down" />
+
+        <ImageButton
+            android:id="@+id/arrowup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/viewjoystick"
+            android:layout_centerHorizontal="true"
+            android:background="@android:color/transparent"
+            android:src="@drawable/arrowup"
+            android:contentDescription="up" />
+
+        <ImageButton
+            android:id="@+id/arrowright"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toRightOf="@+id/viewjoystick"
+            android:background="@android:color/transparent"
+            android:src="@drawable/arrowright"
+            android:contentDescription="right" />
+
+        <ImageButton
+            android:id="@+id/arrowleft"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toLeftOf="@+id/viewjoystick"
+            android:background="@android:color/transparent"
+            android:src="@drawable/arrowleft"
+            android:contentDescription="left" />
+
+        <ImageButton
+            android:id="@+id/fire"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="110dp"
+            android:layout_marginTop="60dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="fire"
+            android:src="@drawable/button" />
+
+        <Button
+            android:id="@+id/close"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="30dp"
+            android:background="#cc7777"
+            android:drawableTop="@drawable/close"
+            android:text="close" />
+
+    </RelativeLayout>
+
+</merge>

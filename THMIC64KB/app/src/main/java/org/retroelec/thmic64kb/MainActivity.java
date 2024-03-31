@@ -7,12 +7,16 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.Switch;
 import android.widget.Toast;
 
@@ -33,6 +37,12 @@ public class MainActivity extends AppCompatActivity {
     private BLEManager bleManager = null;
     private BluetoothLeScanner bluetoothLeScanner;
     private Switch bleSwitch;
+    private Button keykbjoystick1;
+    private Button keykbjoystick2;
+    private Button joystick1;
+    private Button joystick2;
+    private boolean joystick1active = false;
+    private boolean joystick2active = false;
     private final Handler handler = new Handler();
 
     private void connectToDevice() {
@@ -121,6 +131,62 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Objects.requireNonNull(getSupportActionBar()).hide();
         setContentView(R.layout.activity_main);
+
+        keykbjoystick1 = findViewById(R.id.keykbjoystick1);
+        keykbjoystick1.setOnClickListener(view -> {
+            if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
+                bleManager.sendData(new byte[]{(byte) 3, (byte) 0x00, (byte) 0x80});
+            }
+            Intent i = new Intent(MainActivity.this, KBJoystickActivity.class);
+            startActivity(i);
+        });
+
+        keykbjoystick2 = findViewById(R.id.keykbjoystick2);
+        keykbjoystick2.setOnClickListener(view -> {
+            if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
+                bleManager.sendData(new byte[]{(byte) 4, (byte) 0x00, (byte) 0x80});
+            }
+            Intent i = new Intent(MainActivity.this, KBJoystickActivity.class);
+            startActivity(i);
+        });
+
+        joystick1 = findViewById(R.id.joystick1);
+        joystick1.setOnClickListener(view -> {
+            if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
+                if (!joystick1active) {
+                    // activate joystick 1
+                    joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#77cc77")));
+                    bleManager.sendData(new byte[]{(byte) 1, (byte) 0x00, (byte) 0x80});
+                    // deactivate joystick 2
+                    joystick2active = false;
+                    joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
+                } else {
+                    // deactivate joystick 1
+                    joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
+                    bleManager.sendData(new byte[]{(byte) 5, (byte) 0x00, (byte) 0x80});
+                }
+                joystick1active = !joystick1active;
+            }
+        });
+
+        joystick2 = findViewById(R.id.joystick2);
+        joystick2.setOnClickListener(view -> {
+            if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
+                if (!joystick2active) {
+                    // activate joystick 2
+                    joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#77cc77")));
+                    bleManager.sendData(new byte[]{(byte) 2, (byte) 0x00, (byte) 0x80});
+                    // deactivate joysticks
+                    joystick1active = false;
+                    joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
+                } else {
+                    // deactivate joystick 2
+                    joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
+                    bleManager.sendData(new byte[]{(byte) 5, (byte) 0x00, (byte) 0x80});
+                }
+                joystick2active = !joystick2active;
+            }
+        });
 
         bleSwitch = findViewById(R.id.bleSwitch);
         bleSwitch.setChecked(false);

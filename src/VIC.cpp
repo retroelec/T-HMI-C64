@@ -15,7 +15,7 @@
  http://www.gnu.org/licenses/.
 */
 #include "VIC.h"
-#include <string.h>
+#include <cstring>
 
 static uint16_t tftColorFromC64ColorArr[16] = {
     ST7789V::c64_black,     ST7789V::c64_white,      ST7789V::c64_red,
@@ -147,15 +147,15 @@ void VIC::drawMCCharMode(uint8_t *screenMap, uint8_t *charset,
   uint8_t xp = 0;
   for (uint8_t x = 0; x < 40; x++) {
     uint8_t colc64 = colorMap[idxmap] & 15;
-    uint16_t col = tftColorFromC64ColorArr[colc64];
     uint8_t ch = screenMap[idxmap];
     uint16_t idxch = ch << 3;
     uint8_t chardata = charset[idxch + row];
     if (colc64 & 8) {
-      tftColArr[3] = col;
+      tftColArr[3] = tftColorFromC64ColorArr[colc64 & 7];
       drawByteMCData(chardata, idx, xp, tftColArr, collArr);
     } else {
-      drawByteStdData(chardata, idx, xp, col, bgcol);
+      drawByteStdData(chardata, idx, xp, tftColorFromC64ColorArr[colc64],
+                      bgcol);
     }
     idxmap++;
   }
@@ -173,7 +173,7 @@ void VIC::drawExtBGColCharMode(uint8_t *screenMap, uint8_t *charset,
     uint8_t ch = screenMap[idxmap];
     uint8_t ch6bits = ch & 0x3f;
     uint8_t bgcol = tftColorFromC64ColorArr[bgColArr[ch >> 6] & 15];
-    uint16_t idxch = ch << 3;
+    uint16_t idxch = ch6bits << 3;
     uint8_t chardata = charset[idxch + row];
     drawByteStdData(chardata, idx, xp, col, bgcol);
     idxmap++;
@@ -406,10 +406,10 @@ void VIC::drawSprites(uint8_t line) {
     bitval >>= 1;
   }
   if ((vicreg[0x1a] & 2) && (vicreg[0x1f] != 0)) {
-    vicreg[0x19] |= 2;
+    vicreg[0x19] |= 0x82;
   }
   if ((vicreg[0x1a] & 4) && (vicreg[0x1e] != 0)) {
-    vicreg[0x19] |= 4;
+    vicreg[0x19] |= 0x84;
   }
 }
 
@@ -464,19 +464,23 @@ void VIC::refresh() {
 }
 
 bool VIC::nextRasterline() {
-  rasterline += 1;
+  rasterline++;
   if (rasterline > 311) {
     rasterline = 0;
-    vicreg[0x11] &= 127;
     drawEvenLines = !drawEvenLines;
   }
   uint8_t ld011 = (rasterline >= 256) ? 0x80 : 0;
+  vicreg[0x11] &= 0x7f;
   vicreg[0x11] |= ld011;
   vicreg[0x12] = (rasterline & 0xff);
-  if ((vicreg[0x1a] & 1) && (latchd012 == vicreg[0x12]) &&
-      ((latchd011 & 0x80) == ld011)) {
-    vicreg[0x19] |= 0x81;
-    return true;
+  if ((latchd012 == vicreg[0x12]) && ((latchd011 & 0x80) == ld011)) {
+    if (vicreg[0x1a] & 1) {
+      vicreg[0x19] |= 0x81;
+      return true;
+    } else {
+      vicreg[0x19] |= 0x01;
+      return false;
+    }
   }
   return false;
 }
@@ -524,7 +528,7 @@ void VIC::drawRasterline() {
           }
         }
       }
-      drawSprites(line);
     }
+    drawSprites(line);
   }
 }

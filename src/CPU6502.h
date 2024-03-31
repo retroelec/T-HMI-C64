@@ -18,7 +18,7 @@
 #define CPU6502_H
 
 #include <atomic>
-#include <stdint.h>
+#include <cstdint>
 
 class CPU6502 {
 private:
@@ -52,15 +52,15 @@ private:
   inline uint8_t rorbase0(uint8_t r) __attribute__((always_inline));
   inline void rorbase() __attribute__((always_inline));
   inline void bitBase() __attribute__((always_inline));
-  void srfromflags();
-  void flagsfromsr();
-  void pushtostack(uint8_t r);
-  uint8_t pullfromstack();
+  inline void srfromflags();
+  inline void flagsfromsr();
+  inline void pushtostack(uint8_t r);
+  inline uint8_t pullfromstack();
   void cmd6502brk();
   void cmd6502oraIndirectX();
   void cmd6502oraZeropage();
   void cmd6502aslZeropage();
-  void php();
+  inline void php();
   void cmd6502php();
   void cmd6502oraImmediate();
   void cmd6502aslA();
@@ -80,7 +80,7 @@ private:
   void cmd6502bitZeropage();
   void cmd6502andZeropage();
   void cmd6502rolZeropage();
-  void plp();
+  inline void plp();
   void cmd6502plp();
   void cmd6502andImmediate();
   void cmd6502rolA();
@@ -226,7 +226,7 @@ private:
   void cmd6502saxZeropageY();
   void cmd6502saxAbsolute();
   void cmd6502saxIndirectX();
-  uint8_t isbincbase();
+  inline uint8_t isbincbase();
   void cmd6502isbZeropage();
   void cmd6502isbZeropageX();
   void cmd6502isbIndirectX();
@@ -267,6 +267,7 @@ private:
   void cmd6502dcpAbsolute();
   void cmd6502dcpAbsoluteX();
   void cmd6502dcpAbsoluteY();
+  void cmd6502xaaImmediate();
 
   // undocumented implied nop commands are defined virtual so them may be used
   // for logging, profiling etc.
@@ -358,7 +359,7 @@ private:
       &CPU6502::cmd6502styZeropage, &CPU6502::cmd6502staZeropage,
       &CPU6502::cmd6502stxZeropage, &CPU6502::cmd6502saxZeropage,
       &CPU6502::cmd6502dey, &CPU6502::cmd6502nopImmediate, &CPU6502::cmd6502txa,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502styAbsolute,
+      &CPU6502::cmd6502xaaImmediate, &CPU6502::cmd6502styAbsolute,
       &CPU6502::cmd6502staAbsolute, &CPU6502::cmd6502stxAbsolute,
       &CPU6502::cmd6502saxAbsolute,
       // 0x90
@@ -441,7 +442,7 @@ protected:
   uint16_t pc;
 
   void execute(uint8_t idx);
-  void setPCToIntVec(uint16_t intvect);
+  void setPCToIntVec(uint16_t intvect, bool intfrombrk);
 
 public:
   // number of cycles since last adjustment
@@ -451,8 +452,8 @@ public:
   std::atomic<bool> cpuhalted;
 
   // interrupt flags
-  bool iflag;
-  std::atomic<bool> irq;
+  bool iflag;            // CPU flag
+  std::atomic<bool> irq; // interrupt request from CIA 1
 
   // virtual methods, may be overriden for logging etc.
   virtual void run();
