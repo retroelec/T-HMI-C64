@@ -15,6 +15,7 @@
  http://www.gnu.org/licenses/.
 */
 #include "VIC.h"
+#include "ST7789V.h"
 #include <cstring>
 
 static uint16_t tftColorFromC64ColorArr[16] = {
@@ -222,7 +223,7 @@ void VIC::drawStdBitmapMode(uint8_t *hiresBitmap, uint8_t *colorMap,
   }
 }
 
-void VIC::drawSpriteDataSC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
+void VIC::drawSpriteDataSC(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                            uint8_t *data, uint8_t color) {
   uint16_t tftcolor = tftColorFromC64ColorArr[color];
   uint16_t idx = xpos + ypos * 320;
@@ -231,6 +232,13 @@ void VIC::drawSpriteDataSC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
     uint8_t d = *data++;
     uint8_t bitval = 128;
     for (uint8_t i = 0; i < 8; i++) {
+      if (xpos < 0) {
+        idx++;
+        xpos++;
+        continue;
+      } else if (xpos >= 320) {
+        return;
+      }
       if (d & bitval) {
         if (spritedatacoll[xpos]) {
           // sprite - data collision
@@ -252,7 +260,7 @@ void VIC::drawSpriteDataSC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
   }
 }
 
-void VIC::drawSpriteDataSCDS(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
+void VIC::drawSpriteDataSCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                              uint8_t *data, uint8_t color) {
   uint16_t tftcolor = tftColorFromC64ColorArr[color];
   uint16_t idx = xpos + ypos * 320;
@@ -261,6 +269,13 @@ void VIC::drawSpriteDataSCDS(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
     uint8_t d = *data++;
     uint8_t bitval = 128;
     for (uint8_t i = 0; i < 8; i++) {
+      if (xpos < 0) {
+        idx += 2;
+        xpos++;
+        continue;
+      } else if (xpos >= 320) {
+        return;
+      }
       if (d & bitval) {
         if (spritedatacoll[xpos]) {
           // sprite - data collision
@@ -283,9 +298,16 @@ void VIC::drawSpriteDataSCDS(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
   }
 }
 
-void VIC::drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, uint16_t &xpos,
+void VIC::drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, int16_t &xpos,
                                 uint16_t bgcol, uint8_t bitnr,
                                 uint16_t *tftcolor) {
+  if (xpos < 0) {
+    idx += 2;
+    xpos += 2;
+    return;
+  } else if (xpos >= 320) {
+    return;
+  }
   if (idxc) {
     if ((spritedatacoll[xpos] != bgcol) ||
         (spritedatacoll[xpos + 1] != bgcol)) {
@@ -312,7 +334,7 @@ void VIC::drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, uint16_t &xpos,
   }
 }
 
-void VIC::drawSpriteDataMC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
+void VIC::drawSpriteDataMC(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                            uint8_t *data, uint8_t color10, uint8_t color01,
                            uint8_t color11) {
   uint16_t tftcolor[4] = {0, tftColorFromC64ColorArr[color01],
@@ -333,7 +355,7 @@ void VIC::drawSpriteDataMC(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
   }
 }
 
-void VIC::drawSpriteDataMCDS(uint8_t bitnr, uint16_t xpos, uint8_t ypos,
+void VIC::drawSpriteDataMCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                              uint8_t *data, uint8_t color10, uint8_t color01,
                              uint8_t color11) {
   uint16_t tftcolor[4] = {0, tftColorFromC64ColorArr[color01],
@@ -380,10 +402,6 @@ void VIC::drawSprites(uint8_t line) {
         if (vicreg[0x10] & bitval) {
           x += 256;
         }
-        if ((x + 24 >= 320) || (x < 0)) {
-          bitval >>= 1;
-          continue;
-        }
         uint8_t ypos = line - 50;
         uint16_t dataaddr = ram[screenmemstart + 1016 + nr] * 64;
         uint8_t *data = ram + vicmem + dataaddr + ((line - y) / facysize) * 3;
@@ -405,22 +423,37 @@ void VIC::drawSprites(uint8_t line) {
     }
     bitval >>= 1;
   }
-  if ((vicreg[0x1a] & 2) && (vicreg[0x1f] != 0)) {
-    vicreg[0x19] |= 0x82;
+  if (vicreg[0x1f] != 0) {
+    if (vicreg[0x1a] & 2) {
+      vicreg[0x19] |= 0x82;
+    } else {
+      vicreg[0x19] |= 0x02;
+    }
   }
-  if ((vicreg[0x1a] & 4) && (vicreg[0x1e] != 0)) {
-    vicreg[0x19] |= 0x84;
+  if (vicreg[0x1e] != 0) {
+    if (vicreg[0x1a] & 4) {
+      vicreg[0x19] |= 0x84;
+    } else {
+      vicreg[0x19] |= 0x04;
+    }
   }
 }
 
-bool VIC::init(uint8_t *ram, uint8_t *charrom, uint16_t *bitmap) {
+VIC::VIC() { bitmap = nullptr; }
+
+void VIC::init(uint8_t *ram, uint8_t *charrom) {
+  if (bitmap != nullptr) {
+    // init method must be called only once
+    return;
+  }
   this->ram = ram;
   this->chrom = charrom;
-  this->bitmap = bitmap;
-  this->colormap = (uint8_t *)calloc(40 * 25, sizeof(uint8_t));
-  if (colormap == nullptr) {
-    return false;
-  }
+
+  // allocate bitmap memory to be transfered to LCD
+  // (consider xscroll and yscroll offset)
+  bitmap = new uint16_t[320 * (200 + 7) + 7]();
+
+  colormap = new uint8_t[40 * 25]();
   for (uint8_t i = 0; i < 0x40; i++) {
     vicreg[i] = 0;
   }
@@ -431,22 +464,20 @@ bool VIC::init(uint8_t *ram, uint8_t *charrom, uint16_t *bitmap) {
   vicreg[0x1a] = 0xf0;
 
   cntRefreshs = 0;
-  drawEvenLines = true;
   syncd020 = 0;
+
+  activateDrawLinesAlternately = false;
+  drawEvenLines = false;
 
   vicmem = 0;
   bitmapstart = 0x2000;
   screenmemstart = 1024;
   cntRefreshs = 0;
   rasterline = 0;
-  drawnotevenodd = false;
   charset = chrom;
 
   // init LCD driver
-  if (ST7789V::init()) {
-    return true;
-  }
-  return false;
+  ST7789V::init();
 }
 
 void VIC::checkFrameColor() {
@@ -463,7 +494,7 @@ void VIC::refresh() {
   cntRefreshs++;
 }
 
-bool VIC::nextRasterline() {
+uint8_t VIC::nextRasterline() {
   rasterline++;
   if (rasterline > 311) {
     rasterline = 0;
@@ -472,34 +503,41 @@ bool VIC::nextRasterline() {
   uint8_t ld011 = (rasterline >= 256) ? 0x80 : 0;
   vicreg[0x11] &= 0x7f;
   vicreg[0x11] |= ld011;
-  vicreg[0x12] = (rasterline & 0xff);
-  if ((latchd012 == vicreg[0x12]) && ((latchd011 & 0x80) == ld011)) {
+  uint8_t vicregd012 = (rasterline & 0xff);
+  vicreg[0x12] = vicregd012;
+  if ((latchd012 == vicregd012) && ((latchd011 & 0x80) == ld011)) {
     if (vicreg[0x1a] & 1) {
       vicreg[0x19] |= 0x81;
-      return true;
     } else {
       vicreg[0x19] |= 0x01;
-      return false;
     }
   }
-  return false;
+  // badline?
+  if (((vicreg[0x11] & 3) == (vicregd012 & 3)) && (vicregd012 >= 0x30) &&
+      (vicregd012 <= 0xf7)) {
+    return 40;
+  }
+  return 0;
 }
 
 void VIC::drawRasterline() {
   uint16_t line = rasterline;
-  bool dneo = drawnotevenodd;
   if ((line >= 50) && (line < 250)) {
-    if (dneo || (drawEvenLines && ((line % 2) == 0)) ||
+    // if activateDrawLinesAlternately == true then alternately draw even and
+    // odd lines -> hack to make hero and fort apocalypse work
+    if ((!activateDrawLinesAlternately) ||
+        (drawEvenLines && ((line % 2) == 0)) ||
         ((!drawEvenLines) && ((line % 2) == 1))) {
+
       // determine video mode
       uint8_t d011 = vicreg[0x11];
-      uint8_t d016 = vicreg[0x16];
       uint8_t deltay = d011 & 7;
+      uint8_t d016 = vicreg[0x16];
       uint8_t deltax = d016 & 7;
       uint8_t dline = line - 50;
       int32_t idx = (((dline >> 3) * 320) << 3) +
                     ((dline & 7) + deltay - 3) * 320 + deltax;
-      if ((idx >= 0) && (idx < 63680)) {
+      if ((idx >= 0) && (idx <= 63680)) {
         memset(spritedatacoll, false, sizeof(bool) * sizeof(spritedatacoll));
         bool bmm = d011 & 32;
         bool ecm = d011 & 64;

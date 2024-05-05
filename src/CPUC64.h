@@ -30,11 +30,10 @@ private:
   uint8_t *basicrom;
   uint8_t *kernalrom;
   uint8_t *charrom;
-  VIC *vic;
-  uint8_t *colormap;
-  CIA *cia1;
-  CIA *cia2;
   BLEKB *blekb;
+  CIA cia1;
+  CIA cia2;
+  Joystick joystick;
 
   uint8_t sidreg[0x100];
 
@@ -48,6 +47,8 @@ private:
   inline void decodeRegister1(uint8_t val) __attribute__((always_inline));
 
 public:
+  VIC *vic;
+
   // public only for logging / debugging
   uint8_t getA();
   uint8_t getX();
@@ -55,8 +56,10 @@ public:
   uint8_t getSP();
   uint8_t getSR();
   uint16_t getPC();
+
   uint32_t numofcyclespersecond;
-  bool debugcpu;
+  std::atomic<uint16_t> adjustcycles;
+  std::atomic<uint16_t> measuredcycles;
 
   uint8_t joystickmode;
   uint8_t kbjoystickmode;
@@ -68,9 +71,9 @@ public:
   // void cmd6502nop1a() override;
   void run() override;
 
-  void init(uint8_t *ram, uint8_t *basicrom, uint8_t *kernalrom,
-            uint8_t *charrom, VIC *vic, CIA *cia1, CIA *cia2, BLEKB *blekb);
+  void init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb);
   void setPC(uint16_t pc);
+  void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
 };
 
 #endif // CPUC64_H

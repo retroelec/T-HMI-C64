@@ -451,14 +451,11 @@ public:
   // stop cpu
   std::atomic<bool> cpuhalted;
 
-  // interrupt flags
-  bool iflag;            // CPU flag
-  std::atomic<bool> irq; // interrupt request from CIA 1
-
-  // virtual methods, may be overriden for logging etc.
-  virtual void run();
+  // interrupt flag
+  bool iflag;
 
   // pure virtual methods
+  virtual void run() = 0;
   virtual uint8_t getMem(uint16_t addr) = 0;
   virtual void setMem(uint16_t addr, uint8_t val) = 0;
 };

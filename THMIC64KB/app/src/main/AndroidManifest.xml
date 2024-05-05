@@ -26,6 +26,7 @@
             </intent-filter>
         </activity>
         <activity android:name="org.retroelec.thmic64kb.KBJoystickActivity" />
+        <activity android:name="org.retroelec.thmic64kb.DivActivity" />
     </application>
 
 </manifest>

@@ -8,17 +8,12 @@ digraph T_HMI_C64 {
     style=filled
     fillcolor=gray95
   ]
-  Main -> BLEKB
-  Main -> CIA
   Main -> CPUC64
   Main -> ExternalCmds
-  Main -> Joystick
   Main -> VIC
   ExternalCmds -> BLEKB
-  ExternalCmds -> CIA
   ExternalCmds -> CPUC64
   ExternalCmds -> SDCard
-  ExternalCmds -> VIC
   CPUC64 -> BLEKB
   CPUC64 -> CIA
   CPUC64 -> CPU6502

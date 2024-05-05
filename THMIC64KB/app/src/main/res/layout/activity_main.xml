@@ -25,11 +25,19 @@
             android:textStyle="bold" />
 
         <Button
+            android:id="@+id/keydiv"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:backgroundTint="#cc7777"
+            android:text="DIV"
+            android:textColor="@android:color/white" />
+
+        <Button
             android:id="@+id/keykbjoystick1"
             android:layout_width="wrap_content"
             android:layout_height="50dp"
             android:backgroundTint="#cc7777"
-            android:text="KBJOYSTICK1"
+            android:text="KBJOY1"
             android:textColor="@android:color/white" />
 
         <Button
@@ -37,7 +45,7 @@
             android:layout_width="wrap_content"
             android:layout_height="50dp"
             android:backgroundTint="#cc7777"
-            android:text="KBJOYSTICK2"
+            android:text="KBJOY2"
             android:textColor="@android:color/white" />
 
         <Button
@@ -45,7 +53,7 @@
             android:layout_width="wrap_content"
             android:layout_height="50dp"
             android:backgroundTint="#cc7777"
-            android:text="JOYSTICK1"
+            android:text="JOY1"
             android:textColor="@android:color/white" />
 
         <Button
@@ -53,7 +61,7 @@
             android:layout_width="wrap_content"
             android:layout_height="50dp"
             android:backgroundTint="#cc7777"
-            android:text="JOYSTICK2"
+            android:text="JOY2"
             android:textColor="@android:color/white" />
 
     </TableRow>

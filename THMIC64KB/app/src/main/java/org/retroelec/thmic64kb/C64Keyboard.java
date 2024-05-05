@@ -200,7 +200,6 @@ public class C64Keyboard extends LinearLayout {
             datatosend = new byte[]{data[0], data[1], 1};
         }
         final Globals globals = (Globals) context.getApplicationContext();
-        showToast(context, message);
         BLEManager bleManager = globals.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
             bleManager.sendData(datatosend);
@@ -469,7 +468,10 @@ public class C64Keyboard extends LinearLayout {
             sendKey(context, key, map.get(key));
         });
         keyrestore.setOnClickListener(view -> showToast(context, "not implemented yet"));
-        keyrunstop.setOnClickListener(view -> showToast(context, "not implemented yet"));
+        keyrunstop.setOnClickListener(view -> {
+            String key = "runstop";
+            sendKey(context, key, map.get(key));
+        });
         keyshiftlock.setOnClickListener(view -> {
             keyshiftlock.setSelected(!keyshiftlock.isSelected());
             shiftkeys(keyshiftlock.isSelected(), ShiftKey.LOCK);

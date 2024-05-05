@@ -17,19 +17,54 @@
 #ifndef BLEKB_H
 #define BLEKB_H
 
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
 #include <cstdint>
 #include <string>
 
 class BLEKB {
+private:
+  uint8_t kbcode1;
+  uint8_t kbcode2;
+
 public:
-  void init(std::string service_uuid, std::string characteristic_uuid,
-            uint8_t *kbbuffer);
+  // also used by classes BLEKBServerCallback and BLEKBCharacteristicCallback
+  bool deviceConnected;
+  uint8_t *buffer;
+  uint8_t bufidxprod;
+  uint8_t bufidxcons;
+  uint8_t shiftctrlcode;
+  uint8_t keypresseddowncnt;
+  uint8_t virtjoystickvalue;
+
+  BLEKB();
+  void init();
   // keyboard
   uint8_t getKBCode();
   uint8_t decode(uint8_t dc00);
-  uint8_t getKBJoyValue();
+  uint8_t getKBJoyValue(bool port2);
   // transfer data
   bool getData(uint8_t *data);
+};
+
+class BLEKBServerCallback : public BLEServerCallbacks {
+private:
+  BLEKB &blekb;
+
+public:
+  BLEKBServerCallback(BLEKB &blekb);
+  void onConnect(BLEServer *pServer);
+  void onDisconnect(BLEServer *pServer);
+};
+
+class BLEKBCharacteristicCallback : public BLECharacteristicCallbacks {
+private:
+  BLEKB &blekb;
+
+public:
+  BLEKBCharacteristicCallback(BLEKB &blekb);
+  void onWrite(BLECharacteristic *pCharacteristic);
 };
 
 #endif // BLEKB_H

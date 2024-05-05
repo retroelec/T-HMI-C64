@@ -17,7 +17,6 @@
 #ifndef CIA_H
 #define CIA_H
 
-#include <atomic>
 #include <cstdint>
 
 // register dc0d:
@@ -27,23 +26,23 @@
 
 class CIA {
 private:
-  std::atomic<bool> triggerTimerB;
+  bool triggerTimerB;
 
 public:
-  std::atomic<uint8_t> ciareg[0x10];
+  uint8_t ciareg[0x10];
 
-  std::atomic<uint8_t> latchdc04;
-  std::atomic<uint8_t> latchdc05;
-  std::atomic<uint8_t> latchdc06;
-  std::atomic<uint8_t> latchdc07;
-  std::atomic<uint8_t> latchdc0d; // read latch register
-  std::atomic<uint16_t> timerA;
-  std::atomic<uint16_t> timerB;
-  std::atomic<bool> reloadA;
-  std::atomic<bool> reloadB;
+  uint8_t latchdc04;
+  uint8_t latchdc05;
+  uint8_t latchdc06;
+  uint8_t latchdc07;
+  uint8_t latchdc0d; // read latch register
+  uint16_t timerA;
+  uint16_t timerB;
+  bool reloadA;
+  bool reloadB;
 
+  CIA();
   bool checkTimerA(uint8_t deltaT);
   bool checkTimerB(uint8_t deltaT);
-  void init();
 };
 #endif // CIA_H

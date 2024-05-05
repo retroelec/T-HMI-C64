@@ -1773,26 +1773,3 @@ void CPU6502::setPCToIntVec(uint16_t intvect, bool intfrombrk) {
   // set pc
   pc = intvect;
 }
-
-void CPU6502::run() {
-  // pc *must* be set externally!
-  cpuhalted = false;
-  sp = 0xFF;
-  iflag = true;
-  dflag = false;
-  bflag = false;
-  irq.store(false, std::memory_order_release);
-  numofcycles = 0;
-  while (true) {
-    if (cpuhalted) {
-      continue;
-    }
-    if (irq.load(std::memory_order_acquire)) {
-      irq.store(false, std::memory_order_release);
-      if (!iflag) {
-        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
-      }
-    }
-    execute(getMem(pc++));
-  }
-}

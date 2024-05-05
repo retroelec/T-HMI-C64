@@ -15,9 +15,11 @@
  http://www.gnu.org/licenses/.
 */
 #include "BLEKB.h"
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
+#include "Config.h"
+#include "Joystick.h"
+#include <esp_log.h>
+
+static const char *TAG = "BLEKB";
 
 static const uint8_t NUMOFCYCLES_KEYPRESSEDDOWN = 4;
 
@@ -30,63 +32,82 @@ static const uint8_t VIRTUALJOYSTICKUP_DEACTIVATED = 0x84;
 static const uint8_t VIRTUALJOYSTICKDOWN_ACTIVATED = 0x08;
 static const uint8_t VIRTUALJOYSTICKDOWN_DEACTIVATED = 0x88;
 
-uint8_t *buffer;
-uint8_t bufidxprod;
-uint8_t bufidxcons;
-bool deviceConnected;
-uint8_t shiftctrlcode;
-uint8_t kbcode1;
-uint8_t kbcode2;
-uint8_t keypresseddowncnt;
-uint8_t virtjoystickvalue;
+BLEKBServerCallback::BLEKBServerCallback(BLEKB &blekb) : blekb(blekb) {}
 
-class BLEKBServerCallback : public BLEServerCallbacks {
-  void onConnect(BLEServer *pServer) { deviceConnected = true; };
-  void onDisconnect(BLEServer *pServer) {
-    deviceConnected = false;
-    pServer->getAdvertising()->start();
-  }
+void BLEKBServerCallback::onConnect(BLEServer *pServer) {
+  blekb.deviceConnected = true;
+  ESP_LOGI(TAG, "BLE device connected");
 };
 
-class BLEKBCharacteristicCallback : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *pCharacteristic) {
-    std::string value = pCharacteristic->getValue();
-    if (value.length() >= 4) { // data
-      for (uint8_t i = 0; i < value.length(); i++) {
-        buffer[i] = (uint8_t)value[i];
-        vTaskDelay(1);
-      }
-      bufidxcons = 0;
-      bufidxprod = value.length();
-    } else if (value.length() == 3) { // keyboard codes
-      // BLE client sends 3 codes for each key: dc00, dc01, "shiftctrlcode"
-      // shiftctrlcode: bit 0 -> left shift
-      //                bit 7 -> external command (cmd, 0, 128)
-      for (uint8_t i = 0; i < value.length(); i++) {
-        buffer[i] = (uint8_t)value[i];
-      }
-      shiftctrlcode = buffer[2];
-      keypresseddowncnt = 0;
-    } else if (value.length() == 1) { // virtual joystick
-      uint8_t virtjoy = (uint8_t)value[0];
-      bool deactivated = virtjoy & 0x80;
-      uint8_t direction = virtjoy & 0x7f;
-      if (deactivated) {
-        virtjoystickvalue |= (1 << direction);
-      } else {
-        virtjoystickvalue &= ~(1 << direction);
+void BLEKBServerCallback::onDisconnect(BLEServer *pServer) {
+  blekb.deviceConnected = false;
+  ESP_LOGI(TAG, "BLE device disconnected, try to connect...");
+  pServer->getAdvertising()->start();
+}
+
+BLEKBCharacteristicCallback::BLEKBCharacteristicCallback(BLEKB &blekb)
+    : blekb(blekb) {}
+
+void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
+  if (!blekb.deviceConnected) {
+    return;
+  }
+  std::string value = pCharacteristic->getValue();
+  if (value.length() >= 4) { // data
+    for (uint8_t i = 0; i < value.length(); i++) {
+      blekb.buffer[i] = (uint8_t)value[i];
+      vTaskDelay(1);
+    }
+    blekb.bufidxcons = 0;
+    blekb.bufidxprod = value.length();
+  } else if (value.length() == 3) { // keyboard codes
+    // BLE client sends 3 codes for each key: dc00, dc01, "shiftctrlcode"
+    // shiftctrlcode: bit 0 -> left shift
+    //                bit 7 -> external command (cmd, 0, 128)
+    for (uint8_t i = 0; i < 3; i++) {
+      blekb.buffer[i] = (uint8_t)value[i];
+    }
+    blekb.shiftctrlcode = blekb.buffer[2];
+    blekb.keypresseddowncnt = 0;
+  } else if (value.length() == 1) { // virtual joystick
+    uint8_t virtjoy = (uint8_t)value[0];
+    bool deactivated = virtjoy & 0x80;
+    uint8_t direction = virtjoy & 0x7f;
+    if (deactivated) {
+      blekb.virtjoystickvalue |= (1 << direction);
+    } else {
+      if (direction == Joystick::C64JOYLEFT) {
+        blekb.virtjoystickvalue &= ~(1 << direction);
+        blekb.virtjoystickvalue |= (1 << Joystick::C64JOYRIGHT);
+      } else if (direction == Joystick::C64JOYRIGHT) {
+        blekb.virtjoystickvalue &= ~(1 << direction);
+        blekb.virtjoystickvalue |= (1 << Joystick::C64JOYLEFT);
+      } else if (direction == Joystick::C64JOYUP) {
+        blekb.virtjoystickvalue &= ~(1 << direction);
+        blekb.virtjoystickvalue |= (1 << Joystick::C64JOYDOWN);
+      } else if (direction == Joystick::C64JOYDOWN) {
+        blekb.virtjoystickvalue &= ~(1 << direction);
+        blekb.virtjoystickvalue |= (1 << Joystick::C64JOYUP);
+      } else { // fire
+        blekb.virtjoystickvalue &= ~(1 << direction);
       }
     }
   }
-};
+}
 
-void BLEKB::init(std::string service_uuid, std::string characteristic_uuid,
-                 uint8_t *kbbuffer) {
+BLEKB::BLEKB() { buffer = nullptr; }
+
+void BLEKB::init() {
+  if (buffer != nullptr) {
+    // init method must be called only once
+    return;
+  }
+
   // init buffer
+  buffer = new uint8_t[256];
   keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
   bufidxprod = 0;
   bufidxcons = 0;
-  buffer = kbbuffer;
   kbcode1 = 0xff;
   kbcode2 = 0xff;
 
@@ -97,12 +118,11 @@ void BLEKB::init(std::string service_uuid, std::string characteristic_uuid,
   deviceConnected = false;
   BLEDevice::init("THMIC64");
   BLEServer *pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new BLEKBServerCallback());
-  BLEService *pService = pServer->createService(service_uuid);
+  pServer->setCallbacks(new BLEKBServerCallback(*this));
+  BLEService *pService = pServer->createService(Config::SERVICE_UUID);
   BLECharacteristic *pCharacteristic = pService->createCharacteristic(
-      characteristic_uuid,
-      BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
-  pCharacteristic->setCallbacks(new BLEKBCharacteristicCallback());
+      Config::CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE);
+  pCharacteristic->setCallbacks(new BLEKBCharacteristicCallback(*this));
   pCharacteristic->setValue("THMIC64");
   pService->start();
   BLEAdvertising *pAdvertising = pServer->getAdvertising();
@@ -132,25 +152,24 @@ uint8_t BLEKB::getKBCode() {
 uint8_t BLEKB::decode(uint8_t dc00) {
   if (dc00 == 0) {
     return kbcode1;
-  } else {
-    if (((~dc00 & 2) != 0) && ((shiftctrlcode & 1) != 0)) {
-      // left shift pressed
-      if (kbcode2 == 0xfd) {
-        // handle scan of key codes in the same "row"
-        return kbcode1 & 0x7f;
-      } else {
-        return 0x7f;
-      }
-    }
-    if (dc00 == kbcode2) {
-      return kbcode1;
+  }
+  if (((~dc00 & 2) != 0) && ((shiftctrlcode & 1) != 0)) {
+    // left shift pressed
+    if (kbcode2 == 0xfd) {
+      // handle scan of key codes in the same "row"
+      return kbcode1 & 0x7f;
     } else {
-      return 0xff;
+      return 0x7f;
     }
+  }
+  if (dc00 == kbcode2) {
+    return kbcode1;
+  } else {
+    return 0xff;
   }
 }
 
-uint8_t BLEKB::getKBJoyValue() { return virtjoystickvalue; }
+uint8_t BLEKB::getKBJoyValue(bool port2) { return virtjoystickvalue; }
 
 bool BLEKB::getData(uint8_t *data) {
   if (bufidxprod != bufidxcons) {

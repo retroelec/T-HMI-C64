@@ -18,19 +18,14 @@
 #define EXTERNALCMDS_H
 
 #include "BLEKB.h"
-#include "CIA.h"
 #include "CPUC64.h"
 #include "SDCard.h"
-#include "VIC.h"
 #include <cstdint>
 
 class ExternalCmds {
 private:
   uint8_t *ram;
   CPUC64 *cpu;
-  VIC *vic;
-  CIA *cia1;
-  CIA *cia2;
   BLEKB *blekb;
   SDCard sdcard;
 
@@ -48,12 +43,12 @@ public:
     SHOWREG = 13,
     SHOWMEM = 14,
     RESET = 20,
-    TOGGLEVICDRAW = 21
+    TOGGLEVICDRAW = 21,
+    TOGGLECIA2 = 22
   };
   cmds hostcmdcode;
 
-  void init(uint8_t *ram, CPUC64 *cpu, VIC *vic, CIA *cia1p, CIA *cia2p,
-            BLEKB *blekb);
+  void init(uint8_t *ram, CPUC64 *cpu, BLEKB *blekb);
   void checkExternalCmd();
 };
 

@@ -15,7 +15,10 @@
  http://www.gnu.org/licenses/.
 */
 #include "SDCard.h"
-#include <ArduinoLog.h>
+#include "Config.h"
+#include <esp_log.h>
+
+static const char *TAG = "SDCard";
 
 SDCard::SDCard() : initalized(false) {}
 
@@ -64,7 +67,7 @@ uint16_t SDCard::load(fs::FS &fs, uint8_t *cursorpos, uint8_t *ram) {
   path[i++] = 'r';
   path[i++] = 'g';
   path[i] = '\0';
-  Log.noticeln("load file %s", path);
+  ESP_LOGI(TAG, "load file %s", path);
   File file = fs.open(path);
   if (!file) {
     return 0;
@@ -87,6 +90,6 @@ uint16_t SDCard::load(fs::FS &fs, uint8_t *cursorpos, uint8_t *ram) {
     ram[addr++] = byte;
     chksum += byte;
   }
-  Log.noticeln("chksum = %d", chksum);
+  ESP_LOGI(TAG, "chksum = %d", chksum);
   return addr;
 }

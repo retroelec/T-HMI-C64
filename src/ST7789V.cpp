@@ -15,8 +15,10 @@
  http://www.gnu.org/licenses/.
 */
 #include "ST7789V.h"
+#include "HardwareInitializationException.h"
 #include <FreeRTOS.h>
 #include <driver/gpio.h>
+#include <string>
 #include <task.h>
 
 static const uint8_t pwr_en = 10;
@@ -115,18 +117,16 @@ void ST7789V::writeData(uint8_t data) {
   GPIO.out_w1ts = wrval;
 }
 
-bool ST7789V::init() {
-  ST7789V::framecolormem = (uint16_t *)calloc(320 * 20, sizeof(uint16_t));
-  if (framecolormem == nullptr) {
-    return false;
-  }
+void ST7789V::init() {
+  ST7789V::framecolormem = new uint16_t[320 * 20]();
 
   GPIO.out_w1ts = (1 << pwr_en);
 
   fill_lu_pinbitmask();
   esp_err_t err = config_lcd();
   if (err != ESP_OK) {
-    return false;
+    throw HardwareInitializationException(
+        std::string("init. of ST7789V failed: ") + esp_err_to_name(err));
   }
 
   GPIO.out_w1tc = csval;
@@ -151,7 +151,6 @@ bool ST7789V::init() {
   GPIO.out_w1ts = csval;
 
   GPIO.out1_w1ts.val = (1ULL << (bl - 32)); // backlight
-  return true;
 }
 
 void ST7789V::copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,

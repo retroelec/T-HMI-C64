@@ -45,7 +45,7 @@ public:
   static const uint16_t c64_lightblue = 0x043f;
   static const uint16_t c64_grey3 = 0xb5d6;
 
-  static bool init();
+  static void init();
   static void drawFrame(uint16_t frameColor);
   static void drawBitmap(uint16_t *bitmap);
 };

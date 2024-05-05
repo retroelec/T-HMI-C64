@@ -15,22 +15,21 @@
  http://www.gnu.org/licenses/.
 */
 #include "Main.h"
-#include "roms/basic.h"
+#include "BLEKB.h"
+#include "CPUC64.h"
+#include "Config.h"
+#include "ExternalCmds.h"
+#include "HardwareInitializationException.h"
+#include "VIC.h"
 #include "roms/charset.h"
-#include "roms/kernal.h"
-#include <ArduinoLog.h>
+#include <cstdint>
+#include <esp_log.h>
 
-static const uint8_t INTERRUPTKERNALRESOLUTION = 100;
+static const char *TAG = "Main";
 
-// memory used in both cores is allocated in Main::setup()
 uint8_t *ram;
-uint16_t *bitmapmem;
-uint8_t *kbbuffer;
-
 CPUC64 cpu;
 VIC vic;
-CIA cia1;
-CIA cia2;
 BLEKB blekb;
 
 bool checkExternalCommand = false;
@@ -38,120 +37,83 @@ uint16_t checkExternalCommandCnt = 0;
 ExternalCmds externalCmds;
 
 hw_timer_t *interruptProfiling = NULL;
-hw_timer_t *interruptKernal = NULL;
+hw_timer_t *interruptSystem = NULL;
 TaskHandle_t cpuTask;
 
 void IRAM_ATTR interruptProfilingFunc() {
   if (vic.cntRefreshs != 0) {
-    Log.noticeln("fps = %d", vic.cntRefreshs);
+    ESP_LOGI(TAG, "fps: %d", vic.cntRefreshs);
   }
   vic.cntRefreshs = 0;
-  Log.noticeln("noc = %d", cpu.numofcyclespersecond);
+  ESP_LOGI(TAG, "noc: %d", cpu.numofcyclespersecond);
   cpu.numofcyclespersecond = 0;
 }
 
-void IRAM_ATTR interruptKernalFunc() {
-  // check for host commands and keyboard inputs each 16.66ms
+void IRAM_ATTR interruptSystemFunc() {
+  // check for host commands and keyboard inputs each ca. 8 ms
   if (externalCmds.hostcmdcode == ExternalCmds::NOHOSTCMD) {
     checkExternalCommandCnt++;
-    if (checkExternalCommandCnt == (16667 / INTERRUPTKERNALRESOLUTION)) {
+    if (checkExternalCommandCnt == (8333 / Config::INTERRUPTSYSTEMRESOLUTION)) {
       checkExternalCommand = true;
       checkExternalCommandCnt = 0;
       externalCmds.hostcmdcode = (ExternalCmds::cmds)blekb.getKBCode();
-      if (externalCmds.hostcmdcode != ExternalCmds::NOHOSTCMD) {
-        return;
-      }
     }
   }
-  // CIA 1 Timer A
-  if (cia1.checkTimerA(INTERRUPTKERNALRESOLUTION)) {
-    cpu.irq.store(true, std::memory_order_release);
+  // throttle 6502 CPU
+  uint16_t measuredcyclestmp =
+      cpu.measuredcycles.load(std::memory_order_acquire);
+  if (measuredcyclestmp > Config::INTERRUPTSYSTEMRESOLUTION) {
+    cpu.adjustcycles.store(
+        (measuredcyclestmp - Config::INTERRUPTSYSTEMRESOLUTION),
+        std::memory_order_release);
   }
-  // CIA 1 Timer B
-  if (cia1.checkTimerB(INTERRUPTKERNALRESOLUTION)) {
-    cpu.irq.store(true, std::memory_order_release);
-  }
+  cpu.measuredcycles.store(0, std::memory_order_release);
 }
 
 void cpuCode(void *parameter) {
-  Log.noticeln("cpuTask running on core %d", xPortGetCoreID());
+  ESP_LOGI(TAG, "cpuTask running on core %d", xPortGetCoreID());
   cpu.run();
   // cpu runs forever -> no vTaskDelete(NULL);
 }
 
 void Main::setup() {
   // allocate ram
-  ram = (uint8_t *)malloc(1 << 16);
-  if (ram == nullptr) {
-    Log.noticeln("could not allocate ram");
-    while (true) {
-    }
-  }
-
-  // allocate bitmap memory to be transfered to LCD
-  // (consider xscroll and yscroll offset)
-  bitmapmem = (uint16_t *)calloc(320 * (200 + 7) + 7, sizeof(uint16_t));
-  if (bitmapmem == nullptr) {
-    Log.noticeln("could not allocate bitmap memory");
-    while (true) {
-    }
-  }
+  ram = new uint8_t[1 << 16];
 
   // init VIC
-  if (!vic.init(ram, charset_rom, bitmapmem)) {
-    Log.noticeln("error in init. of VIC");
-    while (true) {
-    }
-  }
-
-  // init joystick
-  esp_err_t err = Joystick::init();
-  if (err != ESP_OK) {
-    Log.noticeln("error in Joystick::init(): %s", esp_err_to_name(err));
-    while (true) {
-    }
-  }
+  vic.init(ram, charset_rom);
 
   // init ble keyboard
-  kbbuffer = (uint8_t *)malloc(256);
-  if (kbbuffer == nullptr) {
-    Log.noticeln("could not allocate KB buffer");
-    while (true) {
-    }
-  }
-  blekb.init(Config::SERVICE_UUID, Config::CHARACTERISTIC_UUID, kbbuffer);
-
-  // init CIAs
-  cia1.init();
-  cia2.init();
+  blekb.init();
 
   // init CPU
-  cpu.init(ram, basic_rom, kernal_rom, charset_rom, &vic, &cia1, &cia2, &blekb);
+  cpu.init(ram, charset_rom, &vic, &blekb);
+
+  // start cpu task
   xTaskCreatePinnedToCore(cpuCode,  // Function to implement the task
                           "CPU",    // Name of the task
                           10000,    // Stack size in words
                           NULL,     // Task input parameter
-                          19,        // Priority of the task
+                          19,       // Priority of the task
                           &cpuTask, // Task handle
                           1);       // Core where the task should run
 
-  // interrupt each INTERRUPTKERNALRESOLUTION us -> standard kernal routine
-  // each 16.666 ms
-  interruptKernal = timerBegin(1, 80, true);
-  timerAttachInterrupt(interruptKernal, &interruptKernalFunc, true);
-  timerAlarmWrite(interruptKernal, INTERRUPTKERNALRESOLUTION, true);
-  timerAlarmEnable(interruptKernal);
+  // interrupt each 1000 us to get keyboard codes and throttle 6502 CPU
+  interruptSystem = timerBegin(1, 80, true);
+  timerAttachInterrupt(interruptSystem, &interruptSystemFunc, true);
+  timerAlarmWrite(interruptSystem, Config::INTERRUPTSYSTEMRESOLUTION, true);
+  timerAlarmEnable(interruptSystem);
 
   // profiling: interrupt each second
-  /**/
+  /*
   interruptProfiling = timerBegin(2, 80, true);
   timerAttachInterrupt(interruptProfiling, &interruptProfilingFunc, true);
   timerAlarmWrite(interruptProfiling, 1000000, true);
   timerAlarmEnable(interruptProfiling);
-  /**/
+  */
 
   // init ExternalCmds
-  externalCmds.init(ram, &cpu, &vic, &cia1, &cia2, &blekb);
+  externalCmds.init(ram, &cpu, &blekb);
 }
 
 void Main::loop() {

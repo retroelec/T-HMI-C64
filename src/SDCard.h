@@ -17,7 +17,6 @@
 #ifndef SDCARD_H
 #define SDCARD_H
 
-#include "Config.h"
 #include <FS.h>
 #include <SD_MMC.h>
 #include <cstdint>

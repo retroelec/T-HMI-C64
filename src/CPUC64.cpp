@@ -15,17 +15,39 @@
  http://www.gnu.org/licenses/.
 */
 #include "CPUC64.h"
-
-#include <ArduinoLog.h>
+#include "JoystickInitializationException.h"
+#include "roms/basic.h"
+#include "roms/kernal.h"
+#include <esp_log.h>
 #include <esp_random.h>
+
+static const char *TAG = "CPUC64";
+
+inline uint8_t getCommonCIAReg(CIA &cia, uint8_t ciaidx) {
+  if (ciaidx == 0x04) {
+    return cia.timerA & 0xff;
+  } else if (ciaidx == 0x05) {
+    return (cia.timerA >> 8) & 0xff;
+  } else if (ciaidx == 0x06) {
+    return cia.timerB & 0xff;
+  } else if (ciaidx == 0x07) {
+    return (cia.timerB >> 8) & 0xff;
+  } else if (ciaidx == 0x0d) {
+    uint8_t val = cia.latchdc0d;
+    cia.latchdc0d = 0;
+    return val;
+  } else {
+    return cia.ciareg[ciaidx];
+  }
+}
 
 uint8_t CPUC64::getMem(uint16_t addr) {
   if ((!bankARAM) && ((addr >= 0xa000) && (addr <= 0xbfff))) {
     //    basic rom
-    return basicrom[addr - 0xa000];
+    return basic_rom[addr - 0xa000];
   } else if ((!bankERAM) && (addr >= 0xe000)) {
     // kernal rom
-    return kernalrom[addr - 0xe000];
+    return kernal_rom[addr - 0xe000];
   } else if (bankDIO && (addr >= 0xd000) && (addr <= 0xdfff)) {
     // ** VIC **
     if (addr <= 0xd3ff) {
@@ -57,60 +79,44 @@ uint8_t CPUC64::getMem(uint16_t addr) {
     // ** CIA 1 **
     else if (addr <= 0xdcff) {
       uint8_t ciaidx = (addr - 0xdc00) % 0x10;
-      if (ciaidx == 0x04) {
-        return cia1->timerA.load(std::memory_order_acquire) & 0xff;
-      } else if (ciaidx == 0x05) {
-        return (cia1->timerA.load(std::memory_order_acquire) >> 8) & 0xff;
-      } else if (ciaidx == 0x06) {
-        return cia1->timerB.load(std::memory_order_acquire) & 0xff;
-      } else if (ciaidx == 0x07) {
-        return (cia1->timerB.load(std::memory_order_acquire) >> 8) & 0xff;
-      } else if (ciaidx == 0x0d) {
-        uint8_t val = cia1->latchdc0d.load(std::memory_order_acquire);
-        cia1->latchdc0d.store(0, std::memory_order_release);
-        return val;
-      } else if (ciaidx == 0x00) {
+      if (ciaidx == 0x00) {
         if (joystickmode == 2) {
           // real joystick
-          return Joystick::getValue();
+          return joystick.getValue(true) | (cia1.ciareg[0x00] & 0x80);
         } else if (kbjoystickmode == 2) {
           // keyboard joystick
-          return blekb->getKBJoyValue();
+          return blekb->getKBJoyValue(true) | (cia1.ciareg[0x00] & 0x80);
         } else {
-          return 0x7f;
+          return cia1.ciareg[0x00];
         }
       } else if (ciaidx == 0x01) {
         if (joystickmode == 1) {
           // real joystick, but still check for keyboard input
-          uint8_t pressedkey =
-              blekb->decode(cia1->ciareg[0x00].load(std::memory_order_acquire));
+          uint8_t pressedkey = blekb->decode(cia1.ciareg[0x00]);
           if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
-            return Joystick::getValue();
+            return joystick.getValue(false);
           }
           return pressedkey;
         } else if (kbjoystickmode == 1) {
           // keyboard joystick, but still check for keyboard input
-          uint8_t pressedkey =
-              blekb->decode(cia1->ciareg[0x00].load(std::memory_order_acquire));
+          uint8_t pressedkey = blekb->decode(cia1.ciareg[0x00]);
           if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
-            return blekb->getKBJoyValue();
+            return blekb->getKBJoyValue(false);
           }
           return pressedkey;
         } else {
           // keyboard
-          return blekb->decode(
-              cia1->ciareg[0x00].load(std::memory_order_acquire));
+          return blekb->decode(cia1.ciareg[0x00]);
         }
       } else {
-        return cia1->ciareg[ciaidx].load(std::memory_order_acquire);
+        return getCommonCIAReg(cia1, ciaidx);
       }
     }
     // ** CIA 2 **
     else if (addr <= 0xddff) {
-      uint8_t ciaidx = (addr - 0xdd00) % 0x10;
-      return cia2->ciareg[ciaidx].load(std::memory_order_acquire);
+      return getCommonCIAReg(cia2, (addr - 0xdd00) % 0x10);
     }
   } else if ((!bankDRAM) && (addr >= 0xd000) && (addr <= 0xdfff)) {
     // dxxx character rom
@@ -239,61 +245,49 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
     else if (addr <= 0xdcff) {
       uint8_t ciaidx = (addr - 0xdc00) % 0x10;
       if (ciaidx == 0x04) {
-        cia1->latchdc04.store(val, std::memory_order_release);
+        cia1.latchdc04 = val;
       } else if (ciaidx == 0x05) {
-        cia1->latchdc05.store(val, std::memory_order_release);
+        cia1.latchdc05 = val;
         // timerA stopped? if yes, write timerA
-        if (!(cia1->ciareg[0x0e] & 1)) {
-          cia1->timerA.store(
-              (cia1->latchdc05.load(std::memory_order_acquire) << 8) +
-                  cia1->latchdc04.load(std::memory_order_acquire),
-              std::memory_order_release);
+        if (!(cia1.ciareg[0x0e] & 1)) {
+          cia1.timerA = (cia1.latchdc05 << 8) + cia1.latchdc04;
         }
       } else if (ciaidx == 0x06) {
-        cia1->latchdc06.store(val, std::memory_order_release);
+        cia1.latchdc06 = val;
       } else if (ciaidx == 0x07) {
-        cia1->latchdc07.store(val, std::memory_order_release);
+        cia1.latchdc07 = val;
         // timerB stopped? if yes, write timerB
-        if (!(cia1->ciareg[0x0f] & 1)) {
-          cia1->timerB.store(
-              (cia1->latchdc07.load(std::memory_order_acquire) << 8) +
-                  cia1->latchdc06.load(std::memory_order_acquire),
-              std::memory_order_release);
+        if (!(cia1.ciareg[0x0f] & 1)) {
+          cia1.timerB = (cia1.latchdc07 << 8) + cia1.latchdc06;
         }
       } else if (ciaidx == 0x0d) {
         if (val & 0x80) {
-          cia1->ciareg[ciaidx].fetch_or(val, std::memory_order_release);
+          cia1.ciareg[ciaidx] |= val;
         } else {
-          cia1->ciareg[ciaidx].fetch_and(~val, std::memory_order_release);
+          cia1.ciareg[ciaidx] &= ~val;
         }
       } else if (ciaidx == 0x0e) {
-        cia1->ciareg[ciaidx].store(val, std::memory_order_release);
+        cia1.ciareg[ciaidx] = val;
         if (val & 0x10) {
-          cia1->timerA.store(
-              (cia1->latchdc05.load(std::memory_order_acquire) << 8) +
-                  cia1->latchdc04.load(std::memory_order_acquire),
-              std::memory_order_release);
+          cia1.timerA = (cia1.latchdc05 << 8) + cia1.latchdc04;
         }
         if (val & 0x08) {
-          cia1->reloadA.store(false, std::memory_order_release);
+          cia1.reloadA = false;
         } else {
-          cia1->reloadA.store(true, std::memory_order_release);
+          cia1.reloadA = true;
         }
       } else if (ciaidx == 0x0f) {
-        cia1->ciareg[ciaidx].store(val, std::memory_order_release);
+        cia1.ciareg[ciaidx] = val;
         if (val & 0x10) {
-          cia1->timerB.store(
-              (cia1->latchdc07.load(std::memory_order_acquire) << 8) +
-                  cia1->latchdc06.load(std::memory_order_acquire),
-              std::memory_order_release);
+          cia1.timerB = (cia1.latchdc07 << 8) + cia1.latchdc06;
         }
         if (val & 0x08) {
-          cia1->reloadB.store(false, std::memory_order_release);
+          cia1.reloadB = false;
         } else {
-          cia1->reloadB.store(true, std::memory_order_release);
+          cia1.reloadB = true;
         }
       } else {
-        cia1->ciareg[ciaidx].store(val, std::memory_order_release);
+        cia1.ciareg[ciaidx] = val;
       }
     }
     // ** CIA 2 **
@@ -315,65 +309,53 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
           vic->vicmem = 0x0000;
           break;
         }
-        cia2->ciareg[ciaidx] = val;
+        cia2.ciareg[ciaidx] = val;
         // adapt VIC base addresses
         adaptVICBaseAddrs(true);
       } else if (ciaidx == 0x04) {
-        cia2->latchdc04.store(val, std::memory_order_release);
+        cia2.latchdc04 = val;
       } else if (ciaidx == 0x05) {
-        cia2->latchdc05.store(val, std::memory_order_release);
+        cia2.latchdc05 = val;
         // timerA stopped? if yes, write timerA
-        if (!(cia2->ciareg[0x0e] & 1)) {
-          cia2->timerA.store(
-              (cia2->latchdc05.load(std::memory_order_acquire) << 8) +
-                  cia2->latchdc04.load(std::memory_order_acquire),
-              std::memory_order_release);
+        if (!(cia2.ciareg[0x0e] & 1)) {
+          cia2.timerA = (cia2.latchdc05 << 8) + cia2.latchdc04;
         }
       } else if (ciaidx == 0x06) {
-        cia2->latchdc06.store(val, std::memory_order_release);
+        cia2.latchdc06 = val;
       } else if (ciaidx == 0x07) {
-        cia2->latchdc07.store(val, std::memory_order_release);
+        cia2.latchdc07 = val;
         // timerB stopped? if yes, write timerB
-        if (!(cia2->ciareg[0x0f] & 1)) {
-          cia2->timerB.store(
-              (cia2->latchdc07.load(std::memory_order_acquire) << 8) +
-                  cia2->latchdc06.load(std::memory_order_acquire),
-              std::memory_order_release);
+        if (!(cia2.ciareg[0x0f] & 1)) {
+          cia2.timerB = (cia2.latchdc07 << 8) + cia2.latchdc06;
         }
       } else if (ciaidx == 0x0d) {
         if (val & 0x80) {
-          cia2->ciareg[ciaidx].fetch_or(val, std::memory_order_release);
+          cia2.ciareg[ciaidx] |= val;
         } else {
-          cia2->ciareg[ciaidx].fetch_and(~val, std::memory_order_release);
+          cia2.ciareg[ciaidx] &= ~val;
         }
       } else if (ciaidx == 0x0e) {
-        cia2->ciareg[ciaidx].store(val, std::memory_order_release);
+        cia2.ciareg[ciaidx] = val;
         if (val & 0x10) {
-          cia2->timerA.store(
-              (cia2->latchdc05.load(std::memory_order_acquire) << 8) +
-                  cia2->latchdc04.load(std::memory_order_acquire),
-              std::memory_order_release);
+          cia2.timerA = (cia2.latchdc05 << 8) + cia2.latchdc04;
         }
         if (val & 0x08) {
-          cia2->reloadA.store(false, std::memory_order_release);
+          cia2.reloadA = false;
         } else {
-          cia2->reloadA.store(true, std::memory_order_release);
+          cia2.reloadA = true;
         }
       } else if (ciaidx == 0x0f) {
-        cia2->ciareg[ciaidx].store(val, std::memory_order_release);
+        cia2.ciareg[ciaidx] = val;
         if (val & 0x10) {
-          cia2->timerB.store(
-              (cia2->latchdc07.load(std::memory_order_acquire) << 8) +
-                  cia2->latchdc06.load(std::memory_order_acquire),
-              std::memory_order_release);
+          cia2.timerB = (cia2.latchdc07 << 8) + cia2.latchdc06;
         }
         if (val & 0x08) {
-          cia2->reloadB.store(false, std::memory_order_release);
+          cia2.reloadB = false;
         } else {
-          cia2->reloadB.store(true, std::memory_order_release);
+          cia2.reloadB = true;
         }
       } else {
-        cia2->ciareg[ciaidx].store(val, std::memory_order_release);
+        cia2.ciareg[ciaidx] = val;
       }
     }
   }
@@ -390,12 +372,12 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
 
 void CPUC64::cmd6502illegal() {
   cpuhalted = true;
-  Log.noticeln("illegal code, cpu halted, pc = %x", pc - 1);
+  ESP_LOGI(TAG, "illegal code, cpu halted, pc = %x", pc - 1);
 }
 
 /*
 void CPUC64::cmd6502nop1a() {
-  Log.noticeln("nop: %d", micros());
+  ESP_LOGI(TAG, "nop: %d", micros());
   numofcycles += 2;
 }
 */
@@ -419,65 +401,138 @@ void CPUC64::run() {
   iflag = true;
   dflag = false;
   bflag = false;
-  irq.store(false, std::memory_order_release);
   numofcycles = 0;
+  uint8_t badlinecycles = 0;
   while (true) {
     if (cpuhalted) {
       continue;
     }
-    // CIA 1 interrupt request?
-    if (irq.load(std::memory_order_acquire)) {
-      irq.store(false, std::memory_order_release);
-      if (!iflag) {
-        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
-      }
-    }
     execute(getMem(pc++));
-    if (numofcycles >= 63) {
+    if (numofcycles >=
+        63 - (4 / 2) -
+            badlinecycles) { // 4 = average number of cycles for an instruction
       numofcyclespersecond += numofcycles;
-      numofcycles = 0;
-      bool vicint = vic->nextRasterline();
-      // VIC interrupt request?
-      if (vicint && (!iflag)) {
+      badlinecycles = vic->nextRasterline();
+      // raster line interrupt?
+      if ((vic->vicreg[0x19] & 0x80) && (vic->vicreg[0x1a] & 1) && (!iflag)) {
         setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
-        for (uint8_t i = 0; i < 8; i++) {
+        for (uint8_t i = 0; i < 6; i++) {
           execute(getMem(pc++));
         }
       }
       vic->drawRasterline();
+      // sprite collision interrupt?
+      if ((vic->vicreg[0x19] & 0x80) && (vic->vicreg[0x1a] & 6) && (!iflag)) {
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
+      }
+      // CIA 1 Timer A
+      if (cia1.checkTimerA(numofcycles)) {
+        if (!iflag) {
+          setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
+        }
+      }
+      // CIA 1 Timer B
+      if (cia1.checkTimerB(numofcycles)) {
+        if (!iflag) {
+          setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
+        }
+      }
+      // CIA 2 Timer A
+      if (cia2.checkTimerA(numofcycles)) {
+        setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+      }
+      // CIA 2 Timer B
+      if (cia2.checkTimerB(numofcycles)) {
+        setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+      }
+      // throttle 6502 CPU
+      measuredcycles.fetch_add(numofcycles, std::memory_order_release);
+      uint16_t adjustcyclestmp = adjustcycles.load(std::memory_order_acquire);
+      if (adjustcyclestmp > 0) {
+        ets_delay_us(adjustcyclestmp);
+        adjustcycles.store(0, std::memory_order_release);
+      }
+      // reset numofcycles
+      numofcycles = 0;
     }
-    /*
-    if (debugcpu) {
-      Log.noticeln("pc = %x, a = %x, x = %x, y = %x, sr = %B", pc, a, x, y, sr);
-    }
-    */
   }
 }
 
-void CPUC64::init(uint8_t *ram, uint8_t *basicrom, uint8_t *kernalrom,
-                  uint8_t *charrom, VIC *vic, CIA *cia1, CIA *cia2,
-                  BLEKB *blekb) {
+void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb) {
   this->ram = ram;
-  this->basicrom = basicrom;
-  this->kernalrom = kernalrom;
   this->charrom = charrom;
   this->vic = vic;
-  this->cia1 = cia1;
-  this->cia2 = cia2;
   this->blekb = blekb;
+  measuredcycles.store(0, std::memory_order_release);
+  adjustcycles.store(0, std::memory_order_release);
   joystickmode = 0;
   kbjoystickmode = 0;
   setMem(0, 0x2f);
   setMem(1, 0x37);
+  numofcycles = 0;
   numofcyclespersecond = 0;
-  debugcpu = false;
+  adjustcycles = 0;
   uint16_t addr = 0xfffc - 0xe000;
-  pc = kernalrom[addr] + (kernalrom[addr + 1] << 8);
+  pc = kernal_rom[addr] + (kernal_rom[addr + 1] << 8);
+  try {
+    joystick.init();
+  } catch (const JoystickInitializationException &e) {
+    ESP_LOGI(TAG, "error in init. of joystick: %s - continue anyway", e.what());
+  }
 }
 
 void CPUC64::setPC(uint16_t newPC) {
   std::atomic<uint16_t> &atomicVar =
       *reinterpret_cast<std::atomic<uint16_t> *>(&pc);
   atomicVar.store(newPC, std::memory_order_release);
-  Log.noticeln("setting pc to %x", pc);
+  ESP_LOGI(TAG, "setting pc to %x", pc);
+}
+
+void CPUC64::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
+                           uint8_t regy) {
+  bool tcflag = cflag;
+  bool tzflag = zflag;
+  bool tdflag = dflag;
+  bool tbflag = bflag;
+  bool tvflag = vflag;
+  bool tnflag = nflag;
+  bool tiflag = iflag;
+  uint8_t ta = a;
+  uint8_t tx = x;
+  uint8_t ty = y;
+  uint8_t tsp = sp;
+  uint8_t tsr = sr;
+  uint16_t tpc = pc;
+  iflag = true;
+  dflag = false;
+  bflag = false;
+  a = rega;
+  x = regx;
+  y = regy;
+  ram[0x033c] = 0x20; // jsr
+  ram[0x033d] = addr & 0xff;
+  ram[0x033e] = addr >> 8;
+  pc = 0x033c;
+  while (true) {
+    uint8_t nextopc = getMem(pc++);
+    // ESP_LOGI(TAG, "pc = %x, opc = %x, a = %x, x = %x, y = %x", pc-1, nextopc,
+    // a, x, y);
+    execute(nextopc);
+    if ((sp == tsp) && (nextopc == 0x60)) { // rts
+      break;
+    }
+  }
+  cflag = tcflag;
+  zflag = tzflag;
+  dflag = tdflag;
+  bflag = tbflag;
+  vflag = tvflag;
+  nflag = tnflag;
+  iflag = tiflag;
+  a = ta;
+  x = tx;
+  y = ty;
+  sp = tsp;
+  sr = tsr;
+  pc = tpc;
 }

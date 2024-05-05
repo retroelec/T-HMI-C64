@@ -25,18 +25,16 @@ bool CIA::checkTimerA(uint8_t deltaT) {
     // timer clocked by CNT pin
     return false;
   }
-  int32_t tmp = timerA.load(std::memory_order_acquire) - deltaT;
-  timerA.store((tmp < 0) ? 0 : tmp, std::memory_order_release);
-  if (timerA.load(std::memory_order_acquire) == 0) {
-    triggerTimerB.store(true, std::memory_order_release);
-    latchdc0d.fetch_or(0x01, std::memory_order_release);
-    if (reloadA.load(std::memory_order_acquire)) {
-      timerA.store((latchdc05.load(std::memory_order_acquire) << 8) +
-                       latchdc04.load(std::memory_order_acquire),
-                   std::memory_order_release);
+  int32_t tmp = timerA - deltaT;
+  timerA = (tmp < 0) ? 0 : tmp;
+  if (timerA == 0) {
+    triggerTimerB = true;
+    latchdc0d |= 0x01;
+    if (reloadA) {
+      timerA = (latchdc05 << 8) + latchdc04;
     }
     if (ciareg[0x0d] & 1) {
-      latchdc0d.fetch_or(0x80, std::memory_order_release);
+      latchdc0d |= 0x80;
       return true;
     }
   }
@@ -50,35 +48,22 @@ bool CIA::checkTimerB(uint8_t deltaT) {
   }
   if (((ciareg[0x0f] & 0x60) == 0) ||
       (triggerTimerB && ((ciareg[0x0f] & 0x60) == 0x40))) {
-    int32_t tmp = timerB.load(std::memory_order_acquire) - deltaT;
-    timerB.store((tmp < 0) ? 0 : tmp, std::memory_order_release);
+    int32_t tmp = timerB - deltaT;
+    timerB = (tmp < 0) ? 0 : tmp;
   } else {
     return false;
   }
-  if (timerB.load(std::memory_order_acquire) == 0) {
-    latchdc0d.fetch_or(0x02, std::memory_order_release);
-    if (reloadB.load(std::memory_order_acquire)) {
-      timerB.store((latchdc07.load(std::memory_order_acquire) << 8) +
-                       latchdc06.load(std::memory_order_acquire),
-                   std::memory_order_release);
+  if (timerB == 0) {
+    latchdc0d |= 0x02;
+    if (reloadB) {
+      timerB = (latchdc07 << 8) + latchdc06;
     }
     if (ciareg[0x0d] & 2) {
-      latchdc0d.fetch_or(0x80, std::memory_order_release);
+      latchdc0d |= 0x80;
       return true;
     }
   }
   return false;
 }
 
-void CIA::init() {
-  triggerTimerB.store(false, std::memory_order_release);
-  latchdc04.store(0x1a, std::memory_order_release);
-  latchdc05.store(0x41, std::memory_order_release);
-  timerA.store(0x411a, std::memory_order_release);
-  latchdc06.store(0, std::memory_order_release);
-  latchdc07.store(0, std::memory_order_release);
-  timerB.store(0, std::memory_order_release);
-  latchdc0d.store(0x01, std::memory_order_release);
-  ciareg[0x0e].store(0x01, std::memory_order_release);
-  ciareg[0x0f].store(0, std::memory_order_release);
-}
+CIA::CIA() { triggerTimerB = false; }

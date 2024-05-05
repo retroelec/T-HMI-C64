@@ -16,9 +16,10 @@
 */
 #include "Joystick.h"
 #include "Config.h"
+#include "JoystickInitializationException.h"
 #include <driver/adc.h>
 
-esp_err_t Joystick::init() {
+void Joystick::init() {
   // init adc (x and y axis)
   adc2_config_channel_atten(Config::ADC_JOYSTICK_X, ADC_ATTEN_11db);
   adc2_config_channel_atten(Config::ADC_JOYSTICK_Y, ADC_ATTEN_11db);
@@ -29,10 +30,13 @@ esp_err_t Joystick::init() {
   io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
   io_conf.pin_bit_mask = (1ULL << Config::JOYSTICK_FIRE_PIN);
-  return gpio_config(&io_conf);
+  esp_err_t err = gpio_config(&io_conf);
+  if (err != ESP_OK) {
+    throw JoystickInitializationException(esp_err_to_name(err));
+  }
 }
 
-uint8_t Joystick::getValue() {
+uint8_t Joystick::getValue(bool port2) {
   // assume return value of adc2_get_raw is ESP_OK
   int valueX;
   adc2_get_raw(Config::ADC_JOYSTICK_X, ADC_WIDTH_12Bit, &valueX);
@@ -42,6 +46,9 @@ uint8_t Joystick::getValue() {
   uint8_t valueFire = (GPIO.in >> Config::JOYSTICK_FIRE_PIN) & 0x01;
   // C64 register value
   uint8_t value = 0xff;
+  if (port2) {
+    value = 0x7f;
+  }
   if (valueX < LEFT_THRESHOLD) {
     value &= ~(1 << C64JOYLEFT);
   } else if (valueX > RIGHT_THRESHOLD) {

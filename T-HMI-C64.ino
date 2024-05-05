@@ -15,17 +15,22 @@
  http://www.gnu.org/licenses/.
 */
 #include "src/Main.h"
-#include <ArduinoLog.h>
+#include <esp_log.h>
 
-//#define DISABLE_LOGGING
+static const char *TAG = "T-HMI-C64";
 
 void setup() {
   Serial.begin(115200);
-  Log.begin(LOG_LEVEL_VERBOSE, &Serial);
-  Log.noticeln("start setup...");
-  Log.noticeln("setup() running on core %d", xPortGetCoreID());
-  Main::setup();
-  Log.noticeln("setup done");
+  ESP_LOGI(TAG, "start setup...");
+  ESP_LOGI(TAG, "setup() running on core %d", xPortGetCoreID());
+  try {
+    Main::setup();
+  } catch (...) {
+    ESP_LOGE(TAG, "setup() failed");
+    while (true) {
+    }
+  }
+  ESP_LOGI(TAG, "setup done");
 }
 
 void loop() { Main::loop(); }

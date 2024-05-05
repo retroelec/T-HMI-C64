@@ -17,15 +17,6 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include "BLEKB.h"
-#include "CIA.h"
-#include "CPUC64.h"
-#include "Config.h"
-#include "ExternalCmds.h"
-#include "Joystick.h"
-#include "VIC.h"
-#include <cstdint>
-
 class Main {
 public:
   static void setup();

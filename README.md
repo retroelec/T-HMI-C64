@@ -17,8 +17,8 @@ The two cores are identical in practice and share the same memory.
 The tasks responsible for handling wireless networking (Wi-Fi or Bluetooth) are pinned to CPU 0 by default
 (see [Espressif - Task Priorities](https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-guides/performance/speed.html)).
 
-Actually core 0 is used to emulate the 6510 CPU and the VIC and core 1 is used to emulate CIA timers,
-copy graphic bitmap to LCD and handling "external commands".
+Core 1 is used to emulate the 6510 CPU and the custom chips (VIC and CIAs).
+Core 0 is used to copy the graphic bitmap to LCD and handling "external commands".
 
 ### Display
 
@@ -51,7 +51,7 @@ you may have to adapt the following constants in src/Config.h:
 - ADC_JOYSTICK_Y
 - JOYSTICK_FIRE_PIN
 
-## Usage
+## Installation
 
 ### Files
 
@@ -59,8 +59,32 @@ you may have to adapt the following constants in src/Config.h:
 - src/* : C64 emulator source code
 - THMIC64KB/thmic64kb.apk : Android APK file to be uploaded to your Android smartphone
 - THMIC64KB/app/src/ : source code of Android app
+- Makefile : used to install development environment and to compile + upload code
 
-### Arduino setup
+### Installation C64 Emulator
+
+You have two possibilities to install the emulator on the Lilygo T-HMI development board: Using the Makefile with arduino-cli or using the Arduino IDE.
+Using the Makefile with arduino-cli is an automated process and is therefore usually preferable.
+
+#### Using Makefile with arduino-cli
+
+- Download arduino-cli for your platform (download section from https://arduino.github.io/arduino-cli/0.35/installation/),
+  unpack the binary and place it in a directory included in the search path of executables (e.g. /usr/local/bin on a linux system).
+- You may have to install GNU make if not already installed.
+- Install required Arduino core and libraries using the following command in the directory T-HMI-C64:  
+  make install
+- You may have to install python3 and python3-serial if not already installed. On my linux system I had to install python3-serial:  
+  sudo apt install python3-serial
+- You may have to adapt the file Makefile and change the name of the serial port (adapt variable PORT).
+- On a linux system you may have to add group dialout to your serial port to be able to upload code as a normal user:  
+  sudo usermod -a -G dialout your-username  
+  (You have to logout and login again to get the group get active.)
+- Compile code:  
+  make
+- Upload code:  
+  make upload
+
+#### Using Arduino IDE
 
 From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
 In Arduino Preferences, on the Settings tab, enter the [Espressif Arduino ESP32 Package](https://espressif.github.io/arduino-esp32/package_esp32_index.json)
@@ -68,44 +92,63 @@ URL in the Additional boards manager URLs input box.
 Click OK and the software will install.
 Search for ESP32 in Tools → Board Manager and install ESP32-Arduino SDK (V 2.0.5 or above and below V3.0).
 
-I used the following settings in the Tools menu of the Arduino IDE 2.2.1:
+I used the following settings in the Tools menu of the Arduino IDE 2.3.2:
 
 | Setting                              | Value                             |
 |--------------------------------------|-----------------------------------|
-| Board                                | LilyGo T-Display-S3               |
+| Board                                | ESP32 S3 Dev Module               |
 | Port                                 | /dev/ttyACM0                      |
 | USB CDC On Boot                      | Enabled                           |
+| CPU Frequency                        | 240MHz (WiFi)                     |
 | Core Debug Level                     | None                              |
 | USB DFU On Boot                      | Enabled                           |
-| Erase all Flash before sketch upload | Disabled                          |
 | Events Run On                        | Core 1                            |
+| Flash Mode                           | QIO 80 MHz                        |
+| Flash Size                           | 16MB (128Mb)                      |
 | JTAG Adapter                         | Integrated USB JTAG               |
-| Arduino Runs On                      | Core 1                            |
+| Arduino Runs On                      | Core 0                            |
 | USB Firmware MSC On Boot             | Disabled                          |
-| Partition Scheme                     | 16M Flash (3MB No OTA/1MB SPIFFS) |
+| Partition Scheme                     | Huge APP (3MB No OTA/1MB SPIFFS)  |
 | Upload mode                          | UART0 / Hardware CDC              |
+| PSRAM                                | OPI PSRAM                         |
 | USB Mode                             | Hardware CDC and JTAG             |
+| Core Debug Level                     | Info                              |
 
-Further the following Arduino libraries are needed (in brackets the version I used):
+The following Arduino libraries are needed (all are part of ESP32 Arduino core, version 2.0.0):
 
-- FS (2.0.0)
-- SD_MMC (2.0.0)
-- ESP32 BLE Arduino (2.0.0)
-- ArduinoLog (1.1.1)
+- FS
+- SD_MMC
+- ESP32 BLE Arduino
 
-### Upload emulator
+To upload the emulator from the Arduino IDE just open the file T-HMI-C64.ino
+and choose menu Sketch - Upload or press ctrl-u.
 
-Just open the file T-HMI-C64.ino in Arduino and upload the emulator (menu Sketch - Upload or press ctrl-u).
+### Install Android App
+
+I wrote a simple Android app which emulates a C64 keyboard for the emulator.
+
+<img src="doc/THMIC64KB.png" alt="THMIC64KB" width="600"/>
+
+Follow these steps to download and install the app on your Android device:
+
+1. Download the app: Click [here](https://github.com/retroelec/T-HMI-C64/blob/main/THMIC64KB/thmic64kb.apk) to download the APK file of the app.
+2. Allow installation from unknown sources:
+   - Go to "Settings" on your Android device.
+   - Navigate to "Security" or "Privacy".
+   - Enable "Unknown sources" or "Install unknown apps". This allows you to install apps from sources other than the Google Play Store.
+3. Install the App:
+   - Once the APK file is downloaded, open the file manager on your device.
+   - Navigate to the folder where the APK file is saved.
+   - Tap on the APK file to start the installation process.
+   - Follow the on-screen instructions to complete the installation.
+
+Alternatively you can install the app using the Android IDE.
+
+## Usage
 
 ### BLE Connection
 
-After uploading the emulator to the T-HMI development board, the C64 startup screen appears.
-The emulator starts also a BLE (Bluetooth Low Energy) server to receive keystrokes from a client.
-
-I wrote a simple Android app which emulates a C64 keyboard for the emulator.
-You can either install the app using an Android IDE or directly install the APK file on your Android smartphone.
-
-<img src="doc/THMIC64KB.png" alt="THMIC64KB" width="600"/>
+The emulator starts a BLE (Bluetooth Low Energy) server to receive keystrokes from the Android client.
 
 Once the app is installed and launched, you must accept the requested permissions
 (access to the precise location (*not* coarse location), permission to search for BLE devices).
@@ -114,32 +157,34 @@ Otherwise you can move the "BLE connection" switch to the right to connect to th
 after reseting the development board (e.g. if you want to start a new game).
 
 Besides the normal C64 keys this virtual keyboard also provides red extra buttons to send "external commands".
-Actually the LOAD and several JOYSTICK buttons are available:
+Actually the LOAD, DIV and several JOYSTICK buttons are available:
 
 - LOAD: load a C64 program from SD card
+- DIV: opens an extra screen with additional settings / extra functionality
 - JOYSTICK 1: connected joystick can be used as a joystick in port 1
 - JOYSTICK 2: connected joystick can be used as a joystick in port 2
 - KBJOYSTICK 1: "virtual joystick" can be used as a joystick in port 1
-- KBJOYSTICK 2: "virtual joystick" can be used as a joystick in port 1
+- KBJOYSTICK 2: "virtual joystick" can be used as a joystick in port 2
 
 <img src="doc/THMIC64KB_VirtJoystick.png" alt="Virtual Joystick" width="600"/>
 
 The virtual joystick has some drawbacks in terms of responsiveness.
-To play games, a hardware joystick ist recommended.
+To play games, a hardware joystick is recommended.
 
 Up to now the following keys are not implemented: Commodore key, CTRL key, RESTORE key
 
 ### Load and start a game
 
 You first have to copy C64 games in prg format (only supported format!) to an SD card
-(game names must be in lower case letters, max. 16 characters).
+(game names must be in lower case letters, max. 16 characters, no spaces in file names allowed).
 
 As there is no C64 tape/disk drive emulation available up to now, the file must be loaded
 into memory using an "external command".
 To do this, you first type in the name of the game so it shows up on the C64 text screen.
-You then press the LOAD button on your Android phone.
-Use the button RETURN or "cursor key down" to go to the next line
-and type "RUN" followed by pressing the button RETURN to start the game.
+You then press the LOAD button on your Android phone. If the file is found the text "LOADED"
+appears on screen, otherwise the text "FILE NOT FOUND" appears.
+Afterwards, as usual, you can start the game by typing "RUN" 
+followed by pressing the button RETURN.
 
 ## Software
 
@@ -157,31 +202,6 @@ Keyboard inputs are sent to the ESP32 via BLE. Three bytes must be sent for each
   - Bit 0 is set when a shift key is pressed
   - Bit 7 is set when an "external command" is sent
 
-### Memory synchronization
-
-Some variables are accessed by both cores. These variables must be synchronized.
-
-From the ESP32-S3 documentation to the issue "potential cache data coherence":  
-There are three common methods to address such cache data coherence issue:
-
-- Hardware based cache Coherent Interconnect, ESP32-S3 does not have such ability.
-- Use the DMA buffer from non-cacheable memory. Memory that CPU access it without going through cache is called non-cacheable memory.
-- Explicitly call a memory synchronization API to writeback the content in the cache back to the memory, or invalidate the content in the cache.
-
-As there is no hardware based solution to this problem, I choosed to rely on the standard C++ synchronization mechanisms, i.e. using atomic variables.
-
-To ensure that changes to a std::atomic variable are visible between different processor cores and cache inconsistencies are avoided,
-memory_order_release for writing and memory_order_acquire for reading can be used as a synchronization mechanism.
-
-### Emulation details
-
-Emulation of CPU and VIC (on core 0) are tightly coupled: After 63 CPU cycles the next raster line is handeled. This procedure is necessary to run games
-which use raster line interrupts. However, by default only each second row is copied to a 16-bit color array per frame
-(changing between even and odd rows each frame), otherwise the CPU performance would be slowed down noticeable.
-Sprite data is also drawn during this process.
-
-On core 1 the data of the 16-bit color array is copied to the LCD screen. A frame rate of about 29 fps is achived.
-
 ### Emulation status
 
 First of all: This is a hobby project :)
@@ -193,18 +213,15 @@ All hardware ports not explicitly mentioned including their corresponding regist
 - no SID emulation (and no plans to do this)
 - no tape/disk drive emulation
 - Android app: implement Commodore key, CTRL key, RESTORE key
+- Android app: "beatify" app (extra screens like the "virtual joystick" screen are pretty ugly)
 - some VIC registers are not implemented (yet): $d01b
 - some VIC registers are only partly implemented (yet): $d011 (bit 3+4), $d016 (bit 3)
-- no "clipping" of sprites in x direction: they are only visible if they are completely visible
 - some CIA registers are not implemented (yet): $d[c|d]02, $d[c|d]03, $d[c|d]08, $d[c|d]09, $d[c|d]0a, $d[c|d]0b,
 - some CIA registers are only partly implemented (yet): $dc0d (bit 2), $dc0e (bit 7), $dc0f (bit 7)
 - not all "illegal" opcodes of the 6502 CPU are implemented yet
-- line 200 is not displayed correctly
 - code cleanup is necessary
-- rarly CPU is blocked after loading a game
 - some games are not running properly
 - some games are not working at all
-- virtual joystick is pretty ugly
 
 ### Games
 
@@ -222,7 +239,7 @@ Games that are playable:
 - bubble bobble
 - castle terror
 - bagitman
-- krakout (only "bat is on the" option can be changed at start screen)
+- krakout
 - miner 2049er
 - dig dug (background is mildly flickering)
 - quartet
@@ -230,18 +247,21 @@ Games that are playable:
 - choplifter
 - pole position
 - pacman
-- hero (sprites flickering)
 - boulder dash
-- q*bert (small graphic errors at bottom)
-- fort apocalypse
-- ghost and gobblins (small graphic errors at top and bottom)
+- q*bert (graphic errors at bottom)
+- ghost and gobblins (graphic errors at top and bottom)
 - great gianas sister
 - hyper sports
 - blue max
+
+Games which needs some tweaking to be playable:
+
+- fort apocalypse : sprites only always visible if option "toggle draw e/o" in the DIV menu is toggled
+- hero : sprites only visible if option "toggle draw e/o" in the DIV menu is toggled (sprites still flickering)
 
 Games not working:
 
 - burger time
 - terra cresta
 - arkanoid
-- commando (fire button does not start game)
+- commando (sprites not refreshed correctly, sprites flickering)

@@ -32,11 +32,12 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String TARGET_DEVICE_NAME = "THMIC64";
     private static final int PERMISSION_REQUEST_CODE = 1234;
-    private static final long CHECK_INTERVAL = 3000;
+    private static final long CHECK_INTERVAL = 1000;
     private static final long SEARCH_DURATION = 10000;
     private BLEManager bleManager = null;
     private BluetoothLeScanner bluetoothLeScanner;
     private Switch bleSwitch;
+    private Button keydiv;
     private Button keykbjoystick1;
     private Button keykbjoystick2;
     private Button joystick1;
@@ -131,6 +132,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Objects.requireNonNull(getSupportActionBar()).hide();
         setContentView(R.layout.activity_main);
+
+        keydiv = findViewById(R.id.keydiv);
+        keydiv.setOnClickListener(view -> {
+            Intent i = new Intent(MainActivity.this, DivActivity.class);
+            startActivity(i);
+        });
 
         keykbjoystick1 = findViewById(R.id.keykbjoystick1);
         keykbjoystick1.setOnClickListener(view -> {
