@@ -17,12 +17,12 @@
 #ifndef CPUC64_H
 #define CPUC64_H
 
-#include "BLEKB.h"
 #include "CIA.h"
 #include "CPU6502.h"
 #include "Joystick.h"
 #include "VIC.h"
 #include <cstdint>
+#include <mutex>
 
 class CPUC64 : public CPU6502 {
 private:
@@ -30,9 +30,6 @@ private:
   uint8_t *basicrom;
   uint8_t *kernalrom;
   uint8_t *charrom;
-  BLEKB *blekb;
-  CIA cia1;
-  CIA cia2;
   Joystick joystick;
 
   uint8_t sidreg[0x100];
@@ -43,11 +40,15 @@ private:
   bool bankDIO;
   uint8_t register1;
 
+  std::mutex pcMutex;
+
   inline void adaptVICBaseAddrs(bool fromcia) __attribute__((always_inline));
   inline void decodeRegister1(uint8_t val) __attribute__((always_inline));
 
 public:
   VIC *vic;
+  CIA cia1;
+  CIA cia2;
 
   // public only for logging / debugging
   uint8_t getA();
@@ -61,8 +62,12 @@ public:
   std::atomic<uint16_t> adjustcycles;
   std::atomic<uint16_t> measuredcycles;
 
+  // set by class ExternalCmds
   uint8_t joystickmode;
   uint8_t kbjoystickmode;
+  bool refreshframecolor;
+  bool deactivatecia2;
+  uint8_t joystickemulmode;
 
   inline uint8_t getMem(uint16_t addr) __attribute__((always_inline));
   inline void setMem(uint16_t addr, uint8_t val) __attribute__((always_inline));
@@ -71,7 +76,8 @@ public:
   // void cmd6502nop1a() override;
   void run() override;
 
-  void init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb);
+  void initMemAndRegs();
+  void init(uint8_t *ram, uint8_t *charrom, VIC *vic);
   void setPC(uint16_t pc);
   void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
 };

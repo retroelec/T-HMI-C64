@@ -15,7 +15,9 @@
  http://www.gnu.org/licenses/.
 */
 #include "BLEKB.h"
+#include "CBEServiceLocator.h"
 #include "Config.h"
+#include "ExtCmdEnum.h"
 #include "Joystick.h"
 #include <esp_log.h>
 
@@ -31,6 +33,58 @@ static const uint8_t VIRTUALJOYSTICKUP_ACTIVATED = 0x04;
 static const uint8_t VIRTUALJOYSTICKUP_DEACTIVATED = 0x84;
 static const uint8_t VIRTUALJOYSTICKDOWN_ACTIVATED = 0x08;
 static const uint8_t VIRTUALJOYSTICKDOWN_DEACTIVATED = 0x88;
+
+class ExeExtCmdTask {
+private:
+  TaskHandle_t exeExtCmdTaskHandle;
+  BLEKB &blekb;
+  uint8_t type;
+
+  static void exeExternalCmd(void *parameter) {
+    ExeExtCmdTask *instance = static_cast<ExeExtCmdTask *>(parameter);
+    instance->type = CBEServiceLocator::getExternalCmds()->executeExternalCmd(
+        static_cast<ExtCmd>(instance->blekb.buffer[0]));
+    // signal that task is done using a task notification
+    BaseType_t notifyResult = xTaskNotifyGive(instance->exeExtCmdTaskHandle);
+    if (notifyResult == pdPASS) {
+      ESP_LOGI(TAG, "Notification sent successfully");
+    } else {
+      ESP_LOGI(TAG, "Failed to send notification");
+    }
+    // delete task
+    vTaskDelete(NULL);
+  }
+
+public:
+  ExeExtCmdTask(BLEKB &blekb) : exeExtCmdTaskHandle(NULL), blekb(blekb) {}
+
+  uint8_t exe() {
+    exeExtCmdTaskHandle = xTaskGetCurrentTaskHandle();
+    xTaskCreate(ExeExtCmdTask::exeExternalCmd, // Task function
+                "externalCmdTask",             // Name of the task
+                10000,                         // Stack size (in words)
+                this,                          // Task input parameter
+                1,                             // Priority of the task
+                NULL                           // Task handle
+    );
+    // wait for task to be completed
+    uint32_t ulNotificationValue;
+    BaseType_t result = xTaskNotifyWait(
+        0x00,                 // No bits to clear on entry
+        ULONG_MAX,            // Clear all bits on exit
+        &ulNotificationValue, // Where to store the notification value
+        pdMS_TO_TICKS(5000)   // Wait max 5 seconds
+    );
+    if (result == pdPASS) {
+      // Return the stored return value
+      ESP_LOGI(TAG, "task completed, type = %d", type);
+      return type;
+    } else {
+      ESP_LOGI(TAG, "failed to receive notification or timed out");
+      return 0;
+    }
+  }
+};
 
 BLEKBServerCallback::BLEKBServerCallback(BLEKB &blekb) : blekb(blekb) {}
 
@@ -53,23 +107,7 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
     return;
   }
   std::string value = pCharacteristic->getValue();
-  if (value.length() >= 4) { // data
-    for (uint8_t i = 0; i < value.length(); i++) {
-      blekb.buffer[i] = (uint8_t)value[i];
-      vTaskDelay(1);
-    }
-    blekb.bufidxcons = 0;
-    blekb.bufidxprod = value.length();
-  } else if (value.length() == 3) { // keyboard codes
-    // BLE client sends 3 codes for each key: dc00, dc01, "shiftctrlcode"
-    // shiftctrlcode: bit 0 -> left shift
-    //                bit 7 -> external command (cmd, 0, 128)
-    for (uint8_t i = 0; i < 3; i++) {
-      blekb.buffer[i] = (uint8_t)value[i];
-    }
-    blekb.shiftctrlcode = blekb.buffer[2];
-    blekb.keypresseddowncnt = 0;
-  } else if (value.length() == 1) { // virtual joystick
+  if (value.length() == 1) { // virtual joystick
     uint8_t virtjoy = (uint8_t)value[0];
     bool deactivated = virtjoy & 0x80;
     uint8_t direction = virtjoy & 0x7f;
@@ -92,6 +130,34 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
         blekb.virtjoystickvalue &= ~(1 << direction);
       }
     }
+  } else if (value.length() >= 3) { // keyboard codes or external commands
+    // BLE client sends 3 codes for each key: dc00, dc01, "shiftctrlcode"
+    // shiftctrlcode: bit 0 -> left shift
+    //                bit 7 -> external command (cmd, 0, 128)
+    for (uint8_t i = 0; i < 3; i++) {
+      blekb.buffer[i] = (uint8_t)value[i];
+    }
+    blekb.shiftctrlcode = blekb.buffer[2];
+    blekb.keypresseddowncnt = 0;
+    // external command?
+    if (blekb.buffer[2] & 128) {
+      // execute external command
+      // have to use a seperate task, because stack size of the BLE processing
+      // task is too small (and task size is not changeable uner Arduino)
+      ESP_LOGI(TAG, "run external command...");
+      ExeExtCmdTask exeExtCmdTask(blekb);
+      uint8_t type = exeExtCmdTask.exe();
+      // send notification
+      switch (type) {
+      case 1:
+        pCharacteristic->setValue(
+            reinterpret_cast<uint8_t *>(
+                &(CBEServiceLocator::getExternalCmds()->type1notification)),
+            sizeof(BLENotificationStruct1));
+        break;
+      }
+      pCharacteristic->notify();
+    }
   }
 }
 
@@ -111,7 +177,7 @@ void BLEKB::init() {
   kbcode1 = 0xff;
   kbcode2 = 0xff;
 
-  // init virtual joystick
+  // init div
   virtjoystickvalue = 0xff;
 
   // init BLE
@@ -121,7 +187,8 @@ void BLEKB::init() {
   pServer->setCallbacks(new BLEKBServerCallback(*this));
   BLEService *pService = pServer->createService(Config::SERVICE_UUID);
   BLECharacteristic *pCharacteristic = pService->createCharacteristic(
-      Config::CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE);
+      Config::CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
   pCharacteristic->setCallbacks(new BLEKBCharacteristicCallback(*this));
   pCharacteristic->setValue("THMIC64");
   pService->start();
@@ -129,13 +196,13 @@ void BLEKB::init() {
   pAdvertising->start();
 }
 
-uint8_t BLEKB::getKBCode() {
-  // "external" command?
+void BLEKB::handleKeyPress() {
   if ((shiftctrlcode & 128) != 0) {
+    // "external" commands are handled in BLEKBCharacteristicCallback::onWrite
     shiftctrlcode = 0;
     kbcode1 = 0xff;
     keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
-    return buffer[0];
+    return;
   }
   // key is "pressed down" at least for 50 ms
   if (keypresseddowncnt < NUMOFCYCLES_KEYPRESSEDDOWN) {
@@ -146,7 +213,7 @@ uint8_t BLEKB::getKBCode() {
     kbcode1 = 0xff;
     kbcode2 = 0xff;
   }
-  return 0;
+  return;
 }
 
 uint8_t BLEKB::decode(uint8_t dc00) {

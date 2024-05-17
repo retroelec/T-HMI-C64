@@ -3,15 +3,14 @@ package org.retroelec.thmic64kb;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.Switch;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 public class DivActivity extends AppCompatActivity {
-
+    private Switch toggleRefreshframecolorSwitch;
     private SharedPreferences sharedPreferences;
 
     private void sendCmd(Context context, byte[] data) {
@@ -27,19 +26,22 @@ public class DivActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.div);
 
-        final Button toggleDrawEvenOddButton = findViewById(R.id.toggleDrawEvenOdd);
-        toggleDrawEvenOddButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                sendCmd(DivActivity.this, new byte[]{(byte) 21, (byte) 0x00, (byte) 0x80});
+        toggleRefreshframecolorSwitch = findViewById(R.id.toggleRefreshframecolor);
+        toggleRefreshframecolorSwitch.setChecked(true);
+        toggleRefreshframecolorSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                toggleRefreshframecolorSwitch.setChecked(true);
+            } else {
+                toggleRefreshframecolorSwitch.setChecked(false);
             }
+            sendCmd(DivActivity.this, new byte[]{(byte) 22, (byte) 0x00, (byte) 0x80});
         });
 
-        final Button toggleCIA2Button = findViewById(R.id.toggleCIA2);
+        final Switch toggleCIA2Button = findViewById(R.id.toggleCIA2);
         toggleCIA2Button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendCmd(DivActivity.this, new byte[]{(byte) 22, (byte) 0x00, (byte) 0x80});
+                sendCmd(DivActivity.this, new byte[]{(byte) 23, (byte) 0x00, (byte) 0x80});
             }
         });
 

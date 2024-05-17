@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
                 super.onScanResult(callbackType, result);
                 BluetoothDevice device = result.getDevice();
                 if (device != null && TARGET_DEVICE_NAME.equals(device.getName())) {
+                    Log.d("THMIC64", "connect to device");
                     bleManager.connectToDevice(MainActivity.this, device);
                 }
             }
@@ -126,6 +127,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void showActiveJoystickButton(boolean joystick1active, boolean joystick2active) {
+        if (joystick1active) {
+            Log.d("THMIC64", "in joystick1active");
+            joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#77cc77")));
+            joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
+        } else if (joystick2active) {
+            Log.d("THMIC64", "in joystick2active");
+            joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#77cc77")));
+            joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
+        } else {
+            Log.d("THMIC64", "in else");
+            joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
+            joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
+        }
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.S)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -162,17 +179,15 @@ public class MainActivity extends AppCompatActivity {
             if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
                 if (!joystick1active) {
                     // activate joystick 1
-                    joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#77cc77")));
                     bleManager.sendData(new byte[]{(byte) 1, (byte) 0x00, (byte) 0x80});
                     // deactivate joystick 2
                     joystick2active = false;
-                    joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
                 } else {
                     // deactivate joystick 1
-                    joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
                     bleManager.sendData(new byte[]{(byte) 5, (byte) 0x00, (byte) 0x80});
                 }
                 joystick1active = !joystick1active;
+                showActiveJoystickButton(joystick1active, joystick2active);
             }
         });
 
@@ -181,17 +196,15 @@ public class MainActivity extends AppCompatActivity {
             if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
                 if (!joystick2active) {
                     // activate joystick 2
-                    joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#77cc77")));
                     bleManager.sendData(new byte[]{(byte) 2, (byte) 0x00, (byte) 0x80});
                     // deactivate joysticks
                     joystick1active = false;
-                    joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
                 } else {
                     // deactivate joystick 2
-                    joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
                     bleManager.sendData(new byte[]{(byte) 5, (byte) 0x00, (byte) 0x80});
                 }
                 joystick2active = !joystick2active;
+                showActiveJoystickButton(joystick1active, joystick2active);
             }
         });
 

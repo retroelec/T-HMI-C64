@@ -1,6 +1,7 @@
-# C64 Emulator for the development board Lilygo T-HMI (T-HMI-C64)
+# C64 Emulator on an ESP32-S3 with BLE keyboard for development board Lilygo T-HMI
 
 C64 emulator for the development board Lilygo T-HMI equipped with an ESP32-S3 chip, a 2.8 inch touch display LCD screen (ST7789V driver) and a SD card slot.
+The keyboard for the emulator is simulated by an Android app, communication between the app and the emulator is realized using BLE (Bluetooth Low Energy).
 
 <img src="doc/donkey_kong.png" alt="class diagram" width="600"/>
 
@@ -17,8 +18,8 @@ The two cores are identical in practice and share the same memory.
 The tasks responsible for handling wireless networking (Wi-Fi or Bluetooth) are pinned to CPU 0 by default
 (see [Espressif - Task Priorities](https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-guides/performance/speed.html)).
 
-Core 1 is used to emulate the 6510 CPU and the custom chips (VIC and CIAs).
-Core 0 is used to copy the graphic bitmap to LCD and handling "external commands".
+Core 0 is used to copy the graphic bitmap to LCD.
+Emulation of the CPU and the custom chips (VIC and CIAs) are done on core 1.
 
 ### Display
 
@@ -29,7 +30,7 @@ The display can be rotated to support the resolution of a C64 (320x200).
 ### Joystick
 
 I connected an "iduino joystick shield" to the T-HMI development board.
-The joystick is optional (as there exists also a virtual joystick) but recommended.
+The joystick is optional (as there exists also a virtual joystick on the Android device) but recommended.
 It has an analog 2-axis thumb joystick and several buttons.
 
 <img src="doc/joystick.png" alt="joystick" width="400"/>
@@ -114,7 +115,7 @@ I used the following settings in the Tools menu of the Arduino IDE 2.3.2:
 | USB Mode                             | Hardware CDC and JTAG             |
 | Core Debug Level                     | Info                              |
 
-The following Arduino libraries are needed (all are part of ESP32 Arduino core, version 2.0.0):
+The following Arduino libraries are used (all are part of ESP32 Arduino core, version 2.0.0):
 
 - FS
 - SD_MMC
@@ -125,13 +126,13 @@ and choose menu Sketch - Upload or press ctrl-u.
 
 ### Install Android App
 
-I wrote a simple Android app which emulates a C64 keyboard for the emulator.
+I wrote a simple Android app which provides a C64 keyboard for the emulator.
 
 <img src="doc/THMIC64KB.png" alt="THMIC64KB" width="600"/>
 
-Follow these steps to download and install the app on your Android device:
+You may follow these steps to install the app on your Android device:
 
-1. Download the app: Click [here](https://github.com/retroelec/T-HMI-C64/blob/main/THMIC64KB/thmic64kb.apk) to download the APK file of the app.
+1. Download the app directly on your Android device: Click [here](https://github.com/retroelec/T-HMI-C64/blob/main/THMIC64KB/thmic64kb.apk) to download the APK file of the app.
 2. Allow installation from unknown sources:
    - Go to "Settings" on your Android device.
    - Navigate to "Security" or "Privacy".
@@ -142,7 +143,7 @@ Follow these steps to download and install the app on your Android device:
    - Tap on the APK file to start the installation process.
    - Follow the on-screen instructions to complete the installation.
 
-Alternatively you can install the app using the Android IDE.
+Alternatively you can also install the app e.g. using Airdroid or using the Android IDE.
 
 ## Usage
 
@@ -154,7 +155,7 @@ Once the app is installed and launched, you must accept the requested permission
 (access to the precise location (*not* coarse location), permission to search for BLE devices).
 If you start the emulator (i.e. power on the T-HMI) before starting the app, the app will automatically connect to the BLE server.
 Otherwise you can move the "BLE connection" switch to the right to connect to the BLE server. You also have to do this manually
-after reseting the development board (e.g. if you want to start a new game).
+after reseting the development board.
 
 Besides the normal C64 keys this virtual keyboard also provides red extra buttons to send "external commands".
 Actually the LOAD, DIV and several JOYSTICK buttons are available:
@@ -177,14 +178,14 @@ Up to now the following keys are not implemented: Commodore key, CTRL key, RESTO
 
 You first have to copy C64 games in prg format (only supported format!) to an SD card
 (game names must be in lower case letters, max. 16 characters, no spaces in file names allowed).
+You have to insert the SD card before you power on the T-HMI development board.
 
 As there is no C64 tape/disk drive emulation available up to now, the file must be loaded
 into memory using an "external command".
 To do this, you first type in the name of the game so it shows up on the C64 text screen.
-You then press the LOAD button on your Android phone. If the file is found the text "LOADED"
-appears on screen, otherwise the text "FILE NOT FOUND" appears.
-Afterwards, as usual, you can start the game by typing "RUN" 
-followed by pressing the button RETURN.
+You then press the LOAD button on your Android phone (cursor must be on the same line and behind the game title).
+If the file is found the text "LOADED" appears on screen, otherwise the text "FILE NOT FOUND" appears.
+Afterwards, as usual, you can start the game by typing "RUN" followed by pressing the button RETURN.
 
 ## Software
 
@@ -212,15 +213,15 @@ All hardware ports not explicitly mentioned including their corresponding regist
 
 - no SID emulation (and no plans to do this)
 - no tape/disk drive emulation
-- Android app: implement Commodore key, CTRL key, RESTORE key
-- Android app: "beatify" app (extra screens like the "virtual joystick" screen are pretty ugly)
 - some VIC registers are not implemented (yet): $d01b
-- some VIC registers are only partly implemented (yet): $d011 (bit 3+4), $d016 (bit 3)
+- some VIC registers are only partly implemented (yet): $d011 (bit 3+4)
 - some CIA registers are not implemented (yet): $d[c|d]02, $d[c|d]03, $d[c|d]08, $d[c|d]09, $d[c|d]0a, $d[c|d]0b,
 - some CIA registers are only partly implemented (yet): $dc0d (bit 2), $dc0e (bit 7), $dc0f (bit 7)
 - not all "illegal" opcodes of the 6502 CPU are implemented yet
-- code cleanup is necessary
-- some games are not running properly
+- Android app: implement Commodore key, CTRL key, RESTORE key
+- Android app: "beautify" app (extra screens like the "virtual joystick" screen are pretty ugly)
+- Android app: code cleanup is necessary
+- some games have graphic errors
 - some games are not working at all
 
 ### Games
@@ -245,23 +246,23 @@ Games that are playable:
 - quartet
 - international soccer
 - choplifter
-- pole position
+- pole position (graphic errors before start of game)
 - pacman
 - boulder dash
-- q*bert (graphic errors at bottom)
 - ghost and gobblins (graphic errors at top and bottom)
 - great gianas sister
 - hyper sports
 - blue max
-
-Games which needs some tweaking to be playable:
-
-- fort apocalypse : sprites only always visible if option "toggle draw e/o" in the DIV menu is toggled
-- hero : sprites only visible if option "toggle draw e/o" in the DIV menu is toggled (sprites still flickering)
+- commando (graphic errors at bottom)
+- fort apocalypse
+- hero
+- burger time 97
+- outrun (small graphic errors in the middle of screen)
 
 Games not working:
 
-- burger time
-- terra cresta
-- arkanoid
-- commando (sprites not refreshed correctly, sprites flickering)
+- terra cresta (cannot start game)
+- q*bert (crashing after start)
+- burger time (crashing)
+- arkanoid (crashing)
+

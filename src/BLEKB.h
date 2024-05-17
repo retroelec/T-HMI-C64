@@ -41,7 +41,7 @@ public:
   BLEKB();
   void init();
   // keyboard
-  uint8_t getKBCode();
+  void handleKeyPress();
   uint8_t decode(uint8_t dc00);
   uint8_t getKBJoyValue(bool port2);
   // transfer data

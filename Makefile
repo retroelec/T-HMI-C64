@@ -2,7 +2,7 @@ FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapte
 PORT := /dev/ttyACM0
 SOURCEFILES=$(wildcard src/*.cpp)
 
-default:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h
+default:	T-HMI-C64.ino $(SOURCEFILES)
 	arduino-cli compile --fqbn $(FQBN) T-HMI-C64.ino
 
 src/loadactions.h:	src/loadactions.asm

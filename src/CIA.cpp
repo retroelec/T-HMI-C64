@@ -66,4 +66,21 @@ bool CIA::checkTimerB(uint8_t deltaT) {
   return false;
 }
 
-CIA::CIA() { triggerTimerB = false; }
+void CIA::init() {
+  for (uint8_t i = 0; i < 0x10; i++) {
+    ciareg[i] = 0;
+  }
+
+  uint8_t latchdc04 = 0;
+  uint8_t latchdc05 = 0;
+  uint8_t latchdc06 = 0;
+  uint8_t latchdc07 = 0;
+  uint8_t latchdc0d = 0;
+  uint16_t timerA = 0;
+  uint16_t timerB = 0;
+  bool reloadA = false;
+  bool reloadB = false;
+  triggerTimerB = false;
+}
+
+CIA::CIA() { init(); }

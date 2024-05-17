@@ -17,39 +17,47 @@
 #ifndef EXTERNALCMDS_H
 #define EXTERNALCMDS_H
 
-#include "BLEKB.h"
-#include "CPUC64.h"
+#include "ExtCmdEnum.h"
 #include "SDCard.h"
 #include <cstdint>
+
+struct BLENotificationStruct1 {
+  uint8_t type;
+  uint8_t joymode;
+  uint8_t kbjoymode;
+  uint8_t refreshframecolor;
+  uint8_t switchonoffcia2;
+  uint8_t joyemulmode;
+  uint8_t cpuRunning;
+};
+
+struct BLENotificationStruct2 {
+  uint8_t type;
+  uint16_t pc;
+  uint8_t a;
+  uint8_t x;
+  uint8_t y;
+  uint8_t sr;
+  uint8_t d011;
+  uint8_t d016;
+  uint8_t d018;
+  uint8_t d019;
+  uint8_t d010;
+};
 
 class ExternalCmds {
 private:
   uint8_t *ram;
-  CPUC64 *cpu;
-  BLEKB *blekb;
   SDCard sdcard;
 
 public:
-  enum cmds {
-    NOHOSTCMD = 0,
-    JOYSTICKMODE1 = 1,
-    JOYSTICKMODE2 = 2,
-    KBJOYSTICKMODE1 = 3,
-    KBJOYSTICKMODE2 = 4,
-    JOYSTICKMODEOFF = 5,
-    KBJOYSTICKMODEOFF = 6,
-    LOAD = 11,
-    RECEIVEDATA = 12,
-    SHOWREG = 13,
-    SHOWMEM = 14,
-    RESET = 20,
-    TOGGLEVICDRAW = 21,
-    TOGGLECIA2 = 22
-  };
-  cmds hostcmdcode;
+  BLENotificationStruct1 type1notification;
+  BLENotificationStruct2 type2notification;
 
-  void init(uint8_t *ram, CPUC64 *cpu, BLEKB *blekb);
-  void checkExternalCmd();
+  void init(uint8_t *ram);
+  void setType1Notification();
+  void setType2Notification();
+  uint8_t executeExternalCmd(ExtCmd cmd);
 };
 
 #endif // EXTERNALCMDS_H

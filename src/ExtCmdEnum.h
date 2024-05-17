@@ -14,36 +14,24 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef CIA_H
-#define CIA_H
-
-#include <cstdint>
-
-// register dc0d:
-// - Interrupt Control Register when written to
-// - is an Interrupt Latch Register when read from
-// - read the clear-on-read register $dc0d will ACK all pending CIA 1 interrupts
-
-class CIA {
-private:
-  bool triggerTimerB;
-
-public:
-  uint8_t ciareg[0x10];
-
-  uint8_t latchdc04;
-  uint8_t latchdc05;
-  uint8_t latchdc06;
-  uint8_t latchdc07;
-  uint8_t latchdc0d; // read latch register
-  uint16_t timerA;
-  uint16_t timerB;
-  bool reloadA;
-  bool reloadB;
-
-  CIA();
-  void init();
-  bool checkTimerA(uint8_t deltaT);
-  bool checkTimerB(uint8_t deltaT);
+#ifndef EXTCMD_H
+#define EXTCMD_H
+enum class ExtCmd {
+  NOEXTCMD = 0,
+  JOYSTICKMODE1 = 1,
+  JOYSTICKMODE2 = 2,
+  KBJOYSTICKMODE1 = 3,
+  KBJOYSTICKMODE2 = 4,
+  JOYSTICKMODEOFF = 5,
+  KBJOYSTICKMODEOFF = 6,
+  LOAD = 11,
+  RECEIVEDATA = 12,
+  SHOWREG = 13,
+  SHOWMEM = 14,
+  RESET = 20,
+  GETSTATUS = 21,
+  SWITCHFRAMECOLORREFRESH = 22,
+  SWITCHCIA2 = 23,
+  JOYEMULMODE = 24
 };
-#endif // CIA_H
+#endif // EXTCMD_H

@@ -15,6 +15,7 @@
  http://www.gnu.org/licenses/.
 */
 #include "CPUC64.h"
+#include "CBEServiceLocator.h"
 #include "JoystickInitializationException.h"
 #include "roms/basic.h"
 #include "roms/kernal.h"
@@ -85,14 +86,16 @@ uint8_t CPUC64::getMem(uint16_t addr) {
           return joystick.getValue(true) | (cia1.ciareg[0x00] & 0x80);
         } else if (kbjoystickmode == 2) {
           // keyboard joystick
-          return blekb->getKBJoyValue(true) | (cia1.ciareg[0x00] & 0x80);
+          return CBEServiceLocator::getBLEKB()->getKBJoyValue(true) |
+                 (cia1.ciareg[0x00] & 0x80);
         } else {
           return cia1.ciareg[0x00];
         }
       } else if (ciaidx == 0x01) {
         if (joystickmode == 1) {
           // real joystick, but still check for keyboard input
-          uint8_t pressedkey = blekb->decode(cia1.ciareg[0x00]);
+          uint8_t pressedkey =
+              CBEServiceLocator::getBLEKB()->decode(cia1.ciareg[0x00]);
           if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             return joystick.getValue(false);
@@ -100,15 +103,16 @@ uint8_t CPUC64::getMem(uint16_t addr) {
           return pressedkey;
         } else if (kbjoystickmode == 1) {
           // keyboard joystick, but still check for keyboard input
-          uint8_t pressedkey = blekb->decode(cia1.ciareg[0x00]);
+          uint8_t pressedkey =
+              CBEServiceLocator::getBLEKB()->decode(cia1.ciareg[0x00]);
           if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
-            return blekb->getKBJoyValue(false);
+            return CBEServiceLocator::getBLEKB()->getKBJoyValue(false);
           }
           return pressedkey;
         } else {
           // keyboard
-          return blekb->decode(cia1.ciareg[0x00]);
+          return CBEServiceLocator::getBLEKB()->decode(cia1.ciareg[0x00]);
         }
       } else {
         return getCommonCIAReg(cia1, ciaidx);
@@ -397,10 +401,6 @@ uint16_t CPUC64::getPC() { return pc; }
 void CPUC64::run() {
   // pc *must* be set externally!
   cpuhalted = false;
-  sp = 0xFF;
-  iflag = true;
-  dflag = false;
-  bflag = false;
   numofcycles = 0;
   uint8_t badlinecycles = 0;
   while (true) {
@@ -458,34 +458,40 @@ void CPUC64::run() {
   }
 }
 
-void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb) {
+void CPUC64::initMemAndRegs() {
+  setMem(0, 0x2f);
+  setMem(1, 0x37);
+  sp = 0xFF;
+  iflag = true;
+  dflag = false;
+  bflag = false;
+  uint16_t addr = 0xfffc - 0xe000;
+  pc = kernal_rom[addr] + (kernal_rom[addr + 1] << 8);
+}
+
+void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic) {
   this->ram = ram;
   this->charrom = charrom;
   this->vic = vic;
-  this->blekb = blekb;
   measuredcycles.store(0, std::memory_order_release);
   adjustcycles.store(0, std::memory_order_release);
   joystickmode = 0;
   kbjoystickmode = 0;
-  setMem(0, 0x2f);
-  setMem(1, 0x37);
+  refreshframecolor = true;
   numofcycles = 0;
   numofcyclespersecond = 0;
   adjustcycles = 0;
-  uint16_t addr = 0xfffc - 0xe000;
-  pc = kernal_rom[addr] + (kernal_rom[addr + 1] << 8);
   try {
     joystick.init();
   } catch (const JoystickInitializationException &e) {
     ESP_LOGI(TAG, "error in init. of joystick: %s - continue anyway", e.what());
   }
+  initMemAndRegs();
 }
 
 void CPUC64::setPC(uint16_t newPC) {
-  std::atomic<uint16_t> &atomicVar =
-      *reinterpret_cast<std::atomic<uint16_t> *>(&pc);
-  atomicVar.store(newPC, std::memory_order_release);
-  ESP_LOGI(TAG, "setting pc to %x", pc);
+  std::lock_guard<std::mutex> lock(pcMutex);
+  pc = newPC;
 }
 
 void CPUC64::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,

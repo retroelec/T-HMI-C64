@@ -16,6 +16,7 @@
 */
 #include "Main.h"
 #include "BLEKB.h"
+#include "CBEServiceLocator.h"
 #include "CPUC64.h"
 #include "Config.h"
 #include "ExternalCmds.h"
@@ -28,13 +29,14 @@
 static const char *TAG = "Main";
 
 uint8_t *ram;
-CPUC64 cpu;
 VIC vic;
+CPUC64 cpu;
 BLEKB blekb;
+ExternalCmds externalCmds;
+CBEServiceLocator cbeServiceLocator;
 
 bool checkExternalCommand = false;
-uint16_t checkExternalCommandCnt = 0;
-ExternalCmds externalCmds;
+uint16_t checkForKeyboardCnt = 0;
 
 hw_timer_t *interruptProfiling = NULL;
 hw_timer_t *interruptSystem = NULL;
@@ -50,15 +52,13 @@ void IRAM_ATTR interruptProfilingFunc() {
 }
 
 void IRAM_ATTR interruptSystemFunc() {
-  // check for host commands and keyboard inputs each ca. 8 ms
-  if (externalCmds.hostcmdcode == ExternalCmds::NOHOSTCMD) {
-    checkExternalCommandCnt++;
-    if (checkExternalCommandCnt == (8333 / Config::INTERRUPTSYSTEMRESOLUTION)) {
-      checkExternalCommand = true;
-      checkExternalCommandCnt = 0;
-      externalCmds.hostcmdcode = (ExternalCmds::cmds)blekb.getKBCode();
-    }
+  // check for keyboard inputs ca. each 8 ms
+  checkForKeyboardCnt++;
+  if (checkForKeyboardCnt == (8333 / Config::INTERRUPTSYSTEMRESOLUTION)) {
+    blekb.handleKeyPress();
+    checkForKeyboardCnt = 0;
   }
+
   // throttle 6502 CPU
   uint16_t measuredcyclestmp =
       cpu.measuredcycles.load(std::memory_order_acquire);
@@ -80,14 +80,22 @@ void Main::setup() {
   // allocate ram
   ram = new uint8_t[1 << 16];
 
+  // init CBEServiceLocator
+  cbeServiceLocator.setCPUC64(&cpu);
+  cbeServiceLocator.setBLEKB(&blekb);
+  cbeServiceLocator.setExternalCmds(&externalCmds);
+
   // init VIC
   vic.init(ram, charset_rom);
 
   // init ble keyboard
   blekb.init();
 
+  // init ExternalCmds
+  externalCmds.init(ram);
+
   // init CPU
-  cpu.init(ram, charset_rom, &vic, &blekb);
+  cpu.init(ram, charset_rom, &vic);
 
   // start cpu task
   xTaskCreatePinnedToCore(cpuCode,  // Function to implement the task
@@ -111,16 +119,9 @@ void Main::setup() {
   timerAlarmWrite(interruptProfiling, 1000000, true);
   timerAlarmEnable(interruptProfiling);
   */
-
-  // init ExternalCmds
-  externalCmds.init(ram, &cpu, &blekb);
 }
 
 void Main::loop() {
-  if (checkExternalCommand) {
-    checkExternalCommand = false;
-    externalCmds.checkExternalCmd();
-  }
-  vic.refresh();
+  vic.refresh(cpu.refreshframecolor);
   vTaskDelay(1);
 }

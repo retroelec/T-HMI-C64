@@ -14,36 +14,25 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef CIA_H
-#define CIA_H
+#ifndef CBESERVICELOCATOR_H
+#define CBESERVICELOCATOR_H
 
-#include <cstdint>
+#include "BLEKB.h"
+#include "CPUC64.h"
+#include "ExternalCmds.h"
 
-// register dc0d:
-// - Interrupt Control Register when written to
-// - is an Interrupt Latch Register when read from
-// - read the clear-on-read register $dc0d will ACK all pending CIA 1 interrupts
-
-class CIA {
+class CBEServiceLocator {
 private:
-  bool triggerTimerB;
+  static CPUC64 *cpuC64;
+  static BLEKB *blekb;
+  static ExternalCmds *externalCmds;
 
 public:
-  uint8_t ciareg[0x10];
-
-  uint8_t latchdc04;
-  uint8_t latchdc05;
-  uint8_t latchdc06;
-  uint8_t latchdc07;
-  uint8_t latchdc0d; // read latch register
-  uint16_t timerA;
-  uint16_t timerB;
-  bool reloadA;
-  bool reloadB;
-
-  CIA();
-  void init();
-  bool checkTimerA(uint8_t deltaT);
-  bool checkTimerB(uint8_t deltaT);
+  static CPUC64 *getCPUC64();
+  static void setCPUC64(CPUC64 *cpuc64);
+  static ExternalCmds *getExternalCmds();
+  static void setExternalCmds(ExternalCmds *externalCmds);
+  static BLEKB *getBLEKB();
+  static void setBLEKB(BLEKB *blekbInstance);
 };
-#endif // CIA_H
+#endif // CBESERVICELOCATOR_H

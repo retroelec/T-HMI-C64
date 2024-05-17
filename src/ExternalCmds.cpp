@@ -15,30 +15,37 @@
  http://www.gnu.org/licenses/.
 */
 #include "ExternalCmds.h"
+#include "CBEServiceLocator.h"
 #include "loadactions.h"
 #include <esp_log.h>
 
 static const char *TAG = "ExternalCmds";
 
-void ExternalCmds::init(uint8_t *ram, CPUC64 *cpu, BLEKB *blekb) {
-  this->ram = ram;
-  this->cpu = cpu;
-  this->blekb = blekb;
-  hostcmdcode = NOHOSTCMD;
+void ExternalCmds::init(uint8_t *ram) { this->ram = ram; }
+
+void ExternalCmds::setType1Notification() {
+  type1notification.type = 1;
+  type1notification.joymode = CBEServiceLocator::getCPUC64()->joystickmode;
+  type1notification.kbjoymode = CBEServiceLocator::getCPUC64()->kbjoystickmode;
+  type1notification.refreshframecolor =
+      CBEServiceLocator::getCPUC64()->refreshframecolor;
+  type1notification.switchonoffcia2 = 0; // todo
+  type1notification.joyemulmode = 0;     // todo
+  type1notification.cpuRunning = !CBEServiceLocator::getCPUC64()->cpuhalted;
 }
 
-void ExternalCmds::checkExternalCmd() {
+uint8_t ExternalCmds::executeExternalCmd(ExtCmd cmd) {
   uint8_t low;
   uint8_t hi;
   uint8_t numofbytes;
   uint16_t addr;
   bool fileloaded;
-  switch (ExternalCmds::hostcmdcode) {
-  case NOHOSTCMD:
-    return;
-  case LOAD:
+  switch (cmd) {
+  case ExtCmd::NOEXTCMD:
+    return 0;
+  case ExtCmd::LOAD:
     ESP_LOGI(TAG, "load from sdcard...");
-    cpu->cpuhalted = true;
+    CBEServiceLocator::getCPUC64()->cpuhalted = true;
     fileloaded = false;
     if (sdcard.init()) {
       uint8_t cury = ram[0xd6];
@@ -51,7 +58,7 @@ void ExternalCmds::checkExternalCmd() {
         ram[0x2d] = addr % 256;
         ram[0x2e] = addr / 256;
         // clr
-        cpu->setPC(0xa52a);
+        CBEServiceLocator::getCPUC64()->setPC(0xa52a);
         fileloaded = true;
       }
     } else {
@@ -61,35 +68,35 @@ void ExternalCmds::checkExternalCmd() {
     memcpy(ram + addr, src_loadactions_prg + 2, src_loadactions_prg_len - 2);
     if (fileloaded) {
       fileloaded = false;
-      cpu->exeSubroutine(addr, 1, 0, 0);
+      CBEServiceLocator::getCPUC64()->exeSubroutine(addr, 1, 0, 0);
     } else {
-      cpu->exeSubroutine(addr, 0, 0, 0);
+      CBEServiceLocator::getCPUC64()->exeSubroutine(addr, 0, 0, 0);
     }
-    cpu->cpuhalted = false;
-    break;
-  case RECEIVEDATA:
+    CBEServiceLocator::getCPUC64()->cpuhalted = false;
+    return 33;
+  case ExtCmd::RECEIVEDATA:
     ESP_LOGI(TAG, "enter hostcmd_receivedata");
-    cpu->cpuhalted = true;
+    CBEServiceLocator::getCPUC64()->cpuhalted = true;
     while (true) {
       // simple "protocol":
       // - first byte = number of bytes which will be sent (max 248 bytes)
       // - next two bytes = address the bytes must be written to
       // - afterwards send announced number of bytes
       // - if numofbytes == 255 then transfer is finished -> init basic
-      while (!blekb->getData(&numofbytes)) {
+      while (!CBEServiceLocator::getBLEKB()->getData(&numofbytes)) {
       }
       ESP_LOGI(TAG, "number of bytes to transfer: %x", numofbytes);
       if (numofbytes == 255) {
         break;
       }
-      while (!blekb->getData(&low)) {
+      while (!CBEServiceLocator::getBLEKB()->getData(&low)) {
       }
-      while (!blekb->getData(&hi)) {
+      while (!CBEServiceLocator::getBLEKB()->getData(&hi)) {
       }
       addr = low + (hi << 8);
       ESP_LOGI(TAG, "address data will be transfered to: %x", low + (hi << 8));
       for (uint8_t i = 0; i < numofbytes; i++) {
-        while (!blekb->getData(&ram[addr])) {
+        while (!CBEServiceLocator::getBLEKB()->getData(&ram[addr])) {
         }
         addr++;
       }
@@ -99,17 +106,22 @@ void ExternalCmds::checkExternalCmd() {
     ram[0x2d] = addr % 256;
     ram[0x2e] = addr / 256;
     // clr
-    cpu->setPC(0xa52a);
-    cpu->cpuhalted = false;
+    CBEServiceLocator::getCPUC64()->setPC(0xa52a);
+    CBEServiceLocator::getCPUC64()->cpuhalted = false;
     ESP_LOGI(TAG, "leave hostcmd_receivedata");
-    break;
-  case SHOWREG:
-    ESP_LOGI(TAG, "pc = %x, a = %x, x = %x, y = %x, sr = %B", cpu->getPC(),
-             cpu->getA(), cpu->getX(), cpu->getY(), cpu->getSR());
-    /*
+    return 0;
+  case ExtCmd::SHOWREG:
+    ESP_LOGI(TAG, "pc = %x, a = %x, x = %x, y = %x, sr = %B",
+             CBEServiceLocator::getCPUC64()->getPC(),
+             CBEServiceLocator::getCPUC64()->getA(),
+             CBEServiceLocator::getCPUC64()->getX(),
+             CBEServiceLocator::getCPUC64()->getY(),
+             CBEServiceLocator::getCPUC64()->getSR());
     for (uint8_t i = 0x11; i <= 0x1a; i++) {
-      ESP_LOGI(TAG, "vic[%x] = %B", i, vic->vicreg[i]);
+      ESP_LOGI(TAG, "vic[%x] = %B", i,
+               CBEServiceLocator::getCPUC64()->vic->vicreg[i]);
     }
+    /*
     ESP_LOGI(TAG, "l11 = %B, l12 = %B, vicmem = %x", vic->latchd011,
              vic->latchd012, vic->vicmem);
     for (uint8_t i = 0x04; i <= 0x0f; i++) {
@@ -122,61 +134,76 @@ void ExternalCmds::checkExternalCmd() {
              cia1->latchdc0d, cia1->timerA, cia1->timerB, cia1->reloadA,
              cia1->reloadB);
     */
-    break;
-  case SHOWMEM:
-    while (!blekb->getData(&numofbytes)) {
+    return 2;
+  case ExtCmd::SHOWMEM:
+    while (!CBEServiceLocator::getBLEKB()->getData(&numofbytes)) {
     }
-    while (!blekb->getData(&low)) {
+    while (!CBEServiceLocator::getBLEKB()->getData(&low)) {
     }
-    while (!blekb->getData(&hi)) {
+    while (!CBEServiceLocator::getBLEKB()->getData(&hi)) {
     }
     addr = low + (hi << 8);
     for (uint8_t i = 0; i < numofbytes; i++) {
       ESP_LOGI(TAG, "ram[%x] = %x", addr, ram[addr]);
       addr++;
     }
-    break;
-  case TOGGLEVICDRAW:
-    cpu->vic->activateDrawLinesAlternately =
-        !cpu->vic->activateDrawLinesAlternately;
-    ESP_LOGI(TAG, "activateDrawLinesAlternately = %B",
-             cpu->vic->activateDrawLinesAlternately);
-    break;
-  case RESET:
-    cpu->cpuhalted = true;
-    /*
-    vic->vicreg[0x11] = 0x1b;
-    vic->vicreg[0x16] = 0xc8;
-    vic->vicreg[0x18] = 0x15;
-    cia2->ciareg[0x00] = 0x97;
-    cpu->setPC(0xfce2);
-    cpu->cpuhalted = false;
-    */
-    break;
-  case JOYSTICKMODE1:
-    cpu->joystickmode = 1;
-    ESP_LOGI(TAG, "joystickmode = %x", cpu->joystickmode);
-    break;
-  case JOYSTICKMODE2:
-    cpu->joystickmode = 2;
-    ESP_LOGI(TAG, "joystickmode = %x", cpu->joystickmode);
-    break;
-  case JOYSTICKMODEOFF:
-    cpu->joystickmode = 0;
-    ESP_LOGI(TAG, "joystickmode = %x", cpu->joystickmode);
-    break;
-  case KBJOYSTICKMODE1:
-    cpu->kbjoystickmode = 1;
-    ESP_LOGI(TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
-    break;
-  case KBJOYSTICKMODE2:
-    cpu->kbjoystickmode = 2;
-    ESP_LOGI(TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
-    break;
-  case KBJOYSTICKMODEOFF:
-    cpu->kbjoystickmode = 0;
-    ESP_LOGI(TAG, "joystickmode = %x", cpu->kbjoystickmode);
-    break;
+    return 0;
+  case ExtCmd::RESET:
+    CBEServiceLocator::getCPUC64()->cpuhalted = true;
+    CBEServiceLocator::getCPUC64()->initMemAndRegs();
+    CBEServiceLocator::getCPUC64()->vic->initVarsAndRegs();
+    CBEServiceLocator::getCPUC64()->cia1.init();
+    CBEServiceLocator::getCPUC64()->cia2.init();
+    CBEServiceLocator::getCPUC64()->cpuhalted = false;
+    return 0;
+  case ExtCmd::JOYSTICKMODE1:
+    CBEServiceLocator::getCPUC64()->joystickmode = 1;
+    CBEServiceLocator::getCPUC64()->kbjoystickmode = 0;
+    ESP_LOGI(TAG, "joystickmode = %x",
+             CBEServiceLocator::getCPUC64()->joystickmode);
+    setType1Notification();
+    return 1;
+  case ExtCmd::JOYSTICKMODE2:
+    CBEServiceLocator::getCPUC64()->joystickmode = 2;
+    CBEServiceLocator::getCPUC64()->kbjoystickmode = 0;
+    ESP_LOGI(TAG, "joystickmode = %x",
+             CBEServiceLocator::getCPUC64()->joystickmode);
+    setType1Notification();
+    return 1;
+  case ExtCmd::JOYSTICKMODEOFF:
+    CBEServiceLocator::getCPUC64()->joystickmode = 0;
+    ESP_LOGI(TAG, "joystickmode = %x",
+             CBEServiceLocator::getCPUC64()->joystickmode);
+    setType1Notification();
+    return 1;
+  case ExtCmd::KBJOYSTICKMODE1:
+    CBEServiceLocator::getCPUC64()->kbjoystickmode = 1;
+    CBEServiceLocator::getCPUC64()->joystickmode = 0;
+    ESP_LOGI(TAG, "kbjoystickmode = %x",
+             CBEServiceLocator::getCPUC64()->kbjoystickmode);
+    return 1;
+  case ExtCmd::KBJOYSTICKMODE2:
+    CBEServiceLocator::getCPUC64()->kbjoystickmode = 2;
+    CBEServiceLocator::getCPUC64()->joystickmode = 0;
+    ESP_LOGI(TAG, "kbjoystickmode = %x",
+             CBEServiceLocator::getCPUC64()->kbjoystickmode);
+    return 1;
+  case ExtCmd::KBJOYSTICKMODEOFF:
+    CBEServiceLocator::getCPUC64()->kbjoystickmode = 0;
+    ESP_LOGI(TAG, "kbjoystickmode = %x",
+             CBEServiceLocator::getCPUC64()->kbjoystickmode);
+    return 1;
+  case ExtCmd::GETSTATUS:
+    // just send type 1 notification
+    ESP_LOGI(TAG, "send status to BLE client");
+    setType1Notification();
+    return 1;
+  case ExtCmd::SWITCHFRAMECOLORREFRESH:
+    CBEServiceLocator::getCPUC64()->refreshframecolor =
+        !CBEServiceLocator::getCPUC64()->refreshframecolor;
+    ESP_LOGI(TAG, "refreshframecolor = %B",
+             CBEServiceLocator::getCPUC64()->refreshframecolor);
+    return 0;
   }
-  ExternalCmds::hostcmdcode = NOHOSTCMD;
+  return 0;
 }
