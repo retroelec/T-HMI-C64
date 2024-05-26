@@ -17,22 +17,22 @@
 #ifndef EXTERNALCMDS_H
 #define EXTERNALCMDS_H
 
-#include "ExtCmdEnum.h"
+class CPUC64;
+
 #include "SDCard.h"
 #include <cstdint>
 
 struct BLENotificationStruct1 {
   uint8_t type;
   uint8_t joymode;
-  uint8_t kbjoymode;
   uint8_t refreshframecolor;
   uint8_t switchonoffcia2;
   uint8_t joyemulmode;
-  uint8_t cpuRunning;
 };
 
 struct BLENotificationStruct2 {
   uint8_t type;
+  uint8_t cpuRunning;
   uint16_t pc;
   uint8_t a;
   uint8_t x;
@@ -42,22 +42,26 @@ struct BLENotificationStruct2 {
   uint8_t d016;
   uint8_t d018;
   uint8_t d019;
-  uint8_t d010;
+  uint8_t d01a;
+  uint8_t register1;
 };
 
 class ExternalCmds {
 private:
   uint8_t *ram;
+  CPUC64 *cpu;
   SDCard sdcard;
+
+  void setVarTab(uint16_t addr);
+  void setType1Notification();
+  void setType2Notification();
 
 public:
   BLENotificationStruct1 type1notification;
   BLENotificationStruct2 type2notification;
 
-  void init(uint8_t *ram);
-  void setType1Notification();
-  void setType2Notification();
-  uint8_t executeExternalCmd(ExtCmd cmd);
+  void init(uint8_t *ram, CPUC64 *cpu);
+  uint8_t executeExternalCmd(uint8_t *buffer);
 };
 
 #endif // EXTERNALCMDS_H

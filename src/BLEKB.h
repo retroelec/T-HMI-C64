@@ -23,6 +23,8 @@
 #include <cstdint>
 #include <string>
 
+class ExternalCmds;
+
 class BLEKB {
 private:
   uint8_t kbcode1;
@@ -32,20 +34,15 @@ public:
   // also used by classes BLEKBServerCallback and BLEKBCharacteristicCallback
   bool deviceConnected;
   uint8_t *buffer;
-  uint8_t bufidxprod;
-  uint8_t bufidxcons;
   uint8_t shiftctrlcode;
   uint8_t keypresseddowncnt;
   uint8_t virtjoystickvalue;
 
   BLEKB();
-  void init();
-  // keyboard
+  void init(ExternalCmds *externalCmds);
   void handleKeyPress();
   uint8_t decode(uint8_t dc00);
   uint8_t getKBJoyValue(bool port2);
-  // transfer data
-  bool getData(uint8_t *data);
 };
 
 class BLEKBServerCallback : public BLEServerCallbacks {
@@ -61,9 +58,10 @@ public:
 class BLEKBCharacteristicCallback : public BLECharacteristicCallbacks {
 private:
   BLEKB &blekb;
+  ExternalCmds &externalCmds;
 
 public:
-  BLEKBCharacteristicCallback(BLEKB &blekb);
+  BLEKBCharacteristicCallback(BLEKB &blekb, ExternalCmds &externalCmds);
   void onWrite(BLECharacteristic *pCharacteristic);
 };
 

@@ -23,20 +23,21 @@ void Joystick::init() {
   // init adc (x and y axis)
   adc2_config_channel_atten(Config::ADC_JOYSTICK_X, ADC_ATTEN_11db);
   adc2_config_channel_atten(Config::ADC_JOYSTICK_Y, ADC_ATTEN_11db);
-  // init gpio (fire button)
+  // init gpio (fire buttons)
   gpio_config_t io_conf;
   io_conf.intr_type = (gpio_int_type_t)GPIO_PIN_INTR_DISABLE;
   io_conf.mode = GPIO_MODE_INPUT;
   io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-  io_conf.pin_bit_mask = (1ULL << Config::JOYSTICK_FIRE_PIN);
+  io_conf.pin_bit_mask = (1ULL << Config::JOYSTICK_FIRE_PIN) |
+                         (1ULL << Config::JOYSTICK_FIRE2_PIN);
   esp_err_t err = gpio_config(&io_conf);
   if (err != ESP_OK) {
     throw JoystickInitializationException(esp_err_to_name(err));
   }
 }
 
-uint8_t Joystick::getValue(bool port2) {
+uint8_t Joystick::getValue(bool port2, uint8_t joystickemulmode) {
   // assume return value of adc2_get_raw is ESP_OK
   int valueX;
   adc2_get_raw(Config::ADC_JOYSTICK_X, ADC_WIDTH_12Bit, &valueX);
@@ -46,7 +47,7 @@ uint8_t Joystick::getValue(bool port2) {
   uint8_t valueFire = (GPIO.in >> Config::JOYSTICK_FIRE_PIN) & 0x01;
   // C64 register value
   uint8_t value = 0xff;
-  if (port2) {
+  if (port2 && (joystickemulmode != 1)) {
     value = 0x7f;
   }
   if (valueX < LEFT_THRESHOLD) {
@@ -63,4 +64,8 @@ uint8_t Joystick::getValue(bool port2) {
     value &= ~(1 << C64JOYFIRE);
   }
   return value;
+}
+
+bool Joystick::getFire2() {
+  return ((GPIO.in >> Config::JOYSTICK_FIRE2_PIN) & 0x01) == 0;
 }

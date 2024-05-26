@@ -29,9 +29,11 @@ The display can be rotated to support the resolution of a C64 (320x200).
 
 ### Joystick
 
-I connected an "iduino joystick shield" to the T-HMI development board.
+I connected an "Iduino joystick shield" to the T-HMI development board.
 The joystick is optional (as there exists also a virtual joystick on the Android device) but recommended.
 It has an analog 2-axis thumb joystick and several buttons.
+As there are several games which use the space bar as a second fire button (e.g. Commando), another button of the Iduino joystick
+can be used to simulate the pressing of the space bar.
 
 <img src="doc/joystick.png" alt="joystick" width="400"/>
 
@@ -42,7 +44,8 @@ Connections:
 - connect T-HMI VDD to iduino V pin (red cable)
 - connect T-HMI GND to iduino G pin (black cable)
 - connect T-HMI IO18 to iduino D pin (for D button, yellow cable)
-  
+- optional: connect T-HMI IO17 to iduino B pin to simulate pressing the space bar (for B button, white cable)
+
 Switch voltage to 3.3V on the iduino module.
 
 If you do not use an iduino joystick or choose to use other pins on the development board,
@@ -51,6 +54,7 @@ you may have to adapt the following constants in src/Config.h:
 - ADC_JOYSTICK_X
 - ADC_JOYSTICK_Y
 - JOYSTICK_FIRE_PIN
+- JOYSTICK_FIRE2_PIN
 
 ## Installation
 
@@ -147,7 +151,7 @@ Alternatively you can also install the app e.g. using Airdroid or using the Andr
 
 ## Usage
 
-### BLE Connection
+### Android keyboard
 
 The emulator starts a BLE (Bluetooth Low Energy) server to receive keystrokes from the Android client.
 
@@ -219,8 +223,6 @@ All hardware ports not explicitly mentioned including their corresponding regist
 - some CIA registers are only partly implemented (yet): $dc0d (bit 2), $dc0e (bit 7), $dc0f (bit 7)
 - not all "illegal" opcodes of the 6502 CPU are implemented yet
 - Android app: implement Commodore key, CTRL key, RESTORE key
-- Android app: "beautify" app (extra screens like the "virtual joystick" screen are pretty ugly)
-- Android app: code cleanup is necessary
 - some games have graphic errors
 - some games are not working at all
 
@@ -231,33 +233,33 @@ Up to now I only tested a few games.
 
 Games that are playable:
 
-- wizard of wor
-- skramble (from anirog)
-- galaxy
-- burnin rubber
-- lode runner
-- donkey kong
-- bubble bobble
-- castle terror
-- bagitman
-- krakout
-- miner 2049er
-- dig dug (background is mildly flickering)
-- quartet
-- international soccer
-- choplifter
-- pole position (graphic errors before start of game)
-- pacman
-- boulder dash
-- ghost and gobblins (graphic errors at top and bottom)
-- great gianas sister
-- hyper sports
-- blue max
-- commando (graphic errors at bottom)
-- fort apocalypse
-- hero
-- burger time 97
-- outrun (small graphic errors in the middle of screen)
+- Wizard of wor
+- Skramble (from anirog)
+- Galaxy
+- Burnin rubber
+- Lode runner
+- Donkey kong
+- Bubble bobble
+- Castle terror
+- Bagitman
+- Krakout
+- Miner 2049er
+- Dig dug (background is mildly flickering)
+- Quartet
+- International soccer
+- Choplifter
+- Pole position (graphic errors before start of game)
+- Pacman
+- Boulder dash
+- Ghost and gobblins (graphic errors at top and bottom)
+- Great gianas sister
+- Hyper sports
+- Blue max
+- Commando (graphic errors at bottom)
+- Fort apocalypse
+- Hero
+- Burger time 97
+- Outrun (small graphic errors in the middle of screen)
 
 Games not working:
 

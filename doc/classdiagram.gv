@@ -8,11 +8,12 @@ digraph T_HMI_C64 {
     style=filled
     fillcolor=gray95
   ]
-  Main -> CBEServiceLocator
-  CBEServiceLocator -> CPUC64
-  CBEServiceLocator -> BLEKB
-  CBEServiceLocator -> ExternalCmds
+  Main -> CPUC64
+  Main -> BLEKB
   Main -> VIC
+  BLEKB -> ExternalCmds
+  ExternalCmds -> CPUC64
+  CPUC64 -> BLEKB
   ExternalCmds -> SDCard
   CPUC64 -> CIA
   CPUC64 -> CPU6502 [arrowhead = empty]

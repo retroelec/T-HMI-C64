@@ -2,6 +2,8 @@ package org.retroelec.thmic64kb;
 
 import android.content.Context;
 import android.os.Handler;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -185,7 +187,11 @@ public class C64Keyboard extends LinearLayout {
         }
     }
 
-    private void sendKey(Context context, String message, byte[] data) {
+    private void sendKey(Context context, byte[] data) {
+        Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+        if (vibrator != null && vibrator.hasVibrator()) {
+            vibrator.vibrate(VibrationEffect.createOneShot(75, VibrationEffect.DEFAULT_AMPLITUDE));
+        }
         boolean isShifted = keyshiftleft.isSelected() || keyshiftright.isSelected();
         byte[] datatosend = data;
         if (isShifted) {
@@ -199,8 +205,8 @@ public class C64Keyboard extends LinearLayout {
         if (isShifted || keyshiftlock.isSelected()) {
             datatosend = new byte[]{data[0], data[1], 1};
         }
-        final Globals globals = (Globals) context.getApplicationContext();
-        BLEManager bleManager = globals.getBleManager();
+        final MyApplication myApplication = (MyApplication) context.getApplicationContext();
+        BLEManager bleManager = myApplication.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
             bleManager.sendData(datatosend);
         }
@@ -332,145 +338,145 @@ public class C64Keyboard extends LinearLayout {
 
         keyf1.setOnClickListener(view -> {
             String key = "f1";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyf3.setOnClickListener(view -> {
             String key = "f3";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyf5.setOnClickListener(view -> {
             String key = "f5";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyf7.setOnClickListener(view -> {
             String key = "f7";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyload.setOnClickListener(view -> {
             String key = "LOAD";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyleftarrow.setOnClickListener(view -> {
             String key = "leftarrow";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         key1.setOnClickListener(view -> {
             String key = "1";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         key2.setOnClickListener(view -> {
             String key = "2";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         key3.setOnClickListener(view -> {
             String key = "3";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         key4.setOnClickListener(view -> {
             String key = "4";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         key5.setOnClickListener(view -> {
             String key = "5";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         key6.setOnClickListener(view -> {
             String key = "6";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         key7.setOnClickListener(view -> {
             String key = "7";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         key8.setOnClickListener(view -> {
             String key = "8";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         key9.setOnClickListener(view -> {
             String key = "9";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         key0.setOnClickListener(view -> {
             String key = "0";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyplus.setOnClickListener(view -> {
             String key = "+";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyminus.setOnClickListener(view -> {
             String key = "-";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keypound.setOnClickListener(view -> {
             String key = "£";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyhome.setOnClickListener(view -> {
             String key = "home";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keydel.setOnClickListener(view -> {
             String key = "del";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyctrl.setOnClickListener(view -> showToast(context, "not implemented yet"));
         keyq.setOnClickListener(view -> {
             String key = "Q";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyw.setOnClickListener(view -> {
             String key = "W";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keye.setOnClickListener(view -> {
             String key = "E";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyr.setOnClickListener(view -> {
             String key = "R";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyt.setOnClickListener(view -> {
             String key = "T";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyy.setOnClickListener(view -> {
             String key = "Y";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyu.setOnClickListener(view -> {
             String key = "U";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyi.setOnClickListener(view -> {
             String key = "I";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyo.setOnClickListener(view -> {
             String key = "O";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyp.setOnClickListener(view -> {
             String key = "P";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyat.setOnClickListener(view -> {
             String key = "@";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keymul.setOnClickListener(view -> {
             String key = "*";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyarrowup.setOnClickListener(view -> {
             String key = "uparrow";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyrestore.setOnClickListener(view -> showToast(context, "not implemented yet"));
         keyrunstop.setOnClickListener(view -> {
             String key = "runstop";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyshiftlock.setOnClickListener(view -> {
             keyshiftlock.setSelected(!keyshiftlock.isSelected());
@@ -478,55 +484,55 @@ public class C64Keyboard extends LinearLayout {
         });
         keya.setOnClickListener(view -> {
             String key = "A";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keys.setOnClickListener(view -> {
             String key = "S";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyd.setOnClickListener(view -> {
             String key = "D";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyf.setOnClickListener(view -> {
             String key = "F";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyg.setOnClickListener(view -> {
             String key = "G";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyh.setOnClickListener(view -> {
             String key = "H";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyj.setOnClickListener(view -> {
             String key = "J";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyk.setOnClickListener(view -> {
             String key = "K";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyl.setOnClickListener(view -> {
             String key = "L";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keycolon.setOnClickListener(view -> {
             String key = ":";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keysemicolon.setOnClickListener(view -> {
             String key = ";";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyequal.setOnClickListener(view -> {
             String key = "=";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyreturn.setOnClickListener(view -> {
             String key = "return";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keycommodore.setOnClickListener(view -> showToast(context, "not implemented yet"));
         keyshiftleft.setOnClickListener(view -> {
@@ -539,43 +545,43 @@ public class C64Keyboard extends LinearLayout {
         });
         keyz.setOnClickListener(view -> {
             String key = "Z";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyx.setOnClickListener(view -> {
             String key = "X";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyc.setOnClickListener(view -> {
             String key = "C";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyv.setOnClickListener(view -> {
             String key = "V";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyb.setOnClickListener(view -> {
             String key = "B";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyn.setOnClickListener(view -> {
             String key = "N";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keym.setOnClickListener(view -> {
             String key = "M";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keycomma.setOnClickListener(view -> {
             String key = ",";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyperiod.setOnClickListener(view -> {
             String key = ".";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyslash.setOnClickListener(view -> {
             String key = "/";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyshiftright.setOnClickListener(view -> {
             if (keyshiftlock.isSelected()) {
@@ -587,23 +593,23 @@ public class C64Keyboard extends LinearLayout {
         });
         keycrsrdown.setOnClickListener(view -> {
             String key = "crsrdown";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keycrsrup.setOnClickListener(view -> {
             String key = "crsrup";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keycrsrright.setOnClickListener(view -> {
             String key = "crsrright";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keycrsrleft.setOnClickListener(view -> {
             String key = "crsrleft";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
         keyspace.setOnClickListener(view -> {
             String key = "space";
-            sendKey(context, key, map.get(key));
+            sendKey(context, map.get(key));
         });
     }
 }

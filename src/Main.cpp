@@ -16,7 +16,6 @@
 */
 #include "Main.h"
 #include "BLEKB.h"
-#include "CBEServiceLocator.h"
 #include "CPUC64.h"
 #include "Config.h"
 #include "ExternalCmds.h"
@@ -33,7 +32,6 @@ VIC vic;
 CPUC64 cpu;
 BLEKB blekb;
 ExternalCmds externalCmds;
-CBEServiceLocator cbeServiceLocator;
 
 bool checkExternalCommand = false;
 uint16_t checkForKeyboardCnt = 0;
@@ -80,22 +78,17 @@ void Main::setup() {
   // allocate ram
   ram = new uint8_t[1 << 16];
 
-  // init CBEServiceLocator
-  cbeServiceLocator.setCPUC64(&cpu);
-  cbeServiceLocator.setBLEKB(&blekb);
-  cbeServiceLocator.setExternalCmds(&externalCmds);
-
   // init VIC
   vic.init(ram, charset_rom);
 
   // init ble keyboard
-  blekb.init();
-
-  // init ExternalCmds
-  externalCmds.init(ram);
+  blekb.init(&externalCmds);
 
   // init CPU
-  cpu.init(ram, charset_rom, &vic);
+  cpu.init(ram, charset_rom, &vic, &blekb);
+
+  // init ExternalCmds (must be initialized after cpu!)
+  externalCmds.init(ram, &cpu);
 
   // start cpu task
   xTaskCreatePinnedToCore(cpuCode,  // Function to implement the task

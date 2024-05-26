@@ -1,33 +1,45 @@
 package org.retroelec.thmic64kb;
 
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
-import java.util.UUID;
+import androidx.annotation.NonNull;
 
 public class BLEManager {
-    private static final UUID THMIC64_CHARACTERISTIC_UUID = UUID.fromString("3b05e9bf-086f-4b56-9c37-7b7eeb30b28b");
-    private static final UUID THMIC64_SERVICE_UUID = UUID.fromString("695ba701-a48c-43f6-9028-3c885771f19f");
     private BluetoothGatt bluetoothGatt;
     private BluetoothGattCharacteristic characteristic = null;
+    private final BluetoothLeScanner bluetoothLeScanner;
     private final MainActivity mainActivity;
-
-    public BLEManager(MainActivity mainActivity) {
-        this.mainActivity = mainActivity;
-    }
+    private final String targetDeviceName;
+    private final Settings settings;
+    private final Type2Notification type2Notification;
 
     public BluetoothGattCharacteristic getCharacteristic() {
         return characteristic;
     }
 
-    public void connectToDevice(MainActivity context, BluetoothDevice device) {
-        context.getSystemService(Context.BLUETOOTH_SERVICE);
-        bluetoothGatt = device.connectGatt(context, false, gattCallback);
+    public BLEManager(MainActivity mainActivity, String targetDeviceName, Settings settings, Type2Notification type2Notification) {
+        this.mainActivity = mainActivity;
+        this.targetDeviceName = targetDeviceName;
+        this.settings = settings;
+        this.type2Notification = type2Notification;
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+        if (!bluetoothAdapter.isEnabled() || bluetoothLeScanner == null) {
+            Toast.makeText(mainActivity, "bluetooth not available, please close app", Toast.LENGTH_LONG).show();
+        }
     }
 
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
@@ -38,8 +50,6 @@ public class BLEManager {
                 gatt.discoverServices();
             } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
                 characteristic = null;
-                final Globals globals = (Globals) mainActivity.getApplicationContext();
-                globals.setCharacteristic(characteristic);
                 Log.d("THMIC64", "BluetoothGatt.STATE_DISCONNECTED");
             }
         }
@@ -48,14 +58,12 @@ public class BLEManager {
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                BluetoothGattService service = gatt.getService(THMIC64_SERVICE_UUID);
+                BluetoothGattService service = gatt.getService(Config.THMIC64_SERVICE_UUID);
                 if (service != null) {
-                    characteristic = service.getCharacteristic(THMIC64_CHARACTERISTIC_UUID);
+                    characteristic = service.getCharacteristic(Config.THMIC64_CHARACTERISTIC_UUID);
                     if (characteristic != null) {
                         Log.d("THMIC64", "Characteristic found successfully.");
                         gatt.setCharacteristicNotification(characteristic, true);
-                        final Globals globals = (Globals) mainActivity.getApplicationContext();
-                        globals.setCharacteristic(characteristic);
                     } else {
                         Log.e("THMIC64", "Characteristic not found.");
                     }
@@ -71,23 +79,40 @@ public class BLEManager {
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             Log.d("THMIC64", "characteristic changed");
             super.onCharacteristicChanged(gatt, characteristic);
-            if (characteristic.getUuid().equals(THMIC64_CHARACTERISTIC_UUID)) {
+            if (characteristic.getUuid().equals(Config.THMIC64_CHARACTERISTIC_UUID)) {
                 byte[] receivedData = characteristic.getValue();
                 Log.d("THMIC64", "received notification, len = " + receivedData.length);
                 if (receivedData.length > 0) {
                     byte type = receivedData[0];
                     switch (type) {
-                        case 1: // state of joysticks and switches
-                            byte joymode = receivedData[1];
-                            boolean joy1active = (joymode == 1);
-                            boolean joy2active = (joymode == 2);
-                            Log.d("THMIC64", "joy1active = "+joy1active+", joy2active = "+joy2active);
-                            mainActivity.showActiveJoystickButton(joy1active, joy2active);
-                            byte kbjoymode = receivedData[2];
-                            boolean kbjoy1active = (kbjoymode == 1);
-                            boolean kbjoy2active = (kbjoymode == 2);
-                            Log.d("THMIC64", "kbjoy1active = "+kbjoy1active+", kbjoy2active = "+kbjoy2active);
-
+                        // state of joysticks and switches
+                        case 1:
+                            settings.setJoymode(receivedData[1]);
+                            settings.setRefreshframecolor(receivedData[2] != 0);
+                            settings.setDeactivatecia2(receivedData[3] != 0);
+                            settings.setJoyemulmode(receivedData[4]);
+                            Log.d("THMIC64", "joymode = " + settings.getJoymode());
+                            Log.d("THMIC64", "refreshframecolor = " + settings.isRefreshframecolor());
+                            Log.d("THMIC64", "switchonoffcia2 = " + settings.isDeactivatecia2());
+                            Log.d("THMIC64", "joyemulmode = " + settings.getJoyemulmode());
+                            settings.notifySettingsObserver();
+                            break;
+                        case 2:
+                            type2Notification.setCpuRunning(receivedData[1] != 0);
+                            int pcl = receivedData[2] & 0xff;
+                            int pch = receivedData[3] & 0xff;
+                            type2Notification.setPc(pcl | (pch << 8));
+                            type2Notification.setA(receivedData[4]);
+                            type2Notification.setX(receivedData[5]);
+                            type2Notification.setY(receivedData[6]);
+                            type2Notification.setSr(receivedData[7]);
+                            type2Notification.setD011(receivedData[8]);
+                            type2Notification.setD016(receivedData[9]);
+                            type2Notification.setD018(receivedData[10]);
+                            type2Notification.setD019(receivedData[11]);
+                            type2Notification.setD01a(receivedData[12]);
+                            type2Notification.setRegister1(receivedData[13]);
+                            type2Notification.notifyObserver();
                             break;
                     }
                 } else {
@@ -99,6 +124,40 @@ public class BLEManager {
         }
     };
 
+    private void connectToDevice(BluetoothDevice device) {
+        mainActivity.getSystemService(Context.BLUETOOTH_SERVICE);
+        bluetoothGatt = device.connectGatt(mainActivity, false, gattCallback);
+    }
+
+    public void scanForDevice() {
+        if (bluetoothLeScanner == null) {
+            return;
+        }
+        ScanCallback scanCallback = new ScanCallback() {
+            @Override
+            public void onScanResult(int callbackType, @NonNull ScanResult result) {
+                super.onScanResult(callbackType, result);
+                BluetoothDevice device = result.getDevice();
+                if (device != null && targetDeviceName.equals(device.getName())) {
+                    Log.d("THMIC64", "connect to device");
+                    connectToDevice(device);
+                }
+            }
+
+            @Override
+            public void onScanFailed(int errorCode) {
+                super.onScanFailed(errorCode);
+                Toast.makeText(mainActivity, "Could not find " + targetDeviceName + " device", Toast.LENGTH_SHORT).show();
+            }
+        };
+
+        // start scan
+        bluetoothLeScanner.startScan(scanCallback);
+
+        // search for SEARCH_DURATION milliseconds
+        new Handler(Looper.getMainLooper()).postDelayed(() -> bluetoothLeScanner.stopScan(scanCallback), Config.SEARCH_DURATION);
+    }
+
     public void sendData(byte[] data) {
         characteristic.setValue(data);
         bluetoothGatt.writeCharacteristic(characteristic);
@@ -106,8 +165,6 @@ public class BLEManager {
 
     public void disconnect() {
         characteristic = null;
-        final Globals globals = (Globals) mainActivity.getApplicationContext();
-        globals.setCharacteristic(characteristic);
         if (bluetoothGatt != null) {
             bluetoothGatt.disconnect();
             bluetoothGatt.close();

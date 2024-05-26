@@ -1,44 +1,36 @@
 package org.retroelec.thmic64kb;
 
-import android.content.Context;
+import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 public class KBJoystickActivity extends AppCompatActivity {
 
-    private static final byte VIRTUALJOYSTICKLEFT_ACTIVATED = (byte)0x02;
-    private static final byte VIRTUALJOYSTICKLEFT_DEACTIVATED = (byte)0x82;
-    private static final byte VIRTUALJOYSTICKRIGHT_ACTIVATED = (byte)0x03;
-    private static final byte VIRTUALJOYSTICKRIGHT_DEACTIVATED = (byte)0x83;
-    private static final byte VIRTUALJOYSTICKUP_ACTIVATED = (byte)0x00;
-    private static final byte VIRTUALJOYSTICKUP_DEACTIVATED = (byte)0x80;
-    private static final byte VIRTUALJOYSTICKDOWN_ACTIVATED = (byte)0x01;
-    private static final byte VIRTUALJOYSTICKDOWN_DEACTIVATED = (byte) 0x81;
-    private static final byte VIRTUALJOYSTICKFIRE_ACTIVATED = (byte) 0x04;
-    private static final byte VIRTUALJOYSTICKFIRE_DEACTIVATED = (byte) 0x84;
-
-    private void send(Context context, byte data) {
+    private void send(byte data) {
         byte[] datatosend = new byte[]{data};
-        final Globals globals = (Globals) context.getApplicationContext();
-        BLEManager bleManager = globals.getBleManager();
+        final MyApplication myApplication = (MyApplication) getApplication();
+        BLEManager bleManager = myApplication.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
             bleManager.sendData(datatosend);
         }
     }
 
-    private void sendCmd(Context context, byte[] data) {
-        final Globals globals = (Globals) context.getApplicationContext();
-        BLEManager bleManager = globals.getBleManager();
+    private void sendCmd(byte[] data) {
+        final MyApplication myApplication = (MyApplication) getApplication();
+        BLEManager bleManager = myApplication.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
             bleManager.sendData(data);
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,85 +38,88 @@ public class KBJoystickActivity extends AppCompatActivity {
         setTitle("Virtual Joystick");
 
         // arrow buttons
-        final ImageButton arrowupButton = (ImageButton) findViewById(R.id.arrowup);
-        arrowupButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View arg0, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    arrowupButton.setBackgroundColor(Color.RED);
-                    send(KBJoystickActivity.this, VIRTUALJOYSTICKUP_ACTIVATED);
-                } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    arrowupButton.setBackgroundColor(Color.TRANSPARENT);
-                    send(KBJoystickActivity.this, VIRTUALJOYSTICKUP_DEACTIVATED);
-                }
-                return true;
+        final ImageButton arrowupButton = findViewById(R.id.arrowup);
+        arrowupButton.setOnTouchListener((arg0, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                Log.d("THMIC64", "up button");
+                arrowupButton.setBackgroundColor(Color.RED);
+                send(Config.VIRTUALJOYSTICKUP_ACTIVATED);
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                arrowupButton.setBackgroundColor(Color.TRANSPARENT);
+                send(Config.VIRTUALJOYSTICKUP_DEACTIVATED);
             }
+            return true;
         });
-        final ImageButton arrowdownButton = (ImageButton) findViewById(R.id.arrowdown);
-        arrowdownButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View arg0, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    arrowdownButton.setBackgroundColor(Color.RED);
-                    send(KBJoystickActivity.this, VIRTUALJOYSTICKDOWN_ACTIVATED);
-                } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    arrowdownButton.setBackgroundColor(Color.TRANSPARENT);
-                    send(KBJoystickActivity.this, VIRTUALJOYSTICKDOWN_DEACTIVATED);
-                }
-                return true;
+        final ImageButton arrowdownButton = findViewById(R.id.arrowdown);
+        arrowdownButton.setOnTouchListener((arg0, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                Log.d("THMIC64", "down button");
+                arrowdownButton.setBackgroundColor(Color.RED);
+                send(Config.VIRTUALJOYSTICKDOWN_ACTIVATED);
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                arrowdownButton.setBackgroundColor(Color.TRANSPARENT);
+                send(Config.VIRTUALJOYSTICKDOWN_DEACTIVATED);
             }
+            return true;
         });
-        final ImageButton arrowleftButton = (ImageButton) findViewById(R.id.arrowleft);
-        arrowleftButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View arg0, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    arrowleftButton.setBackgroundColor(Color.RED);
-                    send(KBJoystickActivity.this, VIRTUALJOYSTICKLEFT_ACTIVATED);
-                } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    arrowleftButton.setBackgroundColor(Color.TRANSPARENT);
-                    send(KBJoystickActivity.this, VIRTUALJOYSTICKLEFT_DEACTIVATED);
-                }
-                return true;
+        final ImageButton arrowleftButton = findViewById(R.id.arrowleft);
+        arrowleftButton.setOnTouchListener((arg0, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                Log.d("THMIC64", "left button");
+                arrowleftButton.setBackgroundColor(Color.RED);
+                send(Config.VIRTUALJOYSTICKLEFT_ACTIVATED);
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                arrowleftButton.setBackgroundColor(Color.TRANSPARENT);
+                send(Config.VIRTUALJOYSTICKLEFT_DEACTIVATED);
             }
+            return true;
         });
-        final ImageButton arrowrightButton = (ImageButton) findViewById(R.id.arrowright);
-        arrowrightButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View arg0, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    arrowrightButton.setBackgroundColor(Color.RED);
-                    send(KBJoystickActivity.this, VIRTUALJOYSTICKRIGHT_ACTIVATED);
-                } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    arrowrightButton.setBackgroundColor(Color.TRANSPARENT);
-                    send(KBJoystickActivity.this, VIRTUALJOYSTICKRIGHT_DEACTIVATED);
-                }
-                return true;
+        final ImageButton arrowrightButton = findViewById(R.id.arrowright);
+        arrowrightButton.setOnTouchListener((arg0, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                Log.d("THMIC64", "right button");
+                arrowrightButton.setBackgroundColor(Color.RED);
+                send(Config.VIRTUALJOYSTICKRIGHT_ACTIVATED);
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                arrowrightButton.setBackgroundColor(Color.TRANSPARENT);
+                send(Config.VIRTUALJOYSTICKRIGHT_DEACTIVATED);
             }
+            return true;
         });
-        final ImageButton fireButton = (ImageButton) findViewById(R.id.fire);
-        fireButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View arg0, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    fireButton.setBackgroundColor(Color.GREEN);
-                    send(KBJoystickActivity.this, VIRTUALJOYSTICKFIRE_ACTIVATED);
-                } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    fireButton.setBackgroundColor(Color.TRANSPARENT);
-                    send(KBJoystickActivity.this, VIRTUALJOYSTICKFIRE_DEACTIVATED);
-                }
-                return true;
+        final ImageButton fire1Button = findViewById(R.id.fire1);
+        fire1Button.setOnTouchListener((arg0, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                Log.d("THMIC64", "button1");
+                fire1Button.setBackgroundColor(Color.GREEN);
+                send(Config.VIRTUALJOYSTICKFIRE_ACTIVATED);
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                fire1Button.setBackgroundColor(Color.TRANSPARENT);
+                send(Config.VIRTUALJOYSTICKFIRE_DEACTIVATED);
             }
+            return true;
         });
-
-        final Button quitButton = (Button) findViewById(R.id.close);
-        quitButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                sendCmd(KBJoystickActivity.this, new byte[]{(byte) 6, (byte) 0x00, (byte) 0x80});
-                finish();
+        final ImageButton fire2Button = findViewById(R.id.fire2);
+        fire2Button.setOnTouchListener((arg0, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                Log.d("THMIC64", "button2");
+                fire2Button.setBackgroundColor(Color.GREEN);
+                send(Config.VIRTUALJOYSTICKFIRE_ACTIVATED);
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                fire2Button.setBackgroundColor(Color.TRANSPARENT);
+                send(Config.VIRTUALJOYSTICKFIRE_DEACTIVATED);
             }
+            return true;
         });
-
+        boolean showFire2Button = getIntent().getBooleanExtra("SHOW_FIRE2_BUTTON", false);
+        if (showFire2Button) {
+            fire2Button.setVisibility(View.VISIBLE);
+        } else {
+            fire2Button.setVisibility(View.GONE);
+        }
+        final Button quitButton = findViewById(R.id.close);
+        quitButton.setOnClickListener(v -> {
+            sendCmd(new byte[]{(byte) 6, (byte) 0x00, (byte) 0x80});
+            finish();
+        });
     }
 }

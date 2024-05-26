@@ -37,6 +37,7 @@ static const std::string CHARACTERISTIC_UUID =
 static const adc2_channel_t ADC_JOYSTICK_X = ADC2_CHANNEL_4;
 static const adc2_channel_t ADC_JOYSTICK_Y = ADC2_CHANNEL_5;
 static const uint8_t JOYSTICK_FIRE_PIN = 18;
+static const uint8_t JOYSTICK_FIRE2_PIN = 17;
 
 // resolution of system timer (throttling 6502 CPU, get BLE KB codes)
 static const uint16_t INTERRUPTSYSTEMRESOLUTION = 1000;

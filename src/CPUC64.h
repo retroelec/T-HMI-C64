@@ -24,6 +24,8 @@
 #include <cstdint>
 #include <mutex>
 
+class BLEKB;
+
 class CPUC64 : public CPU6502 {
 private:
   uint8_t *ram;
@@ -47,6 +49,7 @@ private:
 
 public:
   VIC *vic;
+  BLEKB *blekb;
   CIA cia1;
   CIA cia2;
 
@@ -77,7 +80,7 @@ public:
   void run() override;
 
   void initMemAndRegs();
-  void init(uint8_t *ram, uint8_t *charrom, VIC *vic);
+  void init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb);
   void setPC(uint16_t pc);
   void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
 };

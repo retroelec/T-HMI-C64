@@ -1,12 +1,7 @@
 package org.retroelec.thmic64kb;
 
 import android.Manifest;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanResult;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
@@ -14,7 +9,6 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.Switch;
@@ -26,82 +20,40 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import java.util.Objects;
+public class MainActivity extends AppCompatActivity implements SettingsObserver {
 
-public class MainActivity extends AppCompatActivity {
-
-    public static final String TARGET_DEVICE_NAME = "THMIC64";
     private static final int PERMISSION_REQUEST_CODE = 1234;
-    private static final long CHECK_INTERVAL = 1000;
-    private static final long SEARCH_DURATION = 10000;
     private BLEManager bleManager = null;
-    private BluetoothLeScanner bluetoothLeScanner;
+    private Settings settings;
+    private Type2Notification type2Notification;
     private Switch bleSwitch;
-    private Button keydiv;
-    private Button keykbjoystick1;
-    private Button keykbjoystick2;
     private Button joystick1;
     private Button joystick2;
     private boolean joystick1active = false;
     private boolean joystick2active = false;
     private final Handler handler = new Handler();
-
-    private void connectToDevice() {
-        ScanCallback scanCallback = new ScanCallback() {
-            @Override
-            public void onScanResult(int callbackType, @NonNull ScanResult result) {
-                super.onScanResult(callbackType, result);
-                BluetoothDevice device = result.getDevice();
-                if (device != null && TARGET_DEVICE_NAME.equals(device.getName())) {
-                    Log.d("THMIC64", "connect to device");
-                    bleManager.connectToDevice(MainActivity.this, device);
-                }
-            }
-
-            @Override
-            public void onScanFailed(int errorCode) {
-                super.onScanFailed(errorCode);
-                Toast.makeText(MainActivity.this, "Could not find " + TARGET_DEVICE_NAME + " device", Toast.LENGTH_SHORT).show();
-            }
-        };
-
-        // start scan
-        bluetoothLeScanner.startScan(scanCallback);
-
-        // search for SEARCH_DURATION milliseconds
-        new Handler(Looper.getMainLooper()).postDelayed(() -> bluetoothLeScanner.stopScan(scanCallback), SEARCH_DURATION);
-    }
+    private BluetoothGattCharacteristic oldcharacteristic;
+    private BluetoothGattCharacteristic actcharacteristic = null;
 
     // check BLE connection
     private void startPeriodicCheck() {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                final Globals globals = (Globals) getApplicationContext();
-                BluetoothGattCharacteristic characteristic = globals.getCharacteristic();
-                bleSwitch.setChecked(characteristic != null);
-                handler.postDelayed(this, CHECK_INTERVAL);
+                if (bleManager != null) {
+                    oldcharacteristic = actcharacteristic;
+                    actcharacteristic = bleManager.getCharacteristic();
+                    bleSwitch.setChecked(actcharacteristic != null);
+                    if ((oldcharacteristic == null) && (actcharacteristic != null)) {
+                        // get initial settings
+                        bleManager.sendData(new byte[]{Config.GETSTATUS, (byte) 0x00, (byte) 0x80});
+                    }
+                    handler.postDelayed(this, Config.CHECK_INTERVAL);
+                } else {
+                    actcharacteristic = null;
+                }
             }
-        }, CHECK_INTERVAL);
-    }
-
-    private void main() {
-        // init ble
-        bleManager = new BLEManager(this);
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-        if (!bluetoothAdapter.isEnabled() || bluetoothLeScanner == null) {
-            Toast.makeText(this, "bluetooth not available, please close app", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        // search for device + connect to device
-        connectToDevice();
-        final Globals globals = (Globals) getApplicationContext();
-        globals.setBleManager(bleManager);
-
-        // add C64 virtual keyboard
-        findViewById(R.id.keyboard);
+        }, Config.CHECK_INTERVAL);
     }
 
     @Override
@@ -113,6 +65,20 @@ public class MainActivity extends AppCompatActivity {
         handler.removeCallbacksAndMessages(null);
     }
 
+    private void scanForBLEDevice() {
+        // init BLEManager
+        Log.d("THMIC64", "init BLEManager");
+        bleManager = new BLEManager(this, Config.TARGET_DEVICE_NAME, settings, type2Notification);
+        final MyApplication myApplication = (MyApplication) getApplication();
+        myApplication.setBleManager(bleManager);
+
+        if (bleManager != null) {
+            // search for device + connect to device
+            Log.d("THMIC64", "scan for device");
+            bleManager.scanForDevice();
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -120,26 +86,48 @@ public class MainActivity extends AppCompatActivity {
             if ((ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)
                     && (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED)
                     && (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
-                main();
+                scanForBLEDevice();
             } else {
                 Toast.makeText(this, "permissions not granted, please close app", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    public void showActiveJoystickButton(boolean joystick1active, boolean joystick2active) {
+    private void refreshActiveJoystickButtons(boolean joystick1active, boolean joystick2active) {
         if (joystick1active) {
-            Log.d("THMIC64", "in joystick1active");
             joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#77cc77")));
             joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
         } else if (joystick2active) {
-            Log.d("THMIC64", "in joystick2active");
             joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#77cc77")));
             joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
         } else {
-            Log.d("THMIC64", "in else");
             joystick1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
             joystick2.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#cc7777")));
+        }
+    }
+
+    @Override
+    public void updateSettings() {
+        byte joymode = settings.getJoymode();
+        boolean joy1active = (joymode == 1);
+        boolean joy2active = (joymode == 2);
+        refreshActiveJoystickButtons(joy1active, joy2active);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (settings != null) {
+            settings.registerSettingsObserver(this);
+        }
+        updateSettings();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (settings != null) {
+            settings.removeSettingsObserver();
         }
     }
 
@@ -147,16 +135,24 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Objects.requireNonNull(getSupportActionBar()).hide();
+
+        // init notifications
+        settings = new Settings();
+        settings.registerSettingsObserver(this);
+        type2Notification = new Type2Notification();
+        final MyApplication myApplication = (MyApplication) getApplication();
+        myApplication.setSettings(settings);
+        myApplication.setType2Notification(type2Notification);
+
         setContentView(R.layout.activity_main);
 
-        keydiv = findViewById(R.id.keydiv);
+        Button keydiv = findViewById(R.id.keydiv);
         keydiv.setOnClickListener(view -> {
             Intent i = new Intent(MainActivity.this, DivActivity.class);
             startActivity(i);
         });
 
-        keykbjoystick1 = findViewById(R.id.keykbjoystick1);
+        Button keykbjoystick1 = findViewById(R.id.keykbjoystick1);
         keykbjoystick1.setOnClickListener(view -> {
             if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
                 bleManager.sendData(new byte[]{(byte) 3, (byte) 0x00, (byte) 0x80});
@@ -165,12 +161,13 @@ public class MainActivity extends AppCompatActivity {
             startActivity(i);
         });
 
-        keykbjoystick2 = findViewById(R.id.keykbjoystick2);
+        Button keykbjoystick2 = findViewById(R.id.keykbjoystick2);
         keykbjoystick2.setOnClickListener(view -> {
             if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
                 bleManager.sendData(new byte[]{(byte) 4, (byte) 0x00, (byte) 0x80});
             }
             Intent i = new Intent(MainActivity.this, KBJoystickActivity.class);
+            i.putExtra("SHOW_FIRE2_BUTTON", true);
             startActivity(i);
         });
 
@@ -187,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
                     bleManager.sendData(new byte[]{(byte) 5, (byte) 0x00, (byte) 0x80});
                 }
                 joystick1active = !joystick1active;
-                showActiveJoystickButton(joystick1active, joystick2active);
+                refreshActiveJoystickButtons(joystick1active, joystick2active);
             }
         });
 
@@ -204,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
                     bleManager.sendData(new byte[]{(byte) 5, (byte) 0x00, (byte) 0x80});
                 }
                 joystick2active = !joystick2active;
-                showActiveJoystickButton(joystick1active, joystick2active);
+                refreshActiveJoystickButtons(joystick1active, joystick2active);
             }
         });
 
@@ -212,16 +209,21 @@ public class MainActivity extends AppCompatActivity {
         bleSwitch.setChecked(false);
         bleSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
-                // activate BLE
-                connectToDevice();
+                if (bleManager != null) {
+                    // activate BLE
+                    bleManager.scanForDevice();
+                }
             }
         });
         startPeriodicCheck();
 
+        // add C64 virtual keyboard
+        findViewById(R.id.keyboard);
+
         if ((ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)
                 && (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED)
                 && (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
-            main();
+            scanForBLEDevice();
         } else {
             Log.d("THMIC64", "ask for permissions");
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN,
