@@ -1,5 +1,5 @@
 package org.retroelec.thmic64kb;
 
-public interface Type2NotificationObserver {
+public interface NotificationObserver {
     void update();
 }

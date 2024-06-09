@@ -1,16 +1,16 @@
 package org.retroelec.thmic64kb;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-public class StatusActivity extends AppCompatActivity implements Type2NotificationObserver {
+public class StatusActivity extends AppCompatActivity implements NotificationObserver {
     private Type2Notification type2Notification;
     private Switch cpuRunningSwitch;
+    private TextView reg1;
     private TextView pc;
     private TextView a;
     private TextView x;
@@ -21,6 +21,12 @@ public class StatusActivity extends AppCompatActivity implements Type2Notificati
     private TextView d018;
     private TextView d019;
     private TextView d01a;
+    private TextView dc0d;
+    private TextView dc0e;
+    private TextView dc0f;
+    private TextView dd0d;
+    private TextView dd0e;
+    private TextView dd0f;
 
     @Override
     public void update() {
@@ -28,6 +34,7 @@ public class StatusActivity extends AppCompatActivity implements Type2Notificati
             @Override
             public void run() {
                 cpuRunningSwitch.setChecked(type2Notification.isCpuRunning());
+                reg1.setText(String.format("%02X", type2Notification.getRegister1() & 0xFF));
                 pc.setText(String.format("%04X", type2Notification.getPc() & 0xFFFF));
                 a.setText(String.format("%02X", type2Notification.getA() & 0xFF));
                 x.setText(String.format("%02X", type2Notification.getX() & 0xFF));
@@ -38,6 +45,12 @@ public class StatusActivity extends AppCompatActivity implements Type2Notificati
                 d018.setText(String.format("%02X", type2Notification.getD018() & 0xFF));
                 d019.setText(String.format("%02X", type2Notification.getD019() & 0xFF));
                 d01a.setText(String.format("%02X", type2Notification.getD01a() & 0xFF));
+                dc0d.setText(String.format("%02X", type2Notification.getDc0d() & 0xFF));
+                dc0e.setText(String.format("%02X", type2Notification.getDc0e() & 0xFF));
+                dc0f.setText(String.format("%02X", type2Notification.getDc0f() & 0xFF));
+                dd0d.setText(String.format("%02X", type2Notification.getDd0d() & 0xFF));
+                dd0e.setText(String.format("%02X", type2Notification.getDd0e() & 0xFF));
+                dd0f.setText(String.format("%02X", type2Notification.getDd0f() & 0xFF));
             }
         });
     }
@@ -56,6 +69,7 @@ public class StatusActivity extends AppCompatActivity implements Type2Notificati
         setContentView(R.layout.status);
 
         cpuRunningSwitch = findViewById(R.id.cpuRunning);
+        reg1 = findViewById(R.id.valReg1);
         pc = findViewById(R.id.valPc);
         a = findViewById(R.id.valA);
         x = findViewById(R.id.valX);
@@ -66,8 +80,20 @@ public class StatusActivity extends AppCompatActivity implements Type2Notificati
         d018 = findViewById(R.id.valD018);
         d019 = findViewById(R.id.valD019);
         d01a = findViewById(R.id.valD01A);
+        dc0d = findViewById(R.id.valDC0D);
+        dc0e = findViewById(R.id.valDC0E);
+        dc0f = findViewById(R.id.valDC0F);
+        dd0d = findViewById(R.id.valDD0D);
+        dd0e = findViewById(R.id.valDD0E);
+        dd0f = findViewById(R.id.valDD0F);
 
         final Button closeButton = findViewById(R.id.close);
         closeButton.setOnClickListener(v -> finish());
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        type2Notification.removeObserver();
     }
 }

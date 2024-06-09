@@ -7,7 +7,6 @@
     android:padding="16dp"
     android:background="@color/colorBackground">
 
-    <!-- Address and Number of Bytes -->
     <TextView
         android:id="@+id/labelAddress"
         android:layout_width="wrap_content"
@@ -30,30 +29,6 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"/>
 
-    <TextView
-        android:id="@+id/labelNumOfBytes"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Number of bytes:"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toEndOf="@id/address"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"/>
-
-    <EditText
-        android:id="@+id/numOfBytes"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ems="2"
-        android:maxLength="2"
-        android:inputType="number"
-        android:background="@drawable/textborder"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toEndOf="@id/labelNumOfBytes"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="16dp"/>
-
-    <!-- GetMemory Button -->
     <Button
         android:id="@+id/getMemory"
         android:layout_width="wrap_content"
@@ -63,7 +38,6 @@
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginTop="16dp"/>
 
-    <!-- Value fields -->
     <TextView
         android:id="@+id/val1"
         android:layout_width="wrap_content"
@@ -159,7 +133,101 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"/>
 
-    <!-- Close Button -->
+    <TextView
+        android:id="@+id/val9"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="2"
+        android:background="@drawable/textborder"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/val1"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:id="@+id/val10"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="2"
+        android:background="@drawable/textborder"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/val1"
+        app:layout_constraintStart_toEndOf="@id/val9"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:id="@+id/val11"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="2"
+        android:background="@drawable/textborder"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/val1"
+        app:layout_constraintStart_toEndOf="@id/val10"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:id="@+id/val12"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="2"
+        android:background="@drawable/textborder"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/val1"
+        app:layout_constraintStart_toEndOf="@id/val11"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:id="@+id/val13"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="2"
+        android:background="@drawable/textborder"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/val1"
+        app:layout_constraintStart_toEndOf="@id/val12"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:id="@+id/val14"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="2"
+        android:background="@drawable/textborder"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/val1"
+        app:layout_constraintStart_toEndOf="@id/val13"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:id="@+id/val15"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="2"
+        android:background="@drawable/textborder"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/val1"
+        app:layout_constraintStart_toEndOf="@id/val14"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:id="@+id/val16"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="2"
+        android:background="@drawable/textborder"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/val1"
+        app:layout_constraintStart_toEndOf="@id/val15"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"/>
+
     <Button
         android:id="@+id/close"
         android:layout_width="wrap_content"

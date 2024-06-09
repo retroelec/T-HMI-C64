@@ -118,7 +118,7 @@ public class KBJoystickActivity extends AppCompatActivity {
         }
         final Button quitButton = findViewById(R.id.close);
         quitButton.setOnClickListener(v -> {
-            sendCmd(new byte[]{(byte) 6, (byte) 0x00, (byte) 0x80});
+            sendCmd(new byte[]{Config.KBJOYSTICKMODEOFF, (byte) 0x00, (byte) 0x80});
             finish();
         });
     }

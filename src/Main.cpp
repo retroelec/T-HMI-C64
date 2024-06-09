@@ -33,8 +33,10 @@ CPUC64 cpu;
 BLEKB blekb;
 ExternalCmds externalCmds;
 
-bool checkExternalCommand = false;
 uint16_t checkForKeyboardCnt = 0;
+
+uint8_t throttlingCnt = 0;
+uint32_t numofburnedcyclespersecond = 0;
 
 hw_timer_t *interruptProfiling = NULL;
 hw_timer_t *interruptSystem = NULL;
@@ -45,8 +47,10 @@ void IRAM_ATTR interruptProfilingFunc() {
     ESP_LOGI(TAG, "fps: %d", vic.cntRefreshs);
   }
   vic.cntRefreshs = 0;
-  ESP_LOGI(TAG, "noc: %d", cpu.numofcyclespersecond);
+  ESP_LOGI(TAG, "noc: %d, nbc: %d", cpu.numofcyclespersecond,
+           numofburnedcyclespersecond);
   cpu.numofcyclespersecond = 0;
+  numofburnedcyclespersecond = 0;
 }
 
 void IRAM_ATTR interruptSystemFunc() {
@@ -58,14 +62,19 @@ void IRAM_ATTR interruptSystemFunc() {
   }
 
   // throttle 6502 CPU
+  throttlingCnt++;
   uint16_t measuredcyclestmp =
       cpu.measuredcycles.load(std::memory_order_acquire);
-  if (measuredcyclestmp > Config::INTERRUPTSYSTEMRESOLUTION) {
-    cpu.adjustcycles.store(
-        (measuredcyclestmp - Config::INTERRUPTSYSTEMRESOLUTION),
-        std::memory_order_release);
+  if (measuredcyclestmp > throttlingCnt * Config::INTERRUPTSYSTEMRESOLUTION) {
+    uint16_t adjustcycles =
+        measuredcyclestmp - throttlingCnt * Config::INTERRUPTSYSTEMRESOLUTION;
+    cpu.adjustcycles.store(adjustcycles, std::memory_order_release);
+    numofburnedcyclespersecond += adjustcycles;
   }
-  cpu.measuredcycles.store(0, std::memory_order_release);
+  if (throttlingCnt == 50) {
+    throttlingCnt = 0;
+    cpu.measuredcycles.store(0, std::memory_order_release);
+  }
 }
 
 void cpuCode(void *parameter) {

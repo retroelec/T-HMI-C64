@@ -1,258 +1,396 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
-    android:background="@color/colorBackground">
+    android:background="@color/colorBackground"
+    android:padding="16dp">
 
     <Switch
         android:id="@+id/cpuRunning"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:enabled="false"
         android:text="CPU running"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="16dp"/>
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/labelReg1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="reg1:"
+        app:layout_constraintStart_toEndOf="@id/cpuRunning"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/valReg1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/textborder"
+        android:ems="2"
+        app:layout_constraintStart_toEndOf="@id/labelReg1"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/labelCpu"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="CPU:"
         android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/cpuRunning"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="16dp"/>
+        app:layout_constraintTop_toBottomOf="@id/cpuRunning" />
 
     <TextView
         android:id="@+id/labelPc"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:text="pc:"
-        app:layout_constraintTop_toBottomOf="@id/labelCpu"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelCpu" />
 
     <TextView
         android:id="@+id/valPc"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="4"
+        android:layout_marginStart="8dp"
         android:background="@drawable/textborder"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/labelCpu"
+        android:ems="4"
         app:layout_constraintStart_toEndOf="@id/labelPc"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelCpu" />
 
     <TextView
         android:id="@+id/labelA"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="a:"
-        app:layout_constraintTop_toBottomOf="@id/labelCpu"
-        app:layout_constraintStart_toEndOf="@id/valPc"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="8dp"
+        android:text="a:"
+        app:layout_constraintStart_toEndOf="@id/valPc"
+        app:layout_constraintTop_toBottomOf="@id/labelCpu" />
 
     <TextView
         android:id="@+id/valA"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="2"
+        android:layout_marginStart="8dp"
         android:background="@drawable/textborder"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/labelCpu"
+        android:ems="2"
         app:layout_constraintStart_toEndOf="@id/labelA"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelCpu" />
 
     <TextView
         android:id="@+id/labelX"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="x:"
-        app:layout_constraintTop_toBottomOf="@id/labelCpu"
-        app:layout_constraintStart_toEndOf="@id/valA"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="8dp"
+        android:text="x:"
+        app:layout_constraintStart_toEndOf="@id/valA"
+        app:layout_constraintTop_toBottomOf="@id/labelCpu" />
 
     <TextView
         android:id="@+id/valX"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="2"
+        android:layout_marginStart="8dp"
         android:background="@drawable/textborder"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/labelCpu"
+        android:ems="2"
         app:layout_constraintStart_toEndOf="@id/labelX"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelCpu" />
 
     <TextView
         android:id="@+id/labelY"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="y:"
-        app:layout_constraintTop_toBottomOf="@id/labelCpu"
-        app:layout_constraintStart_toEndOf="@id/valX"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="8dp"
+        android:text="y:"
+        app:layout_constraintStart_toEndOf="@id/valX"
+        app:layout_constraintTop_toBottomOf="@id/labelCpu" />
 
     <TextView
         android:id="@+id/valY"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="2"
+        android:layout_marginStart="8dp"
         android:background="@drawable/textborder"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/labelCpu"
+        android:ems="2"
         app:layout_constraintStart_toEndOf="@id/labelY"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelCpu" />
 
     <TextView
         android:id="@+id/labelSr"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="sr:"
-        app:layout_constraintTop_toBottomOf="@id/labelCpu"
-        app:layout_constraintStart_toEndOf="@id/valY"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="8dp"
+        android:text="sr:"
+        app:layout_constraintStart_toEndOf="@id/valY"
+        app:layout_constraintTop_toBottomOf="@id/labelCpu" />
 
     <TextView
         android:id="@+id/valSr"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="2"
+        android:layout_marginStart="8dp"
         android:background="@drawable/textborder"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/labelCpu"
+        android:ems="2"
         app:layout_constraintStart_toEndOf="@id/labelSr"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelCpu" />
 
     <TextView
         android:id="@+id/labelVic"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
         android:text="VIC:"
         android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/valSr"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="24dp"/>
+        app:layout_constraintTop_toBottomOf="@id/valSr" />
 
     <TextView
         android:id="@+id/labelD011"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:text="d011:"
-        app:layout_constraintTop_toBottomOf="@id/labelVic"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelVic" />
 
     <TextView
         android:id="@+id/valD011"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="2"
+        android:layout_marginStart="8dp"
         android:background="@drawable/textborder"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/labelVic"
+        android:ems="2"
         app:layout_constraintStart_toEndOf="@id/labelD011"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelVic" />
 
     <TextView
         android:id="@+id/labelD016"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="d016:"
-        app:layout_constraintTop_toBottomOf="@id/labelVic"
-        app:layout_constraintStart_toEndOf="@id/valD011"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="8dp"
+        android:text="d016:"
+        app:layout_constraintStart_toEndOf="@id/valD011"
+        app:layout_constraintTop_toBottomOf="@id/labelVic" />
 
     <TextView
         android:id="@+id/valD016"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="2"
+        android:layout_marginStart="8dp"
         android:background="@drawable/textborder"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/labelVic"
+        android:ems="2"
         app:layout_constraintStart_toEndOf="@id/labelD016"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelVic" />
 
     <TextView
         android:id="@+id/labelD018"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="d018:"
-        app:layout_constraintTop_toBottomOf="@id/labelVic"
-        app:layout_constraintStart_toEndOf="@id/valD016"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="8dp"
+        android:text="d018:"
+        app:layout_constraintStart_toEndOf="@id/valD016"
+        app:layout_constraintTop_toBottomOf="@id/labelVic" />
 
     <TextView
         android:id="@+id/valD018"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="2"
+        android:layout_marginStart="8dp"
         android:background="@drawable/textborder"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/labelVic"
+        android:ems="2"
         app:layout_constraintStart_toEndOf="@id/labelD018"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelVic" />
 
     <TextView
         android:id="@+id/labelD019"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="d019:"
-        app:layout_constraintTop_toBottomOf="@id/labelVic"
-        app:layout_constraintStart_toEndOf="@id/valD018"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="8dp"
+        android:text="d019:"
+        app:layout_constraintStart_toEndOf="@id/valD018"
+        app:layout_constraintTop_toBottomOf="@id/labelVic" />
 
     <TextView
         android:id="@+id/valD019"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="2"
+        android:layout_marginStart="8dp"
         android:background="@drawable/textborder"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/labelVic"
+        android:ems="2"
         app:layout_constraintStart_toEndOf="@id/labelD019"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelVic" />
 
     <TextView
         android:id="@+id/labelD01A"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="d01a:"
-        app:layout_constraintTop_toBottomOf="@id/labelVic"
-        app:layout_constraintStart_toEndOf="@id/valD019"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="8dp"
+        android:text="d01a:"
+        app:layout_constraintStart_toEndOf="@id/valD019"
+        app:layout_constraintTop_toBottomOf="@id/labelVic" />
 
     <TextView
         android:id="@+id/valD01A"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ems="2"
+        android:layout_marginStart="8dp"
         android:background="@drawable/textborder"
-        android:text=""
-        app:layout_constraintTop_toBottomOf="@id/labelVic"
+        android:ems="2"
         app:layout_constraintStart_toEndOf="@id/labelD01A"
-        android:layout_marginStart="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/labelVic" />
+
+    <TextView
+        android:id="@+id/labelCia"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="CIA:"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/valD01A" />
+
+    <TextView
+        android:id="@+id/labelDC0D"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="dc0d:"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/valDC0D"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/textborder"
+        android:ems="2"
+        app:layout_constraintStart_toEndOf="@id/labelDC0D"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/labelDC0E"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="dc0e:"
+        app:layout_constraintStart_toEndOf="@id/valDC0D"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/valDC0E"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/textborder"
+        android:ems="2"
+        app:layout_constraintStart_toEndOf="@id/labelDC0E"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/labelDC0F"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="dc0f:"
+        app:layout_constraintStart_toEndOf="@id/valDC0E"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/valDC0F"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/textborder"
+        android:ems="2"
+        app:layout_constraintStart_toEndOf="@id/labelDC0F"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/labelDD0D"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="dd0d:"
+        app:layout_constraintStart_toEndOf="@id/valDC0F"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/valDD0D"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/textborder"
+        android:ems="2"
+        app:layout_constraintStart_toEndOf="@id/labelDD0D"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/labelDD0E"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="dd0e:"
+        app:layout_constraintStart_toEndOf="@id/valDD0D"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/valDD0E"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/textborder"
+        android:ems="2"
+        app:layout_constraintStart_toEndOf="@id/labelDD0E"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/labelDD0F"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="dd0f:"
+        app:layout_constraintStart_toEndOf="@id/valDD0E"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
+
+    <TextView
+        android:id="@+id/valDD0F"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/textborder"
+        android:ems="2"
+        app:layout_constraintStart_toEndOf="@id/labelDD0F"
+        app:layout_constraintTop_toBottomOf="@id/labelCia" />
 
     <Button
         android:id="@+id/close"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
         android:text="Close"
         android:theme="@style/ButtonTheme"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="32dp"/>
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1755,6 +1755,25 @@ void CPU6502::cmd6502xaaImmediate() {
   numofcycles += 2;
 }
 
+void CPU6502::cmd6502sbxImmediate() {
+  uint8_t r = getMem(pc++);
+  x = a & x - r;
+  cmpbase(a & x, r);
+  numofcycles += 2;
+}
+
+void CPU6502::cmd6502lasAbsolute() {
+  x = sp;
+  a = x;
+  modeAbsoluteY();
+  uint8_t r = getMem(z);
+  a &= r;
+  x = a;
+  sp = x;
+  atestandsetNZ();
+  numofcycles += 4;
+}
+
 void CPU6502::execute(uint8_t idx) { (this->*cmdarr6502[idx])(); }
 
 void CPU6502::setPCToIntVec(uint16_t intvect, bool intfrombrk) {

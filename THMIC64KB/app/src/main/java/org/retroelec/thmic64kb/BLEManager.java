@@ -25,16 +25,18 @@ public class BLEManager {
     private final String targetDeviceName;
     private final Settings settings;
     private final Type2Notification type2Notification;
+    private final Type3Notification type3Notification;
 
     public BluetoothGattCharacteristic getCharacteristic() {
         return characteristic;
     }
 
-    public BLEManager(MainActivity mainActivity, String targetDeviceName, Settings settings, Type2Notification type2Notification) {
+    public BLEManager(MainActivity mainActivity, String targetDeviceName, Settings settings, Type2Notification type2Notification, Type3Notification type3Notification) {
         this.mainActivity = mainActivity;
         this.targetDeviceName = targetDeviceName;
         this.settings = settings;
         this.type2Notification = type2Notification;
+        this.type3Notification = type3Notification;
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
         if (!bluetoothAdapter.isEnabled() || bluetoothLeScanner == null) {
@@ -90,11 +92,7 @@ public class BLEManager {
                             settings.setJoymode(receivedData[1]);
                             settings.setRefreshframecolor(receivedData[2] != 0);
                             settings.setDeactivatecia2(receivedData[3] != 0);
-                            settings.setJoyemulmode(receivedData[4]);
-                            Log.d("THMIC64", "joymode = " + settings.getJoymode());
-                            Log.d("THMIC64", "refreshframecolor = " + settings.isRefreshframecolor());
-                            Log.d("THMIC64", "switchonoffcia2 = " + settings.isDeactivatecia2());
-                            Log.d("THMIC64", "joyemulmode = " + settings.getJoyemulmode());
+                            settings.setSendRawKeyCodes(receivedData[4] != 0);
                             settings.notifySettingsObserver();
                             break;
                         case 2:
@@ -112,7 +110,21 @@ public class BLEManager {
                             type2Notification.setD019(receivedData[11]);
                             type2Notification.setD01a(receivedData[12]);
                             type2Notification.setRegister1(receivedData[13]);
+                            type2Notification.setDc0d(receivedData[14]);
+                            type2Notification.setDc0e(receivedData[15]);
+                            type2Notification.setDc0f(receivedData[16]);
+                            type2Notification.setDd0d(receivedData[17]);
+                            type2Notification.setDd0e(receivedData[18]);
+                            type2Notification.setDd0f(receivedData[19]);
                             type2Notification.notifyObserver();
+                            break;
+                        case 3:
+                            short[] mem = new short[16];
+                            for (byte i = 0; i < 16; i++) {
+                                mem[i] = receivedData[i + 1];
+                            }
+                            type3Notification.setMem(mem);
+                            type3Notification.notifyObserver();
                             break;
                     }
                 } else {

@@ -1,6 +1,7 @@
 package org.retroelec.thmic64kb;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Handler;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -8,8 +9,8 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,10 +20,15 @@ public class C64Keyboard extends LinearLayout {
     private static final int KEYBGCOLOR = 0xff2b2121;
     private static final int KEYSELECTEDCOLOR = 0xff777777;
 
+    private MyApplication myApplication;
+    private Settings settings;
+
     private final Map<String, byte[]> map = new HashMap<>();
     private Button keyshiftleft;
     private Button keyshiftlock;
     private Button keyshiftright;
+    private Button keyctrl;
+    private ImageButton keycommodore;
     private Button key1;
     private Button key2;
     private Button key3;
@@ -32,6 +38,7 @@ public class C64Keyboard extends LinearLayout {
     private Button key7;
     private Button key8;
     private Button key9;
+    private Button key0;
     private Button keycolon;
     private Button keysemicolon;
     private Button keycomma;
@@ -39,7 +46,9 @@ public class C64Keyboard extends LinearLayout {
     private Button keyslash;
 
     void initKBHashMap() {
-        map.put("LOAD", new byte[]{(byte) 11, (byte) 0x00, (byte) 0x80});
+        map.put("LOAD", new byte[]{(byte) Config.LOAD, (byte) 0x00, (byte) 0x80});
+        map.put("RESTORE", new byte[]{(byte) Config.RESTORE, (byte) 0x00, (byte) 0x80});
+        map.put("RESTORERUNSTOP", new byte[]{(byte) Config.RESTORE, (byte) 0x01, (byte) 0x80});
         map.put("del", new byte[]{(byte) 0xfe, (byte) 0xfe, (byte) 0x00});
         map.put("home", new byte[]{(byte) 0xbf, (byte) 0xf7, (byte) 0x00});
         map.put("ctrl", new byte[]{(byte) 0x7f, (byte) 0xdf, (byte) 0x00});
@@ -122,16 +131,9 @@ public class C64Keyboard extends LinearLayout {
         init(context);
     }
 
-    private void showToast(Context context, String message) {
-        final Toast toast = Toast.makeText(context, message, Toast.LENGTH_SHORT);
-        toast.show();
-        Handler handler = new Handler();
-        handler.postDelayed(toast::cancel, 100);
-    }
-
     enum ShiftKey {LEFT, RIGHT, LOCK}
 
-    private void shiftkeys(boolean isShifted, ShiftKey shiftKey) {
+    private void handleShiftKeys(boolean isShifted, ShiftKey shiftKey) {
         if (isShifted) {
             switch (shiftKey) {
                 case LEFT:
@@ -187,25 +189,90 @@ public class C64Keyboard extends LinearLayout {
         }
     }
 
+    private void handleCtrlKey(boolean isPressed) {
+        if (isPressed) {
+            keyctrl.setBackgroundColor(KEYSELECTEDCOLOR);
+            key1.setTextColor(Color.parseColor("#000000"));
+            key2.setTextColor(Color.parseColor("#ffffff"));
+            key3.setTextColor(Color.parseColor("#880000"));
+            key4.setTextColor(Color.parseColor("#aaffee"));
+            key5.setTextColor(Color.parseColor("#cc44cc"));
+            key6.setTextColor(Color.parseColor("#00cc55"));
+            key7.setTextColor(Color.parseColor("#0000aa"));
+            key8.setTextColor(Color.parseColor("#eeee77"));
+            key9.setBackgroundColor(Color.GRAY);
+            key0.setBackgroundColor(Color.parseColor("#333333"));
+        } else {
+            keyctrl.setBackgroundColor(KEYBGCOLOR);
+            key1.setTextColor(Color.WHITE);
+            key2.setTextColor(Color.WHITE);
+            key3.setTextColor(Color.WHITE);
+            key4.setTextColor(Color.WHITE);
+            key5.setTextColor(Color.WHITE);
+            key6.setTextColor(Color.WHITE);
+            key7.setTextColor(Color.WHITE);
+            key8.setTextColor(Color.WHITE);
+            key9.setBackgroundColor(Color.parseColor("#2b2121"));
+            key0.setBackgroundColor(Color.parseColor("#2b2121"));
+        }
+    }
+
+    private void handleCommodoreKey(boolean isPressed) {
+        if (isPressed) {
+            keycommodore.setBackgroundColor(KEYSELECTEDCOLOR);
+            key1.setTextColor(Color.parseColor("#dd8855"));
+            key2.setTextColor(Color.parseColor("#664400"));
+            key3.setTextColor(Color.parseColor("#ff7777"));
+            key4.setTextColor(Color.parseColor("#333333"));
+            key5.setTextColor(Color.parseColor("#777777"));
+            key6.setTextColor(Color.parseColor("#aaff66"));
+            key7.setTextColor(Color.parseColor("#0088ff"));
+            key8.setTextColor(Color.parseColor("#bbbbbb"));
+        } else {
+            keycommodore.setBackgroundColor(KEYBGCOLOR);
+            key1.setTextColor(Color.WHITE);
+            key2.setTextColor(Color.WHITE);
+            key3.setTextColor(Color.WHITE);
+            key4.setTextColor(Color.WHITE);
+            key5.setTextColor(Color.WHITE);
+            key6.setTextColor(Color.WHITE);
+            key7.setTextColor(Color.WHITE);
+            key8.setTextColor(Color.WHITE);
+        }
+    }
+
     private void sendKey(Context context, byte[] data) {
         Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
         if (vibrator != null && vibrator.hasVibrator()) {
             vibrator.vibrate(VibrationEffect.createOneShot(75, VibrationEffect.DEFAULT_AMPLITUDE));
         }
         boolean isShifted = keyshiftleft.isSelected() || keyshiftright.isSelected();
+        boolean isCtrl = keyctrl.isSelected();
+        boolean isCommodore = keycommodore.isSelected();
         byte[] datatosend = data;
         if (isShifted) {
             keyshiftleft.setSelected(false);
             keyshiftleft.setBackgroundColor(KEYBGCOLOR);
             keyshiftright.setSelected(false);
             keyshiftright.setBackgroundColor(KEYBGCOLOR);
-            shiftkeys(false, ShiftKey.LEFT);
-            shiftkeys(false, ShiftKey.RIGHT);
+            handleShiftKeys(false, ShiftKey.LEFT);
+            handleShiftKeys(false, ShiftKey.RIGHT);
+        } else if (isCtrl) {
+            keyctrl.setSelected(false);
+            keyctrl.setBackgroundColor(KEYBGCOLOR);
+            handleCtrlKey(false);
+        } else if (isCommodore) {
+            keycommodore.setSelected(false);
+            keycommodore.setBackgroundColor(KEYBGCOLOR);
+            handleCommodoreKey(false);
         }
         if (isShifted || keyshiftlock.isSelected()) {
             datatosend = new byte[]{data[0], data[1], 1};
+        } else if (isCtrl) {
+            datatosend = new byte[]{data[0], data[1], 2};
+        } else if (isCommodore) {
+            datatosend = new byte[]{data[0], data[1], 4};
         }
-        final MyApplication myApplication = (MyApplication) context.getApplicationContext();
         BLEManager bleManager = myApplication.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
             bleManager.sendData(datatosend);
@@ -213,19 +280,20 @@ public class C64Keyboard extends LinearLayout {
     }
 
     private void init(Context context) {
+        myApplication = (MyApplication) context.getApplicationContext();
+        settings = myApplication.getSettings();
+
         Button keyf1;
         Button keyf3;
         Button keyf5;
         Button keyf7;
         Button keyload;
         Button keyleftarrow;
-        Button key0;
         Button keyplus;
         Button keyminus;
         Button keypound;
-        Button keyhome;
-        Button keydel;
-        Button keyctrl;
+        ImageButton keyhome;
+        ImageButton keydel;
         Button keyq;
         Button keyw;
         Button keye;
@@ -240,7 +308,7 @@ public class C64Keyboard extends LinearLayout {
         Button keymul;
         Button keyarrowup;
         Button keyrestore;
-        Button keyrunstop;
+        ImageButton keyrunstop;
         Button keya;
         Button keys;
         Button keyd;
@@ -252,7 +320,6 @@ public class C64Keyboard extends LinearLayout {
         Button keyl;
         Button keyequal;
         Button keyreturn;
-        Button keycommodore;
         Button keyz;
         Button keyx;
         Button keyc;
@@ -287,7 +354,9 @@ public class C64Keyboard extends LinearLayout {
         keyminus = findViewById(R.id.keyminus);
         keypound = findViewById(R.id.keypound);
         keyhome = findViewById(R.id.keyhome);
+        keyhome.setBackgroundColor(KEYBGCOLOR);
         keydel = findViewById(R.id.keydel);
+        keydel.setBackgroundColor(KEYBGCOLOR);
         keyctrl = findViewById(R.id.keyctrl);
         keyq = findViewById(R.id.keyq);
         keyw = findViewById(R.id.keyw);
@@ -304,6 +373,7 @@ public class C64Keyboard extends LinearLayout {
         keyarrowup = findViewById(R.id.keyarrowup);
         keyrestore = findViewById(R.id.keyrestore);
         keyrunstop = findViewById(R.id.keyrunstop);
+        keyrunstop.setBackgroundColor(KEYBGCOLOR);
         keyshiftlock = findViewById(R.id.keyshiftlock);
         keya = findViewById(R.id.keya);
         keys = findViewById(R.id.keys);
@@ -319,6 +389,7 @@ public class C64Keyboard extends LinearLayout {
         keyequal = findViewById(R.id.keyequal);
         keyreturn = findViewById(R.id.keyreturn);
         keycommodore = findViewById(R.id.keycommodore);
+        keycommodore.setBackgroundColor(KEYBGCOLOR);
         keyz = findViewById(R.id.keyz);
         keyx = findViewById(R.id.keyx);
         keyc = findViewById(R.id.keyc);
@@ -413,14 +484,27 @@ public class C64Keyboard extends LinearLayout {
             sendKey(context, map.get(key));
         });
         keyhome.setOnClickListener(view -> {
+            keyhome.setBackgroundColor(KEYSELECTEDCOLOR);
+            new Handler().postDelayed(() -> keyhome.setBackgroundColor(KEYBGCOLOR), 200);
             String key = "home";
             sendKey(context, map.get(key));
         });
         keydel.setOnClickListener(view -> {
+            keydel.setBackgroundColor(KEYSELECTEDCOLOR);
+            new Handler().postDelayed(() -> keydel.setBackgroundColor(KEYBGCOLOR), 200);
             String key = "del";
             sendKey(context, map.get(key));
         });
-        keyctrl.setOnClickListener(view -> showToast(context, "not implemented yet"));
+        keyctrl.setOnClickListener(view -> {
+            if (settings.isSendRawKeyCodes()) {
+                String key = "ctrl";
+                sendKey(context, map.get(key));
+            } else {
+                keyctrl.setSelected(!keyctrl.isSelected());
+                Log.d("THMIC64", "ctrl button clicked, selected: " + keyctrl.isSelected());
+                handleCtrlKey(keyctrl.isSelected());
+            }
+        });
         keyq.setOnClickListener(view -> {
             String key = "Q";
             sendKey(context, map.get(key));
@@ -473,14 +557,27 @@ public class C64Keyboard extends LinearLayout {
             String key = "uparrow";
             sendKey(context, map.get(key));
         });
-        keyrestore.setOnClickListener(view -> showToast(context, "not implemented yet"));
+        keyrestore.setOnClickListener(view -> {
+            // combination "RUN/STOP" + "RESTORE" is replaced by "COMMODRE" + "RESTORE"
+            if (keycommodore.isSelected()) {
+                keycommodore.setSelected(false);
+                handleCommodoreKey(false);
+                String key = "RESTORERUNSTOP";
+                sendKey(context, map.get(key));
+            } else {
+                String key = "RESTORE";
+                sendKey(context, map.get(key));
+            }
+        });
         keyrunstop.setOnClickListener(view -> {
+            keyrunstop.setBackgroundColor(KEYSELECTEDCOLOR);
+            new Handler().postDelayed(() -> keyrunstop.setBackgroundColor(KEYBGCOLOR), 200);
             String key = "runstop";
             sendKey(context, map.get(key));
         });
         keyshiftlock.setOnClickListener(view -> {
             keyshiftlock.setSelected(!keyshiftlock.isSelected());
-            shiftkeys(keyshiftlock.isSelected(), ShiftKey.LOCK);
+            handleShiftKeys(keyshiftlock.isSelected(), ShiftKey.LOCK);
         });
         keya.setOnClickListener(view -> {
             String key = "A";
@@ -534,14 +631,30 @@ public class C64Keyboard extends LinearLayout {
             String key = "return";
             sendKey(context, map.get(key));
         });
-        keycommodore.setOnClickListener(view -> showToast(context, "not implemented yet"));
-        keyshiftleft.setOnClickListener(view -> {
-            if (keyshiftlock.isSelected()) {
-                return;
+        keycommodore.setOnClickListener(view -> {
+            if (settings.isSendRawKeyCodes()) {
+                keycommodore.setBackgroundColor(KEYSELECTEDCOLOR);
+                new Handler().postDelayed(() -> keycommodore.setBackgroundColor(KEYBGCOLOR), 200);
+                String key = "commodore";
+                sendKey(context, map.get(key));
+            } else {
+                keycommodore.setSelected(!keycommodore.isSelected());
+                Log.d("THMIC64", "commodore button clicked, selected: " + keycommodore.isSelected());
+                handleCommodoreKey(keycommodore.isSelected());
             }
-            keyshiftleft.setSelected(!keyshiftleft.isSelected());
-            Log.d("THMIC64", "shift button clicked, selected: " + keyshiftleft.isSelected());
-            shiftkeys(keyshiftleft.isSelected(), ShiftKey.LEFT);
+        });
+        keyshiftleft.setOnClickListener(view -> {
+            if (settings.isSendRawKeyCodes()) {
+                String key = "shiftleft";
+                sendKey(context, map.get(key));
+            } else {
+                if (keyshiftlock.isSelected()) {
+                    return;
+                }
+                keyshiftleft.setSelected(!keyshiftleft.isSelected());
+                Log.d("THMIC64", "shift button clicked, selected: " + keyshiftleft.isSelected());
+                handleShiftKeys(keyshiftleft.isSelected(), ShiftKey.LEFT);
+            }
         });
         keyz.setOnClickListener(view -> {
             String key = "Z";
@@ -584,12 +697,17 @@ public class C64Keyboard extends LinearLayout {
             sendKey(context, map.get(key));
         });
         keyshiftright.setOnClickListener(view -> {
-            if (keyshiftlock.isSelected()) {
-                return;
+            if (settings.isSendRawKeyCodes()) {
+                String key = "shiftright";
+                sendKey(context, map.get(key));
+            } else {
+                if (keyshiftlock.isSelected()) {
+                    return;
+                }
+                keyshiftright.setSelected(!keyshiftright.isSelected());
+                Log.d("THMIC64", "shift button clicked, selected: " + keyshiftright.isSelected());
+                handleShiftKeys(keyshiftright.isSelected(), ShiftKey.RIGHT);
             }
-            keyshiftright.setSelected(!keyshiftright.isSelected());
-            Log.d("THMIC64", "shift button clicked, selected: " + keyshiftright.isSelected());
-            shiftkeys(keyshiftright.isSelected(), ShiftKey.RIGHT);
         });
         keycrsrdown.setOnClickListener(view -> {
             String key = "crsrdown";

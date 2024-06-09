@@ -33,17 +33,19 @@ enum class ExtCmd {
   RECEIVEDATA = 12,
   SHOWREG = 13,
   SHOWMEM = 14,
-  SETVARTAB = 15,
+  RESTORE = 15,
+  SETVARTAB = 16,
   RESET = 20,
   GETSTATUS = 21,
   SWITCHFRAMECOLORREFRESH = 22,
   SWITCHCIA2 = 23,
-  JOYEMULMODE = 24
+  SENDRAWKEYS = 24
 };
 
 void ExternalCmds::init(uint8_t *ram, CPUC64 *cpu) {
   this->ram = ram;
   this->cpu = cpu;
+  sendrawkeycodes = false;
 }
 
 void ExternalCmds::setType1Notification() {
@@ -51,7 +53,7 @@ void ExternalCmds::setType1Notification() {
   type1notification.joymode = cpu->joystickmode;
   type1notification.refreshframecolor = cpu->refreshframecolor;
   type1notification.switchonoffcia2 = cpu->deactivatecia2;
-  type1notification.joyemulmode = cpu->joystickemulmode;
+  type1notification.sendrawkeycodes = sendrawkeycodes;
 }
 
 void ExternalCmds::setType2Notification() {
@@ -68,6 +70,19 @@ void ExternalCmds::setType2Notification() {
   type2notification.d019 = cpu->getMem(0xd019);
   type2notification.d01a = cpu->getMem(0xd01a);
   type2notification.register1 = cpu->getMem(1);
+  type2notification.dc0d = cpu->getMem(0xdc0d);
+  type2notification.dc0e = cpu->getMem(0xdc0e);
+  type2notification.dc0f = cpu->getMem(0xdc0f);
+  type2notification.dd0d = cpu->getMem(0xdd0d);
+  type2notification.dd0e = cpu->getMem(0xdd0e);
+  type2notification.dd0f = cpu->getMem(0xdd0f);
+}
+
+void ExternalCmds::setType3Notification(uint16_t addr) {
+  type3notification.type = 3;
+  for (uint8_t i = 0; i < BLENOTIFICATIONTYPE3NUMOFBYTES; i++) {
+    type3notification.mem[i] = cpu->getMem(addr + i);
+  }
 }
 
 void ExternalCmds::setVarTab(uint16_t addr) {
@@ -127,6 +142,14 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     cpu->cpuhalted = false;
     ESP_LOGI(TAG, "leave receivedata");
     return 0;
+  case ExtCmd::RESTORE:
+    if (buffer[1] == 1) {
+      // restore + run/stop
+      cpu->setMem(0xdc00, 0);
+      cpu->setKeycodes(0x7f, 0);
+    }
+    cpu->restorenmi = true;
+    return 0;
   case ExtCmd::SETVARTAB:
     cpu->cpuhalted = true;
     addr = buffer[3] + (buffer[4] << 8);
@@ -136,18 +159,33 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::SHOWREG:
     setType2Notification();
     ESP_LOGI(TAG, "cpuRunning %s",
-             type2notification.cpuRunning ? "false" : "true");
+             type2notification.cpuRunning ? "true" : "false");
     ESP_LOGI(TAG, "pc = %x, a = %x, x = %x, y = %x, sr = %x",
              type2notification.pc, type2notification.a, type2notification.x,
              type2notification.y, type2notification.sr);
-    ESP_LOGI(TAG, "vic[0xd011] = %x, vic[0xd016] = %x, vic[0xd018] = %x",
-             type2notification.d011, type2notification.d016,
-             type2notification.d018);
-    ESP_LOGI(TAG, "vic[0xd019] = %x, vic[0xd01a] = %x", type2notification.d019,
-             type2notification.d01a);
+    ESP_LOGI(TAG, "d011 = %x, d016 = %x, d018 = %x", type2notification.d011,
+             type2notification.d016, type2notification.d018);
+    ESP_LOGI(TAG, "d019 = %x, d01a = %x, register1 = %x",
+             type2notification.d019, type2notification.d01a,
+             type2notification.register1);
+    ESP_LOGI(TAG, "dc0d = %x, dc0e = %x, dc0f = %x", type2notification.dc0d,
+             type2notification.dc0e, type2notification.dc0f);
+    ESP_LOGI(TAG, "dd0d = %x, dd0e = %x, dd0f = %x", type2notification.dd0d,
+             type2notification.dd0e, type2notification.dd0f);
     return 2;
-  case ExtCmd::SHOWMEM: // todo
-    return 0;
+  case ExtCmd::SHOWMEM:
+    addr = buffer[3] + (buffer[4] << 8);
+    ESP_LOGI(TAG, "addr: %x", addr);
+    setType3Notification(addr);
+    for (uint8_t i = 0; i < BLENOTIFICATIONTYPE3NUMOFBYTES / 8; i++) {
+      uint8_t j = i * 8;
+      ESP_LOGI(TAG, "mem[%d]: %d %d %d %d %d %d %d %d", j,
+               type3notification.mem[j], type3notification.mem[j + 1],
+               type3notification.mem[j + 2], type3notification.mem[j + 3],
+               type3notification.mem[j + 4], type3notification.mem[j + 5],
+               type3notification.mem[j + 6], type3notification.mem[j + 7]);
+    }
+    return 3;
   case ExtCmd::RESET:
     cpu->cpuhalted = true;
     cpu->initMemAndRegs();
@@ -202,9 +240,9 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     ESP_LOGI(TAG, "deactivatecia2 = %x", cpu->deactivatecia2);
     setType1Notification();
     return 1;
-  case ExtCmd::JOYEMULMODE:
-    cpu->joystickemulmode = buffer[3];
-    ESP_LOGI(TAG, "joystickemulmode = %x", cpu->joystickemulmode);
+  case ExtCmd::SENDRAWKEYS:
+    sendrawkeycodes = !sendrawkeycodes;
+    ESP_LOGI(TAG, "sendrawkeycodes = %x", sendrawkeycodes);
     setType1Notification();
     return 1;
   }

@@ -2,11 +2,7 @@ package org.retroelec.thmic64kb;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.Spinner;
 import android.widget.Switch;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,7 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 public class DivActivity extends AppCompatActivity implements SettingsObserver {
     private Switch toggleRefreshframecolorSwitch;
     private Switch toggleCIA2Switch;
-    private Spinner joyEmulMode;
+    private Switch toggleSendRawKeyCodes;
     private Settings settings;
 
     private void sendCmd(byte[] data) {
@@ -27,13 +23,10 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver {
 
     @Override
     public void updateSettings() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                toggleRefreshframecolorSwitch.setChecked(settings.isRefreshframecolor());
-                toggleCIA2Switch.setChecked(!settings.isDeactivatecia2());
-                joyEmulMode.setSelection(settings.getJoyemulmode());
-            }
+        runOnUiThread(() -> {
+            toggleRefreshframecolorSwitch.setChecked(settings.isRefreshframecolor());
+            toggleCIA2Switch.setChecked(!settings.isDeactivatecia2());
+            toggleSendRawKeyCodes.setChecked(settings.isSendRawKeyCodes());
         });
     }
 
@@ -65,36 +58,8 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver {
         toggleCIA2Switch = findViewById(R.id.toggleCIA2);
         toggleCIA2Switch.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHCIA2, (byte) 0x00, (byte) 0x80}));
 
-        joyEmulMode = findViewById(R.id.joyemulmode);
-        String[] joyEmulArray = new String[]{"JoyEmul1", "JoyEmul2", "JoyEmul3"};
-        ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, joyEmulArray);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        joyEmulMode.setAdapter(adapter);
-        joyEmulMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                byte joyemul;
-                switch (parent.getItemAtPosition(position).toString()) {
-                    case "JoyEmul1":
-                        joyemul = 0;
-                        break;
-                    case "JoyEmul2":
-                        joyemul = 1;
-                        break;
-                    case "JoyEmul3":
-                        joyemul = 2;
-                        break;
-                    default:
-                        joyemul = 0;
-                        break;
-                }
-                sendCmd(new byte[]{Config.JOYEMULMODE, (byte) 0x00, (byte) 0x80, joyemul});
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
+        toggleSendRawKeyCodes = findViewById(R.id.toggleSendRawKeyCodes);
+        toggleSendRawKeyCodes.setOnClickListener(v -> sendCmd(new byte[]{Config.SENDRAWKEYS, (byte) 0x00, (byte) 0x80}));
 
         final Button keystatus = findViewById(R.id.keystatus);
         keystatus.setOnClickListener(view -> {

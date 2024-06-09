@@ -16,21 +16,30 @@
 */
 #include "CIA.h"
 
+// bit 4 of ciareg[0x0e] and ciareg[0x0f] is handled in CPUC64::setMem
+
 bool CIA::checkTimerA(uint8_t deltaT) {
-  if ((ciareg[0x0e] & 1) == 0) {
+  uint8_t reg0e = ciareg[0x0e];
+  if (!(reg0e & 1)) {
     // timer stopped
     return false;
   }
-  if (ciareg[0x0e] & 0x20) {
+  if (reg0e & 0x20) {
     // timer clocked by CNT pin
     return false;
   }
   int32_t tmp = timerA - deltaT;
   timerA = (tmp < 0) ? 0 : tmp;
   if (timerA == 0) {
-    triggerTimerB = true;
+    if (reg0e & 0x02) {
+      if (reg0e & 0x04) {
+        ciareg[0x0f] |= 0x40;
+      } else {
+        ciareg[0x0f] ^= 0x40;
+      }
+    }
     latchdc0d |= 0x01;
-    if (reloadA) {
+    if (!(reg0e & 8)) {
       timerA = (latchdc05 << 8) + latchdc04;
     }
     if (ciareg[0x0d] & 1) {
@@ -42,20 +51,23 @@ bool CIA::checkTimerA(uint8_t deltaT) {
 }
 
 bool CIA::checkTimerB(uint8_t deltaT) {
-  if ((ciareg[0x0f] & 1) == 0) {
+  uint8_t reg0f = ciareg[0x0f];
+  if (!(reg0f & 1)) {
     // timer stopped
     return false;
   }
-  if (((ciareg[0x0f] & 0x60) == 0) ||
-      (triggerTimerB && ((ciareg[0x0f] & 0x60) == 0x40))) {
+  uint8_t bit56 = ciareg[0x0f] & 0x60;
+  if (bit56 == 0) {
     int32_t tmp = timerB - deltaT;
     timerB = (tmp < 0) ? 0 : tmp;
+  } else if (bit56 == 0x40) {
+    timerB--;
   } else {
     return false;
   }
   if (timerB == 0) {
     latchdc0d |= 0x02;
-    if (reloadB) {
+    if (!(reg0f & 8)) {
       timerB = (latchdc07 << 8) + latchdc06;
     }
     if (ciareg[0x0d] & 2) {
@@ -78,9 +90,6 @@ void CIA::init() {
   uint8_t latchdc0d = 0;
   uint16_t timerA = 0;
   uint16_t timerB = 0;
-  bool reloadA = false;
-  bool reloadB = false;
-  triggerTimerB = false;
 }
 
 CIA::CIA() { init(); }

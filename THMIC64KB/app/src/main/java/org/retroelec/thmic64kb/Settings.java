@@ -5,7 +5,7 @@ public class Settings {
     byte joymode;
     boolean refreshframecolor;
     boolean deactivatecia2;
-    byte joyemulmode;
+    boolean sendRawKeyCodes;
 
     public void registerSettingsObserver(SettingsObserver observer) {
         this.observer = observer;
@@ -45,11 +45,11 @@ public class Settings {
         this.deactivatecia2 = deactivatecia2;
     }
 
-    public byte getJoyemulmode() {
-        return joyemulmode;
+    public boolean isSendRawKeyCodes() {
+        return sendRawKeyCodes;
     }
 
-    public void setJoyemulmode(byte joyemulmode) {
-        this.joyemulmode = joyemulmode;
+    public void setSendRawKeyCodes(boolean sendRawKeyCodes) {
+        this.sendRawKeyCodes = sendRawKeyCodes;
     }
 }

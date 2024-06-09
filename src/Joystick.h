@@ -35,7 +35,7 @@ public:
   static const uint8_t C64JOYFIRE = 4;
 
   void init();
-  uint8_t getValue(bool port2, uint8_t joystickemulmode);
+  uint8_t getValue(bool port2, uint8_t dc00, uint8_t dc02);
   bool getFire2();
 };
 #endif // JOYSTICK_H

@@ -268,6 +268,8 @@ private:
   void cmd6502dcpAbsoluteX();
   void cmd6502dcpAbsoluteY();
   void cmd6502xaaImmediate();
+  void cmd6502sbxImmediate();
+  void cmd6502lasAbsolute();
 
   // undocumented implied nop commands are defined virtual so them may be used
   // for logging, profiling etc.
@@ -386,7 +388,7 @@ private:
       &CPU6502::cmd6502ldyZeropageX, &CPU6502::cmd6502ldaZeropageX,
       &CPU6502::cmd6502ldxZeropageY, &CPU6502::cmd6502laxZeropageY,
       &CPU6502::cmd6502clv, &CPU6502::cmd6502ldaAbsoluteY, &CPU6502::cmd6502tsx,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502ldyAbsoluteX,
+      &CPU6502::cmd6502lasAbsolute, &CPU6502::cmd6502ldyAbsoluteX,
       &CPU6502::cmd6502ldaAbsoluteX, &CPU6502::cmd6502ldxAbsoluteY,
       &CPU6502::cmd6502laxAbsoluteY,
       // 0xc0
@@ -395,7 +397,7 @@ private:
       &CPU6502::cmd6502cpyZeropage, &CPU6502::cmd6502cmpZeropage,
       &CPU6502::cmd6502decZeropage, &CPU6502::cmd6502dcpZeropage,
       &CPU6502::cmd6502iny, &CPU6502::cmd6502cmpImmediate, &CPU6502::cmd6502dex,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502cpyAbsolute,
+      &CPU6502::cmd6502sbxImmediate, &CPU6502::cmd6502cpyAbsolute,
       &CPU6502::cmd6502cmpAbsolute, &CPU6502::cmd6502decAbsolute,
       &CPU6502::cmd6502dcpAbsolute,
       // 0xd0

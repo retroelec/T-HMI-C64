@@ -22,12 +22,14 @@ class CPUC64;
 #include "SDCard.h"
 #include <cstdint>
 
+// notifications may be not larger than 20 bytes
+
 struct BLENotificationStruct1 {
   uint8_t type;
   uint8_t joymode;
   uint8_t refreshframecolor;
   uint8_t switchonoffcia2;
-  uint8_t joyemulmode;
+  uint8_t sendrawkeycodes;
 };
 
 struct BLENotificationStruct2 {
@@ -44,6 +46,19 @@ struct BLENotificationStruct2 {
   uint8_t d019;
   uint8_t d01a;
   uint8_t register1;
+  uint8_t dc0d;
+  uint8_t dc0e;
+  uint8_t dc0f;
+  uint8_t dd0d;
+  uint8_t dd0e;
+  uint8_t dd0f;
+};
+
+static const uint8_t BLENOTIFICATIONTYPE3NUMOFBYTES =
+    16; // must be divisible by 8
+struct BLENotificationStruct3 {
+  uint8_t type;
+  uint8_t mem[BLENOTIFICATIONTYPE3NUMOFBYTES];
 };
 
 class ExternalCmds {
@@ -52,13 +67,17 @@ private:
   CPUC64 *cpu;
   SDCard sdcard;
 
+  bool sendrawkeycodes;
+
   void setVarTab(uint16_t addr);
   void setType1Notification();
   void setType2Notification();
+  void setType3Notification(uint16_t addr);
 
 public:
   BLENotificationStruct1 type1notification;
   BLENotificationStruct2 type2notification;
+  BLENotificationStruct3 type3notification;
 
   void init(uint8_t *ram, CPUC64 *cpu);
   uint8_t executeExternalCmd(uint8_t *buffer);

@@ -188,23 +188,23 @@
             android:text="£"
             android:textColor="@android:color/white" />
 
-        <Button
+        <ImageButton
             android:id="@+id/keyhome"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:layout_weight="1"
-            android:backgroundTint="#2b2121"
-            android:text="\u2302"
-            android:textColor="@android:color/white" />
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/keyclrhome"
+            android:scaleType="fitCenter" />
 
-        <Button
+        <ImageButton
             android:id="@+id/keydel"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:layout_weight="1"
-            android:backgroundTint="#2b2121"
-            android:text="\u232b"
-            android:textColor="@android:color/white" />
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/keyinstdel"
+            android:scaleType="fitCenter" />
 
     </TableRow>
 
@@ -361,14 +361,14 @@
         android:baselineAligned="false"
         android:orientation="horizontal">
 
-        <Button
+        <ImageButton
             android:id="@+id/keyrunstop"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:layout_weight="1"
-            android:backgroundTint="#2b2121"
-            android:text="\u23f9"
-            android:textColor="@android:color/white" />
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/keyrunstop"
+            android:scaleType="fitCenter" />
 
         <Button
             android:id="@+id/keyshiftlock"
@@ -506,14 +506,14 @@
         android:baselineAligned="false"
         android:orientation="horizontal">
 
-        <Button
+        <ImageButton
             android:id="@+id/keycommodore"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:layout_weight="1"
-            android:backgroundTint="#2b2121"
-            android:text="\u2661"
-            android:textColor="@android:color/white" />
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/commodorelogo"
+            android:scaleType="fitCenter" />
 
         <Button
             android:id="@+id/keyshiftleft"
@@ -631,7 +631,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:backgroundTint="#2b2121"
-            android:text="\u2191"
+            android:text="\u21d1"
             android:textColor="@android:color/white" />
 
         <Button
@@ -640,7 +640,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:backgroundTint="#2b2121"
-            android:text="\u2193"
+            android:text="\u21d3"
             android:textColor="@android:color/white" />
 
     </TableRow>
@@ -653,13 +653,29 @@
         android:orientation="horizontal">
 
         <Button
+            android:id="@+id/empty1"
+            android:enabled="false"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:backgroundTint="#555555" />
+
+        <Button
             android:id="@+id/keyspace"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="9"
+            android:layout_weight="8"
             android:backgroundTint="#2b2121"
             android:text=""
             android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/empty2"
+            android:enabled="false"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:backgroundTint="#555555" />
 
         <Button
             android:id="@+id/keycrsrleft"
@@ -667,7 +683,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:backgroundTint="#2b2121"
-            android:text="\u2190"
+            android:text="\u21d0"
             android:textColor="@android:color/white" />
 
         <Button
@@ -676,7 +692,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:backgroundTint="#2b2121"
-            android:text="\u2192"
+            android:text="\u21d2"
             android:textColor="@android:color/white" />
 
     </TableRow>

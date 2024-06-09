@@ -25,9 +25,6 @@
 // - read the clear-on-read register $dc0d will ACK all pending CIA 1 interrupts
 
 class CIA {
-private:
-  bool triggerTimerB;
-
 public:
   uint8_t ciareg[0x10];
 
@@ -38,8 +35,6 @@ public:
   uint8_t latchdc0d; // read latch register
   uint16_t timerA;
   uint16_t timerB;
-  bool reloadA;
-  bool reloadB;
 
   CIA();
   void init();

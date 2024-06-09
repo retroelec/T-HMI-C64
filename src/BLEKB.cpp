@@ -81,7 +81,7 @@ public:
       ESP_LOGD(TAG, "task completed, type = %d", type);
       return type;
     } else {
-      ESP_LOGD(TAG, "failed to receive notification or timed out");
+      ESP_LOGD(TAG, "failed to send notification or timed out");
       return 0;
     }
   }
@@ -136,7 +136,9 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
   } else if (len >= 3) { // keyboard codes or external commands
     // BLE client sends 3 codes for each key: dc00, dc01, "shiftctrlcode"
     // shiftctrlcode: bit 0 -> left shift
-    //                bit 7 -> external command (cmd, 0, 128)
+    //                bit 1 -> ctrl
+    //                bit 2 -> commodore
+    //                bit 7 -> external command (cmd, x, 128)
     for (uint8_t i = 0; i < len; i++) {
       blekb.buffer[i] = (uint8_t)value[i];
     }
@@ -161,6 +163,11 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
         pCharacteristic->setValue(
             reinterpret_cast<uint8_t *>(&(externalCmds.type2notification)),
             sizeof(BLENotificationStruct2));
+        break;
+      case 3:
+        pCharacteristic->setValue(
+            reinterpret_cast<uint8_t *>(&(externalCmds.type3notification)),
+            sizeof(BLENotificationStruct3));
         break;
       }
       pCharacteristic->notify();
@@ -226,13 +233,29 @@ uint8_t BLEKB::decode(uint8_t dc00) {
   if (dc00 == 0) {
     return kbcode1;
   }
-  if (((~dc00 & 2) != 0) && ((shiftctrlcode & 1) != 0)) {
+  if ((~dc00 & 2) && (shiftctrlcode & 1)) {
     // left shift pressed
     if (kbcode2 == 0xfd) {
       // handle scan of key codes in the same "row"
       return kbcode1 & 0x7f;
     } else {
       return 0x7f;
+    }
+  } else if ((~dc00 & 0x80) && (shiftctrlcode & 2)) {
+    // ctrl pressed
+    if (kbcode2 == 0x7f) {
+      // handle scan of key codes in the same "row"
+      return kbcode1 & 0xfb;
+    } else {
+      return 0xfb;
+    }
+  } else if ((~dc00 & 0x80) && (shiftctrlcode & 4)) {
+    // commodore pressed
+    if (kbcode2 == 0x7f) {
+      // handle scan of key codes in the same "row"
+      return kbcode1 & 0xdf;
+    } else {
+      return 0xdf;
     }
   }
   if (dc00 == kbcode2) {
@@ -243,3 +266,8 @@ uint8_t BLEKB::decode(uint8_t dc00) {
 }
 
 uint8_t BLEKB::getKBJoyValue(bool port2) { return virtjoystickvalue; }
+
+void BLEKB::setKbcodes(uint8_t kbcode1, uint8_t kbcode2) {
+  this->kbcode1 = kbcode1;
+  this->kbcode2 = kbcode2;
+}

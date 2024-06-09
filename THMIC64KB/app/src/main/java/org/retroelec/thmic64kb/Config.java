@@ -30,9 +30,10 @@ public class Config {
     public static final byte RECEIVEDATA = 12;
     public static final byte SHOWREG = 13;
     public static final byte SHOWMEM = 14;
+    public static final byte RESTORE = 15;
     public static final byte RESET = 20;
     public static final byte GETSTATUS = 21;
     public static final byte SWITCHFRAMECOLORREFRESH = 22;
     public static final byte SWITCHCIA2 = 23;
-    public static final byte JOYEMULMODE = 24;
+    public static final byte SENDRAWKEYS = 24;
 }

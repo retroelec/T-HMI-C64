@@ -7,6 +7,8 @@ public class MyApplication extends Application {
     private Settings settings;
     private Type2Notification type2Notification;
 
+    private Type3Notification type3Notification;
+
     public BLEManager getBleManager() {
         return bleManager;
     }
@@ -29,5 +31,13 @@ public class MyApplication extends Application {
 
     public void setType2Notification(Type2Notification type2Notification) {
         this.type2Notification = type2Notification;
+    }
+
+    public Type3Notification getType3Notification() {
+        return type3Notification;
+    }
+
+    public void setType3Notification(Type3Notification type3Notification) {
+        this.type3Notification = type3Notification;
     }
 }

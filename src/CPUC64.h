@@ -70,7 +70,8 @@ public:
   uint8_t kbjoystickmode;
   bool refreshframecolor;
   bool deactivatecia2;
-  uint8_t joystickemulmode;
+
+  bool restorenmi;
 
   inline uint8_t getMem(uint16_t addr) __attribute__((always_inline));
   inline void setMem(uint16_t addr, uint8_t val) __attribute__((always_inline));
@@ -83,6 +84,7 @@ public:
   void init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb);
   void setPC(uint16_t pc);
   void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
+  void setKeycodes(uint8_t keycode1, uint8_t keycode2);
 };
 
 #endif // CPUC64_H

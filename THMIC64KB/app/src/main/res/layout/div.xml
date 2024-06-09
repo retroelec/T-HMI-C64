@@ -26,11 +26,11 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="16dp"/>
 
-    <Spinner
-        android:id="@+id/joyemulmode"
+    <Switch
+        android:id="@+id/toggleSendRawKeyCodes"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:spinnerMode="dropdown"
+        android:text="Send raw keycodes"
         app:layout_constraintTop_toBottomOf="@id/toggleCIA2"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -39,7 +39,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/joyemulmode"
+        app:layout_constraintTop_toBottomOf="@id/toggleSendRawKeyCodes"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="32dp">

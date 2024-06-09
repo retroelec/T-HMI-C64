@@ -14,6 +14,7 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
+
 #include "src/Main.h"
 #include <esp_log.h>
 
@@ -21,6 +22,7 @@ static const char *TAG = "T-HMI-C64";
 
 void setup() {
   Serial.begin(115200);
+  vTaskDelay(1000 / portTICK_PERIOD_MS);
   ESP_LOGI(TAG, "start setup...");
   ESP_LOGI(TAG, "setup() running on core %d", xPortGetCoreID());
   try {

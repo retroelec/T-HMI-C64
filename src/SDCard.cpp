@@ -26,7 +26,7 @@ bool SDCard::init() {
   if (initalized) {
     return true;
   }
-  delay(1000);
+  vTaskDelay(500 / portTICK_PERIOD_MS);
   pinMode(Config::PWR_EN_PIN, OUTPUT);
   digitalWrite(Config::PWR_EN_PIN, HIGH);
   SD_MMC.setPins(Config::SD_SCLK_PIN, Config::SD_MOSI_PIN, Config::SD_MISO_PIN);

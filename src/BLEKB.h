@@ -43,6 +43,7 @@ public:
   void handleKeyPress();
   uint8_t decode(uint8_t dc00);
   uint8_t getKBJoyValue(bool port2);
+  void setKbcodes(uint8_t kbcode1, uint8_t kbcode2);
 };
 
 class BLEKBServerCallback : public BLEServerCallbacks {

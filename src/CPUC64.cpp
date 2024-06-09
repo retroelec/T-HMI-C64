@@ -83,11 +83,7 @@ uint8_t CPUC64::getMem(uint16_t addr) {
       if (ciaidx == 0x00) {
         if (joystickmode == 2) {
           // real joystick
-          uint8_t joyval = joystick.getValue(true, joystickemulmode);
-          if (joystickemulmode != 2) {
-            joyval |= cia1.ciareg[0x00] & 0x80;
-          }
-          return joyval;
+          return joystick.getValue(true, cia1.ciareg[0x00], cia1.ciareg[0x02]);
         } else if (kbjoystickmode == 2) {
           // keyboard joystick
           return blekb->getKBJoyValue(true) | (cia1.ciareg[0x00] & 0x80);
@@ -109,7 +105,7 @@ uint8_t CPUC64::getMem(uint16_t addr) {
           uint8_t pressedkey = blekb->decode(cia1.ciareg[0x00]);
           if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
-            return joystick.getValue(false, 0);
+            return joystick.getValue(false, 0, 0);
           }
           return pressedkey;
         } else if (kbjoystickmode == 1) {
@@ -285,20 +281,10 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
         if (val & 0x10) {
           cia1.timerA = (cia1.latchdc05 << 8) + cia1.latchdc04;
         }
-        if (val & 0x08) {
-          cia1.reloadA = false;
-        } else {
-          cia1.reloadA = true;
-        }
       } else if (ciaidx == 0x0f) {
         cia1.ciareg[ciaidx] = val;
         if (val & 0x10) {
           cia1.timerB = (cia1.latchdc07 << 8) + cia1.latchdc06;
-        }
-        if (val & 0x08) {
-          cia1.reloadB = false;
-        } else {
-          cia1.reloadB = true;
         }
       } else {
         cia1.ciareg[ciaidx] = val;
@@ -353,20 +339,10 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
         if (val & 0x10) {
           cia2.timerA = (cia2.latchdc05 << 8) + cia2.latchdc04;
         }
-        if (val & 0x08) {
-          cia2.reloadA = false;
-        } else {
-          cia2.reloadA = true;
-        }
       } else if (ciaidx == 0x0f) {
         cia2.ciareg[ciaidx] = val;
         if (val & 0x10) {
           cia2.timerB = (cia2.latchdc07 << 8) + cia2.latchdc06;
-        }
-        if (val & 0x08) {
-          cia2.reloadB = false;
-        } else {
-          cia2.reloadB = true;
         }
       } else {
         cia2.ciareg[ciaidx] = val;
@@ -386,7 +362,7 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
 
 void CPUC64::cmd6502illegal() {
   cpuhalted = true;
-  ESP_LOGI(TAG, "illegal code, cpu halted, pc = %x", pc - 1);
+  ESP_LOGE(TAG, "illegal code, cpu halted, pc = %x", pc - 1);
 }
 
 /*
@@ -457,6 +433,10 @@ void CPUC64::run() {
           setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
         }
       }
+      if (restorenmi) {
+        restorenmi = false;
+        setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+      }
       // throttle 6502 CPU
       measuredcycles.fetch_add(numofcycles, std::memory_order_release);
       uint16_t adjustcyclestmp = adjustcycles.load(std::memory_order_acquire);
@@ -471,6 +451,7 @@ void CPUC64::run() {
 }
 
 void CPUC64::initMemAndRegs() {
+  ESP_LOGI(TAG, "CPUC64::initMemAndRegs");
   setMem(0, 0x2f);
   setMem(1, 0x37);
   sp = 0xFF;
@@ -482,6 +463,7 @@ void CPUC64::initMemAndRegs() {
 }
 
 void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb) {
+  ESP_LOGI(TAG, "CPUC64::init");
   this->ram = ram;
   this->charrom = charrom;
   this->vic = vic;
@@ -492,10 +474,9 @@ void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb) {
   kbjoystickmode = 0;
   refreshframecolor = true;
   deactivatecia2 = false;
-  joystickemulmode = 0;
+  restorenmi = false;
   numofcycles = 0;
   numofcyclespersecond = 0;
-  adjustcycles = 0;
   try {
     joystick.init();
   } catch (const JoystickInitializationException &e) {
@@ -556,4 +537,8 @@ void CPUC64::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
   sp = tsp;
   sr = tsr;
   pc = tpc;
+}
+
+void CPUC64::setKeycodes(uint8_t keycode1, uint8_t keycode2) {
+  blekb->setKbcodes(keycode1, keycode2);
 }

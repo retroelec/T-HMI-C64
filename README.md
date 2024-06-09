@@ -3,22 +3,22 @@
 C64 emulator for the development board Lilygo T-HMI equipped with an ESP32-S3 chip, a 2.8 inch touch display LCD screen (ST7789V driver) and a SD card slot.
 The keyboard for the emulator is simulated by an Android app, communication between the app and the emulator is realized using BLE (Bluetooth Low Energy).
 
-<img src="doc/donkey_kong.png" alt="class diagram" width="600"/>
+<img src="doc/donkey_kong.png" alt="class diagram" width="800"/>
 
 ## Hardware
 
 From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
 
-<img src="doc/T-HMI.jpg" alt="T-HMI" width="600"/>
+<img src="doc/T-HMI.jpg" alt="T-HMI" width="800"/>
 
 ### ESP32-S3
 
 The ESP32-S3 is dual core containing a Protocol CPU (known as CPU 0, core 0 or PRO_CPU) and an Application CPU (known as CPU 1, core 1 or APP_CPU).
 The two cores are identical in practice and share the same memory.
-The tasks responsible for handling wireless networking (Wi-Fi or Bluetooth) are pinned to CPU 0 by default
+The tasks responsible for handling wireless networking (Wi-Fi or Bluetooth) are pinned to core 0 by default
 (see [Espressif - Task Priorities](https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-guides/performance/speed.html)).
 
-Core 0 is used to copy the graphic bitmap to LCD.
+For this project core 0 is used to copy the graphic bitmap to LCD.
 Emulation of the CPU and the custom chips (VIC and CIAs) are done on core 1.
 
 ### Display
@@ -35,7 +35,7 @@ It has an analog 2-axis thumb joystick and several buttons.
 As there are several games which use the space bar as a second fire button (e.g. Commando), another button of the Iduino joystick
 can be used to simulate the pressing of the space bar.
 
-<img src="doc/joystick.png" alt="joystick" width="400"/>
+<img src="doc/joystick.png" alt="joystick" width="800"/>
 
 Connections:
 
@@ -60,18 +60,29 @@ you may have to adapt the following constants in src/Config.h:
 
 ### Files
 
+- build/*.bin : Binary files of the C64 emulator to be uploaded to the T-HMI
+- THMIC64KB/thmic64kb.apk : Android APK file to be uploaded to your Android smartphone
 - T-HMI-C64.ino : Arduino .ino file of the C64 emulator, use in the Arduino IDE to upload the emulator to the T-HMI
 - src/* : C64 emulator source code
-- THMIC64KB/thmic64kb.apk : Android APK file to be uploaded to your Android smartphone
 - THMIC64KB/app/src/ : source code of Android app
 - Makefile : used to install development environment and to compile + upload code
 
-### Installation C64 Emulator
+### Install C64 Emulator
 
-You have two possibilities to install the emulator on the Lilygo T-HMI development board: Using the Makefile with arduino-cli or using the Arduino IDE.
-Using the Makefile with arduino-cli is an automated process and is therefore usually preferable.
+I use arduino-cli to upload the provided binary files to the development board:
 
-#### Using Makefile with arduino-cli
+- Download arduino-cli for your platform (download section from https://arduino.github.io/arduino-cli/0.35/installation/),
+  unpack the binary and place it in a directory included in the search path of executables (e.g. /usr/local/bin on a linux system).
+- You may have to install python3 and python3-serial if not already installed. On my linux system I had to install python3-serial:  
+  sudo apt install python3-serial
+- You may have to install esptool to flash the microcontroller if not already installed:  
+  pip install esptool
+- Execute arduino-cli with the correct parameters (you may have to replace "/dev/ttyACM0" with the name of the serial port on your system):  
+  arduino-cli upload -p /dev/ttyACM0 --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,LoopCore=0,DebugLevel=info -i build/T-HMI-C64.ino.bin
+
+If you want to install the development environment, you can use the provided Makefile (which itself uses arduino-cli) or you can use the Arduino IDE.
+
+#### Install development environment using Makefile (*not* necessary to run the emulator)
 
 - Download arduino-cli for your platform (download section from https://arduino.github.io/arduino-cli/0.35/installation/),
   unpack the binary and place it in a directory included in the search path of executables (e.g. /usr/local/bin on a linux system).
@@ -80,8 +91,10 @@ Using the Makefile with arduino-cli is an automated process and is therefore usu
   make install
 - You may have to install python3 and python3-serial if not already installed. On my linux system I had to install python3-serial:  
   sudo apt install python3-serial
+- You may have to install the esptool to flash your microcontroller if not already installed:  
+  pip install esptool
 - You may have to adapt the file Makefile and change the name of the serial port (adapt variable PORT).
-- On a linux system you may have to add group dialout to your serial port to be able to upload code as a normal user:  
+- On a linux system you may have to add the group dialout to your user to be able to upload code as a normal user:  
   sudo usermod -a -G dialout your-username  
   (You have to logout and login again to get the group get active.)
 - Compile code:  
@@ -89,7 +102,7 @@ Using the Makefile with arduino-cli is an automated process and is therefore usu
 - Upload code:  
   make upload
 
-#### Using Arduino IDE
+#### Install development environment using Arduino IDE (*not* necessary to run the emulator)
 
 From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
 In Arduino Preferences, on the Settings tab, enter the [Espressif Arduino ESP32 Package](https://espressif.github.io/arduino-esp32/package_esp32_index.json)
@@ -97,7 +110,7 @@ URL in the Additional boards manager URLs input box.
 Click OK and the software will install.
 Search for ESP32 in Tools → Board Manager and install ESP32-Arduino SDK (V 2.0.5 or above and below V3.0).
 
-I used the following settings in the Tools menu of the Arduino IDE 2.3.2:
+Use the following settings in the Tools menu of the Arduino IDE 2.3.2:
 
 | Setting                              | Value                             |
 |--------------------------------------|-----------------------------------|
@@ -130,24 +143,22 @@ and choose menu Sketch - Upload or press ctrl-u.
 
 ### Install Android App
 
-I wrote a simple Android app which provides a C64 keyboard for the emulator.
+I wrote an Android app which provides a C64 keyboard for the emulator.
 
-<img src="doc/THMIC64KB.png" alt="THMIC64KB" width="600"/>
+<img src="doc/THMIC64KB.png" alt="THMIC64KB" width="1000"/>
 
-You may follow these steps to install the app on your Android device:
+However, this app is not available in the Google Play Store - you have to download the APK file
+and install it "manually".
+You may follow these steps to install the app on your Android device (there may be slight variations depending on your smartphone).
 
-1. Download the app directly on your Android device: Click [here](https://github.com/retroelec/T-HMI-C64/blob/main/THMIC64KB/thmic64kb.apk) to download the APK file of the app.
-2. Allow installation from unknown sources:
+1. Allow installation of APK files from unknown sources:
    - Go to "Settings" on your Android device.
-   - Navigate to "Security" or "Privacy".
-   - Enable "Unknown sources" or "Install unknown apps". This allows you to install apps from sources other than the Google Play Store.
-3. Install the App:
-   - Once the APK file is downloaded, open the file manager on your device.
-   - Navigate to the folder where the APK file is saved.
-   - Tap on the APK file to start the installation process.
-   - Follow the on-screen instructions to complete the installation.
-
-Alternatively you can also install the app e.g. using Airdroid or using the Android IDE.
+   - Navigate to "Security and Privacy".
+   - Navigate to "Additional Security Settings".
+   - Navigate to "Install Unknown Apps". A list of installed apps appears. Allow Chrome to install unknown aps.
+2. Download the APK file to your Android device: Click [here](https://github.com/retroelec/T-HMI-C64/blob/main/THMIC64KB/thmic64kb.apk)
+3. After the app has been downloaded, a message appears which allows you to open the file.
+   Click on open and follow the on-screen instructions to complete the installation.
 
 ## Usage
 
@@ -155,11 +166,17 @@ Alternatively you can also install the app e.g. using Airdroid or using the Andr
 
 The emulator starts a BLE (Bluetooth Low Energy) server to receive keystrokes from the Android client.
 
-Once the app is installed and launched, you must accept the requested permissions
+Once the app is installed and launched, you must accept the requested permissions once
 (access to the precise location (*not* coarse location), permission to search for BLE devices).
 If you start the emulator (i.e. power on the T-HMI) before starting the app, the app will automatically connect to the BLE server.
 Otherwise you can move the "BLE connection" switch to the right to connect to the BLE server. You also have to do this manually
-after reseting the development board.
+after "hardware reseting" the development board.
+
+As it is not possible to press two keys together on the Android keyboard, the keys Shift, Ctrl and Commodore are special keys
+which usually are pressed first, followed by another key to simulate the corresponding key combination.
+If it is necessary to send the raw key code of these special keys (e.g. some pinball games use the shift key), you have to
+set the corresponding switch in the Android app (DIV screen).
+The key combination Run/Stop + Restore has been replaced by first pressing the Commodore key and then pressing the Restore key.
 
 Besides the normal C64 keys this virtual keyboard also provides red extra buttons to send "external commands".
 Actually the LOAD, DIV and several JOYSTICK buttons are available:
@@ -171,12 +188,10 @@ Actually the LOAD, DIV and several JOYSTICK buttons are available:
 - KBJOYSTICK 1: "virtual joystick" can be used as a joystick in port 1
 - KBJOYSTICK 2: "virtual joystick" can be used as a joystick in port 2
 
-<img src="doc/THMIC64KB_VirtJoystick.png" alt="Virtual Joystick" width="600"/>
+<img src="doc/THMIC64KB_VirtJoystick.png" alt="Virtual Joystick" width="800"/>
 
 The virtual joystick has some drawbacks in terms of responsiveness.
 To play games, a hardware joystick is recommended.
-
-Up to now the following keys are not implemented: Commodore key, CTRL key, RESTORE key
 
 ### Load and start a game
 
@@ -190,6 +205,8 @@ To do this, you first type in the name of the game so it shows up on the C64 tex
 You then press the LOAD button on your Android phone (cursor must be on the same line and behind the game title).
 If the file is found the text "LOADED" appears on screen, otherwise the text "FILE NOT FOUND" appears.
 Afterwards, as usual, you can start the game by typing "RUN" followed by pressing the button RETURN.
+
+<img src="doc/loadprg.gif" alt="class diagram" width="800"/>
 
 ## Software
 
@@ -205,6 +222,8 @@ Keyboard inputs are sent to the ESP32 via BLE. Three bytes must be sent for each
 - Value for the $DC01 register
 - Control code:
   - Bit 0 is set when a shift key is pressed
+  - Bit 1 is set when the ctrl key is pressed
+  - Bit 2 is set when the commodore key is pressed
   - Bit 7 is set when an "external command" is sent
 
 ### Emulation status
@@ -221,8 +240,7 @@ All hardware ports not explicitly mentioned including their corresponding regist
 - some VIC registers are only partly implemented (yet): $d011 (bit 3+4)
 - some CIA registers are not implemented (yet): $d[c|d]02, $d[c|d]03, $d[c|d]08, $d[c|d]09, $d[c|d]0a, $d[c|d]0b,
 - some CIA registers are only partly implemented (yet): $dc0d (bit 2), $dc0e (bit 7), $dc0f (bit 7)
-- not all "illegal" opcodes of the 6502 CPU are implemented yet
-- Android app: implement Commodore key, CTRL key, RESTORE key
+- not all "illegal" opcodes of the 6502 CPU are implemented (yet)
 - some games have graphic errors
 - some games are not working at all
 
@@ -260,11 +278,11 @@ Games that are playable:
 - Hero
 - Burger time 97
 - Outrun (small graphic errors in the middle of screen)
+- Q*bert
 
 Games not working:
 
-- terra cresta (cannot start game)
-- q*bert (crashing after start)
-- burger time (crashing)
-- arkanoid (crashing)
+- Terra cresta (loops endless)
+- Burger time (crashing)
+- Arkanoid (loops endless)
 

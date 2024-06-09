@@ -37,7 +37,7 @@ void Joystick::init() {
   }
 }
 
-uint8_t Joystick::getValue(bool port2, uint8_t joystickemulmode) {
+uint8_t Joystick::getValue(bool port2, uint8_t dc00, uint8_t dc02) {
   // assume return value of adc2_get_raw is ESP_OK
   int valueX;
   adc2_get_raw(Config::ADC_JOYSTICK_X, ADC_WIDTH_12Bit, &valueX);
@@ -47,7 +47,7 @@ uint8_t Joystick::getValue(bool port2, uint8_t joystickemulmode) {
   uint8_t valueFire = (GPIO.in >> Config::JOYSTICK_FIRE_PIN) & 0x01;
   // C64 register value
   uint8_t value = 0xff;
-  if (port2 && (joystickemulmode != 1)) {
+  if (port2 && ((dc02 & 0x7f) == 0x7f)) {
     value = 0x7f;
   }
   if (valueX < LEFT_THRESHOLD) {
@@ -63,7 +63,7 @@ uint8_t Joystick::getValue(bool port2, uint8_t joystickemulmode) {
   if (valueFire == 0) {
     value &= ~(1 << C64JOYFIRE);
   }
-  return value;
+  return value | (dc00 & 0x80);
 }
 
 bool Joystick::getFire2() {
