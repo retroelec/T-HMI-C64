@@ -53,6 +53,8 @@ public:
   CIA cia1;
   CIA cia2;
 
+  CPUC64() : cia1(true), cia2(false) {}
+
   // public only for logging / debugging
   uint8_t getA();
   uint8_t getX();
@@ -65,11 +67,12 @@ public:
   std::atomic<uint16_t> adjustcycles;
   std::atomic<uint16_t> measuredcycles;
 
+  std::atomic<bool> debug;
+
   // set by class ExternalCmds
   uint8_t joystickmode;
   uint8_t kbjoystickmode;
   bool refreshframecolor;
-  bool deactivatecia2;
 
   bool restorenmi;
 

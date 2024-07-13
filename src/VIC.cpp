@@ -283,7 +283,6 @@ void VIC::drawSpriteDataSC(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                            uint8_t *data, uint8_t color) {
   uint16_t tftcolor = tftColorFromC64ColorArr[color];
   uint16_t idx = xpos + ypos * 320;
-  uint16_t bgcol = tftColorFromC64ColorArr[vicreg[0x21] & 15];
   for (uint8_t x = 0; x < 3; x++) {
     uint8_t d = *data++;
     uint8_t bitval = 128;
@@ -296,11 +295,17 @@ void VIC::drawSpriteDataSC(uint8_t bitnr, int16_t xpos, uint8_t ypos,
         return;
       }
       if (d & bitval) {
+        uint8_t bgspriteprio = vicreg[0x1b] & bitnr;
         if (spritedatacoll[xpos]) {
           // sprite - data collision
           vicreg[0x1f] |= bitnr;
         }
-        bitmap[idx++] = tftcolor;
+        if (bgspriteprio && spritedatacoll[xpos]) {
+          // background prio
+          idx++;
+        } else {
+          bitmap[idx++] = tftcolor;
+        }
         uint8_t sprcoll = spritespritecoll[xpos];
         if (sprcoll != 0) {
           // sprite - sprite collision
@@ -320,25 +325,35 @@ void VIC::drawSpriteDataSCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                              uint8_t *data, uint8_t color) {
   uint16_t tftcolor = tftColorFromC64ColorArr[color];
   uint16_t idx = xpos + ypos * 320;
-  uint16_t bgcol = tftColorFromC64ColorArr[vicreg[0x21] & 15];
   for (uint8_t x = 0; x < 3; x++) {
     uint8_t d = *data++;
     uint8_t bitval = 128;
     for (uint8_t i = 0; i < 8; i++) {
       if (xpos < 0) {
         idx += 2;
-        xpos++;
+        xpos += 2;
         continue;
       } else if (xpos >= 320) {
         return;
       }
       if (d & bitval) {
+        uint8_t bgspriteprio = vicreg[0x1b] & bitnr;
         if (spritedatacoll[xpos]) {
           // sprite - data collision
           vicreg[0x1f] |= bitnr;
         }
-        bitmap[idx++] = tftcolor;
-        bitmap[idx++] = tftcolor;
+        if (bgspriteprio && spritedatacoll[xpos]) {
+          // background prio
+          idx++;
+        } else {
+          bitmap[idx++] = tftcolor;
+        }
+        if (bgspriteprio && spritedatacoll[xpos + 1]) {
+          // background prio
+          idx++;
+        } else {
+          bitmap[idx++] = tftcolor;
+        }
         uint8_t sprcoll = spritespritecoll[xpos];
         if (sprcoll != 0) {
           // sprite - sprite collision
@@ -347,7 +362,7 @@ void VIC::drawSpriteDataSCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,
         spritespritecoll[xpos++] = sprcoll | bitnr;
       } else {
         idx += 2;
-        xpos++;
+        xpos += 2;
       }
       bitval >>= 1;
     }
@@ -355,8 +370,7 @@ void VIC::drawSpriteDataSCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,
 }
 
 void VIC::drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, int16_t &xpos,
-                                uint16_t bgcol, uint8_t bitnr,
-                                uint16_t *tftcolor) {
+                                uint8_t bitnr, uint16_t *tftcolor) {
   if (xpos < 0) {
     idx += 2;
     xpos += 2;
@@ -365,13 +379,23 @@ void VIC::drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, int16_t &xpos,
     return;
   }
   if (idxc) {
-    if ((spritedatacoll[xpos] != bgcol) ||
-        (spritedatacoll[xpos + 1] != bgcol)) {
+    uint8_t bgspriteprio = vicreg[0x1b] & bitnr;
+    if (spritedatacoll[xpos] || spritedatacoll[xpos + 1]) {
       // sprite - data collision
       vicreg[0x1f] |= bitnr;
     }
-    bitmap[idx++] = tftcolor[idxc];
-    bitmap[idx++] = tftcolor[idxc];
+    if (bgspriteprio && spritedatacoll[xpos]) {
+      // background prio
+      idx++;
+    } else {
+      bitmap[idx++] = tftcolor[idxc];
+    }
+    if (bgspriteprio && spritedatacoll[xpos + 1]) {
+      // background prio
+      idx++;
+    } else {
+      bitmap[idx++] = tftcolor[idxc];
+    }
     uint8_t bitnrcollxpos0 = spritespritecoll[xpos];
     uint8_t bitnrcollxpos1 = spritespritecoll[xpos + 1];
     if (bitnrcollxpos0 != 0) {
@@ -397,17 +421,16 @@ void VIC::drawSpriteDataMC(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                           tftColorFromC64ColorArr[color10],
                           tftColorFromC64ColorArr[color11]};
   uint16_t idx = xpos + ypos * 320;
-  uint16_t bgcol = tftColorFromC64ColorArr[vicreg[0x21] & 15];
   for (uint8_t x = 0; x < 3; x++) {
     uint8_t d = *data++;
     uint8_t idxc = (d & 192) >> 6;
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
     idxc = (d & 48) >> 4;
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
     idxc = (d & 12) >> 2;
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
     idxc = (d & 3);
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
   }
 }
 
@@ -418,25 +441,24 @@ void VIC::drawSpriteDataMCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                           tftColorFromC64ColorArr[color10],
                           tftColorFromC64ColorArr[color11]};
   uint16_t idx = xpos + ypos * 320;
-  uint16_t bgcol = tftColorFromC64ColorArr[vicreg[0x21] & 15];
   for (uint8_t x = 0; x < 3; x++) {
     uint8_t d = *data++;
     uint8_t idxc = (d & 192) >> 6;
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
     xpos -= 2;
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
     idxc = (d & 48) >> 4;
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
     xpos -= 2;
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
     idxc = (d & 12) >> 2;
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
     xpos -= 2;
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
     idxc = (d & 3);
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
     xpos -= 2;
-    drawSpriteDataMC2Bits(idxc, idx, xpos, bgcol, bitnr, tftcolor);
+    drawSpriteDataMC2Bits(idxc, idx, xpos, bitnr, tftcolor);
   }
 }
 
@@ -571,7 +593,7 @@ uint8_t VIC::nextRasterline() {
     }
   }
   // badline?
-  if (((vicreg[0x11] & 3) == (vicregd012 & 3)) && (vicregd012 >= 0x30) &&
+  if (((vicreg[0x11] & 7) == (vicregd012 & 7)) && (vicregd012 >= 0x30) &&
       (vicregd012 <= 0xf7)) {
     return 40;
   }

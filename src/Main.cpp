@@ -39,6 +39,7 @@ uint8_t throttlingCnt = 0;
 uint32_t numofburnedcyclespersecond = 0;
 
 hw_timer_t *interruptProfiling = NULL;
+hw_timer_t *interruptTOD = NULL;
 hw_timer_t *interruptSystem = NULL;
 TaskHandle_t cpuTask;
 
@@ -51,6 +52,86 @@ void IRAM_ATTR interruptProfilingFunc() {
            numofburnedcyclespersecond);
   cpu.numofcyclespersecond = 0;
   numofburnedcyclespersecond = 0;
+}
+
+bool updateTOD(CIA &cia) {
+  uint8_t dc08 = cia.latchrundc08.load(std::memory_order_acquire);
+  dc08++;
+  if (dc08 > 9) {
+    dc08 = 0;
+    uint8_t dc09 = cia.latchrundc09.load(std::memory_order_acquire);
+    uint8_t dc09one = dc09 & 15;
+    uint8_t dc09ten = dc09 >> 4;
+    dc09one++;
+    if (dc09one > 9) {
+      dc09one = 0;
+      dc09ten++;
+      if (dc09ten > 5) {
+        dc09ten = 0;
+        uint8_t dc0a = cia.latchrundc0a.load(std::memory_order_acquire);
+        uint8_t dc0aone = dc0a & 15;
+        uint8_t dc0aten = dc0a >> 4;
+        dc0aone++;
+        if (dc0aone > 9) {
+          dc0aone = 0;
+          dc0aten++;
+          if (dc0aten > 5) {
+            dc0aten = 0;
+            uint8_t dc0b = cia.latchrundc0b.load(std::memory_order_acquire);
+            uint8_t dc0bone = dc0b & 15;
+            uint8_t dc0bten = dc0b >> 4;
+            bool pm = dc0b & 128;
+            dc0bone++;
+            if (((dc0bten == 0) && (dc0bone > 9)) ||
+                (dc0bten && (dc0bone > 1))) {
+              dc0bone = 0;
+              dc0bten++;
+              if (dc0bten > 1) {
+                dc0bten = 0;
+                pm = !pm;
+              }
+            }
+            cia.latchrundc0b.store(dc0bone | (dc0bten << 4) | (pm ? 127 : 0),
+                                   std::memory_order_release);
+          }
+        }
+        cia.latchrundc0a.store(dc0aone | (dc0aten << 4),
+                               std::memory_order_release);
+      }
+    }
+    cia.latchrundc09.store(dc09one | (dc09ten << 4), std::memory_order_release);
+  }
+  cia.latchrundc08.store(dc08, std::memory_order_release);
+  uint8_t alarmdc08 = cia.latchalarmdc08.load(std::memory_order_acquire);
+  if (dc08 == alarmdc08) {
+    uint8_t dc09 = cia.latchrundc09.load(std::memory_order_acquire);
+    uint8_t alarmdc09 = cia.latchalarmdc09.load(std::memory_order_acquire);
+    if (dc09 == alarmdc09) {
+      uint8_t dc0a = cia.latchrundc0a.load(std::memory_order_acquire);
+      uint8_t alarmdc0a = cia.latchalarmdc0a.load(std::memory_order_acquire);
+      if (dc0a == alarmdc0a) {
+        uint8_t dc0b = cia.latchrundc0b.load(std::memory_order_acquire);
+        uint8_t alarmdc0b = cia.latchalarmdc0b.load(std::memory_order_acquire);
+        if (dc0b == alarmdc0b) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+void IRAM_ATTR interruptTODFunc() {
+  if (cpu.cia1.isTODRunning.load(std::memory_order_acquire)) {
+    if (updateTOD(cpu.cia1)) {
+      cpu.cia1.isAlarm.store(true, std::memory_order_release);
+    }
+  }
+  if (cpu.cia2.isTODRunning.load(std::memory_order_acquire)) {
+    if (updateTOD(cpu.cia2)) {
+      cpu.cia2.isAlarm.store(true, std::memory_order_release);
+    }
+  }
 }
 
 void IRAM_ATTR interruptSystemFunc() {
@@ -79,6 +160,13 @@ void IRAM_ATTR interruptSystemFunc() {
 
 void cpuCode(void *parameter) {
   ESP_LOGI(TAG, "cpuTask running on core %d", xPortGetCoreID());
+
+  // interrupt each 100 ms to increment CIA real time clock (TOD)
+  interruptTOD = timerBegin(2, 80, true);
+  timerAttachInterrupt(interruptTOD, &interruptTODFunc, true);
+  timerAlarmWrite(interruptTOD, 100000, true);
+  timerAlarmEnable(interruptTOD);
+
   cpu.run();
   // cpu runs forever -> no vTaskDelete(NULL);
 }
@@ -116,7 +204,7 @@ void Main::setup() {
 
   // profiling: interrupt each second
   /*
-  interruptProfiling = timerBegin(2, 80, true);
+  interruptProfiling = timerBegin(3, 80, true);
   timerAttachInterrupt(interruptProfiling, &interruptProfilingFunc, true);
   timerAlarmWrite(interruptProfiling, 1000000, true);
   timerAlarmEnable(interruptProfiling);

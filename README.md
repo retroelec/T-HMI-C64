@@ -196,12 +196,12 @@ To play games, a hardware joystick is recommended.
 ### Load and start a game
 
 You first have to copy C64 games in prg format (only supported format!) to an SD card
-(game names must be in lower case letters, max. 16 characters, no spaces in file names allowed).
+(game names must be in lower case letters, max. 16 characters, no spaces in file names allowed, extension must be ".prg", e.g. dkong.prg).
 You have to insert the SD card before you power on the T-HMI development board.
 
 As there is no C64 tape/disk drive emulation available up to now, the file must be loaded
 into memory using an "external command".
-To do this, you first type in the name of the game so it shows up on the C64 text screen.
+To do this, you first type in the name of the game (without extension ".prg"!) so it shows up on the C64 text screen (e.g. dkong).
 You then press the LOAD button on your Android phone (cursor must be on the same line and behind the game title).
 If the file is found the text "LOADED" appears on screen, otherwise the text "FILE NOT FOUND" appears.
 Afterwards, as usual, you can start the game by typing "RUN" followed by pressing the button RETURN.
@@ -232,15 +232,12 @@ First of all: This is a hobby project :)
 
 All hardware ports not explicitly mentioned including their corresponding registers are not emulated (e.g. user port and serial port).
 
-"Software stuff" not emulated resp. poorly emulated resp. things to do resp. known bugs (list probably not conclusive):
+"Software stuff" not emulated resp. known bugs (list probably not conclusive):
 
 - no SID emulation (and no plans to do this)
 - no tape/disk drive emulation
-- some VIC registers are not implemented (yet): $d01b
-- some VIC registers are only partly implemented (yet): $d011 (bit 3+4)
-- some CIA registers are not implemented (yet): $d[c|d]02, $d[c|d]03, $d[c|d]08, $d[c|d]09, $d[c|d]0a, $d[c|d]0b,
-- some CIA registers are only partly implemented (yet): $dc0d (bit 2), $dc0e (bit 7), $dc0f (bit 7)
-- not all "illegal" opcodes of the 6502 CPU are implemented (yet)
+- VIC registers $d011 is only partly implemented yet (todo: bit 3+4)
+- not all "illegal" opcodes of the 6502 CPU are implemented yet
 - some games have graphic errors
 - some games are not working at all
 
@@ -262,7 +259,7 @@ Games that are playable:
 - Bagitman
 - Krakout
 - Miner 2049er
-- Dig dug (background is mildly flickering)
+- Dig dug
 - Quartet
 - International soccer
 - Choplifter
@@ -282,7 +279,7 @@ Games that are playable:
 
 Games not working:
 
-- Terra cresta (loops endless)
+- Terra cresta (endless loop)
 - Burger time (crashing)
-- Arkanoid (loops endless)
+- Arkanoid (endless loop)
 

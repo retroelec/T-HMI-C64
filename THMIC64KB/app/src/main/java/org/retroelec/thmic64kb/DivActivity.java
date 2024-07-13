@@ -9,8 +9,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class DivActivity extends AppCompatActivity implements SettingsObserver {
     private Switch toggleRefreshframecolorSwitch;
-    private Switch toggleCIA2Switch;
     private Switch toggleSendRawKeyCodes;
+    private Switch toggleDebug;
     private Settings settings;
 
     private void sendCmd(byte[] data) {
@@ -25,8 +25,8 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver {
     public void updateSettings() {
         runOnUiThread(() -> {
             toggleRefreshframecolorSwitch.setChecked(settings.isRefreshframecolor());
-            toggleCIA2Switch.setChecked(!settings.isDeactivatecia2());
             toggleSendRawKeyCodes.setChecked(settings.isSendRawKeyCodes());
+            toggleDebug.setChecked(settings.isDebug());
         });
     }
 
@@ -55,11 +55,11 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver {
         toggleRefreshframecolorSwitch = findViewById(R.id.toggleRefreshframecolor);
         toggleRefreshframecolorSwitch.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHFRAMECOLORREFRESH, (byte) 0x00, (byte) 0x80}));
 
-        toggleCIA2Switch = findViewById(R.id.toggleCIA2);
-        toggleCIA2Switch.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHCIA2, (byte) 0x00, (byte) 0x80}));
-
         toggleSendRawKeyCodes = findViewById(R.id.toggleSendRawKeyCodes);
         toggleSendRawKeyCodes.setOnClickListener(v -> sendCmd(new byte[]{Config.SENDRAWKEYS, (byte) 0x00, (byte) 0x80}));
+
+        toggleDebug = findViewById(R.id.toggleDebug);
+        toggleDebug.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHDEBUG, (byte) 0x00, (byte) 0x80}));
 
         final Button keystatus = findViewById(R.id.keystatus);
         keystatus.setOnClickListener(view -> {

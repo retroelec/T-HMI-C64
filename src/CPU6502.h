@@ -429,6 +429,86 @@ private:
       &CPU6502::cmd6502incAbsoluteX, &CPU6502::cmd6502isbAbsoluteX};
 
 protected:
+  const char *cmdName[256] = {
+      // 0x00
+      "brk", "oraIndirectX", "illegal", "asoIndirectX", "nopZeropage",
+      "oraZeropage", "aslZeropage", "asoZeropage", "php", "oraImmediate",
+      "aslA", "ancImmediate", "skwAbsolute", "oraAbsolute", "aslAbsolute",
+      "asoAbsolute",
+      // 0x10
+      "bpl", "oraIndirectY", "illegal", "asoIndirectY", "nopZeropageX",
+      "oraZeropageX", "aslZeropageX", "asoZeropageX", "clc", "oraAbsoluteY",
+      "nop1a", "asoAbsoluteY", "skwAbsoluteX", "oraAbsoluteX", "aslAbsoluteX",
+      "asoAbsoluteX",
+      // 0x20
+      "jsr", "andIndirectX", "illegal", "illegal", "bitZeropage", "andZeropage",
+      "rolZeropage", "illegal", "plp", "andImmediate", "rolA", "ancImmediate",
+      "bitAbsolute", "andAbsolute", "rolAbsolute", "illegal",
+      // 0x30
+      "bmi", "andIndirectY", "illegal", "illegal", "nopZeropageX",
+      "andZeropageX", "rolZeropageX", "illegal", "sec", "andAbsoluteY", "nop3a",
+      "illegal", "skwAbsoluteX", "andAbsoluteX", "rolAbsoluteX", "illegal",
+      // 0x40
+      "rti", "eorIndirectX", "illegal", "sreIndirectX", "nopZeropage",
+      "eorZeropage", "lsrZeropage", "sreZeropage", "pha", "eorImmediate",
+      "lsrA", "alrImmediate", "jmpAbsolute", "eorAbsolute", "lsrAbsolute",
+      "sreAbsolute",
+      // 0x50
+      "bvc", "eorIndirectY", "illegal", "sreIndirectY", "nopZeropageX",
+      "eorZeropageX", "lsrZeropageX", "sreZeropageX", "cli", "eorAbsoluteY",
+      "nop5a", "sreAbsoluteY", "skwAbsoluteX", "eorAbsoluteX", "lsrAbsoluteX",
+      "sreAbsoluteX",
+      // 0x60
+      "rts", "adcIndirectX", "illegal", "rraIndirectX", "nopZeropage",
+      "adcZeropage", "rorZeropage", "rraZeropage", "pla", "adcImmediate",
+      "rorA", "illegal", "jmpIndirect", "adcAbsolute", "rorAbsolute",
+      "rraAbsolute",
+      // 0x70
+      "bvs", "adcIndirectY", "illegal", "rraIndirectY", "nopZeropageX",
+      "adcZeropageX", "rorZeropageX", "rraZeropageX", "sei", "adcAbsoluteY",
+      "nop7a", "rraAbsoluteY", "skwAbsoluteX", "adcAbsoluteX", "rorAbsoluteX",
+      "rraAbsoluteX",
+      // 0x80
+      "nopImmediate", "staIndirectX", "nopImmediate", "saxIndirectX",
+      "styZeropage", "staZeropage", "stxZeropage", "saxZeropage", "dey",
+      "nopImmediate", "txa", "xaaImmediate", "styAbsolute", "staAbsolute",
+      "stxAbsolute", "saxAbsolute",
+      // 0x90
+      "bcc", "staIndirectY", "illegal", "shaZeropageY", "styZeropageX",
+      "staZeropageX", "stxZeropageY", "saxZeropageY", "tya", "staAbsoluteY",
+      "txs", "illegal", "illegal", "staAbsoluteX", "shxAbsoluteY",
+      "shaAbsoluteY",
+      // 0xa0
+      "ldyImmediate", "ldaIndirectX", "ldxImmediate", "laxIndirectX",
+      "ldyZeropage", "ldaZeropage", "ldxZeropage", "laxZeropage", "tay",
+      "ldaImmediate", "tax", "lxaImmediate", "ldyAbsolute", "ldaAbsolute",
+      "ldxAbsolute", "laxAbsolute",
+      // 0xb0
+      "bcs", "ldaIndirectY", "illegal", "laxIndirectY", "ldyZeropageX",
+      "ldaZeropageX", "ldxZeropageY", "laxZeropageY", "clv", "ldaAbsoluteY",
+      "tsx", "lasAbsolute", "ldyAbsoluteX", "ldaAbsoluteX", "ldxAbsoluteY",
+      "laxAbsoluteY",
+      // 0xc0
+      "cpyImmediate", "cmpIndirectX", "nopImmediate", "dcpIndirectX",
+      "cpyZeropage", "cmpZeropage", "decZeropage", "dcpZeropage", "iny",
+      "cmpImmediate", "dex", "sbxImmediate", "cpyAbsolute", "cmpAbsolute",
+      "decAbsolute", "dcpAbsolute",
+      // 0xd0
+      "bne", "cmpIndirectY", "illegal", "dcpIndirectY", "nopZeropageX",
+      "cmpZeropageX", "decZeropageX", "dcpZeropageX", "cld", "cmpAbsoluteY",
+      "nopda", "dcpAbsoluteY", "skwAbsoluteX", "cmpAbsoluteX", "decAbsoluteX",
+      "dcpAbsoluteX",
+      // 0xe0
+      "cpxImmediate", "sbcIndirectX", "nopImmediate", "isbIndirectX",
+      "cpxZeropage", "sbcZeropage", "incZeropage", "isbZeropage", "inx",
+      "sbcImmediate", "nop", "sbcImmediate", "cpxAbsolute", "sbcAbsolute",
+      "incAbsolute", "isbAbsolute",
+      // 0xf0
+      "beq", "sbcIndirectY", "illegal", "isbIndirectY", "nopZeropageX",
+      "sbcZeropageX", "incZeropageX", "isbZeropageX", "sed", "sbcAbsoluteY",
+      "nopfa", "isbAbsoluteY", "skwAbsoluteX", "sbcAbsoluteX", "incAbsoluteX",
+      "isbAbsoluteX"};
+
   bool cflag;
   bool zflag;
   bool dflag;

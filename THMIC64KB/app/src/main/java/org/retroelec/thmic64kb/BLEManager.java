@@ -91,8 +91,8 @@ public class BLEManager {
                         case 1:
                             settings.setJoymode(receivedData[1]);
                             settings.setRefreshframecolor(receivedData[2] != 0);
-                            settings.setDeactivatecia2(receivedData[3] != 0);
-                            settings.setSendRawKeyCodes(receivedData[4] != 0);
+                            settings.setSendRawKeyCodes(receivedData[3] != 0);
+                            settings.setDebug(receivedData[4] != 0);
                             settings.notifySettingsObserver();
                             break;
                         case 2:

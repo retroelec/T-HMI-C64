@@ -4,8 +4,8 @@ public class Settings {
     private SettingsObserver observer = null;
     byte joymode;
     boolean refreshframecolor;
-    boolean deactivatecia2;
     boolean sendRawKeyCodes;
+    boolean debug;
 
     public void registerSettingsObserver(SettingsObserver observer) {
         this.observer = observer;
@@ -37,19 +37,19 @@ public class Settings {
         this.refreshframecolor = refreshframecolor;
     }
 
-    public boolean isDeactivatecia2() {
-        return deactivatecia2;
-    }
-
-    public void setDeactivatecia2(boolean deactivatecia2) {
-        this.deactivatecia2 = deactivatecia2;
-    }
-
     public boolean isSendRawKeyCodes() {
         return sendRawKeyCodes;
     }
 
     public void setSendRawKeyCodes(boolean sendRawKeyCodes) {
         this.sendRawKeyCodes = sendRawKeyCodes;
+    }
+
+    public boolean isDebug() {
+        return debug;
+    }
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
     }
 }

@@ -17,6 +17,7 @@
 #ifndef CIA_H
 #define CIA_H
 
+#include <atomic>
 #include <cstdint>
 
 // register dc0d:
@@ -28,6 +29,9 @@ class CIA {
 public:
   uint8_t ciareg[0x10];
 
+  bool underflowTimerA;
+  uint8_t serbitnr;
+  uint8_t serbitnrnext;
   uint8_t latchdc04;
   uint8_t latchdc05;
   uint8_t latchdc06;
@@ -36,8 +40,21 @@ public:
   uint16_t timerA;
   uint16_t timerB;
 
-  CIA();
-  void init();
+  std::atomic<bool> isTODRunning;
+  bool isTODFreezed;
+  std::atomic<bool> isAlarm;
+  std::atomic<uint8_t> latchrundc08; // TOD running
+  std::atomic<uint8_t> latchrundc09;
+  std::atomic<uint8_t> latchrundc0a;
+  std::atomic<uint8_t> latchrundc0b;
+  std::atomic<uint8_t> latchalarmdc08; // set alarm
+  std::atomic<uint8_t> latchalarmdc09;
+  std::atomic<uint8_t> latchalarmdc0a;
+  std::atomic<uint8_t> latchalarmdc0b;
+
+  CIA(bool isCIA1);
+  void init(bool isCIA1);
+  bool checkAlarm();
   bool checkTimerA(uint8_t deltaT);
   bool checkTimerB(uint8_t deltaT);
 };

@@ -38,8 +38,8 @@ enum class ExtCmd {
   RESET = 20,
   GETSTATUS = 21,
   SWITCHFRAMECOLORREFRESH = 22,
-  SWITCHCIA2 = 23,
-  SENDRAWKEYS = 24
+  SENDRAWKEYS = 24,
+  SWITCHDEBUG = 25
 };
 
 void ExternalCmds::init(uint8_t *ram, CPUC64 *cpu) {
@@ -52,8 +52,8 @@ void ExternalCmds::setType1Notification() {
   type1notification.type = 1;
   type1notification.joymode = cpu->joystickmode;
   type1notification.refreshframecolor = cpu->refreshframecolor;
-  type1notification.switchonoffcia2 = cpu->deactivatecia2;
   type1notification.sendrawkeycodes = sendrawkeycodes;
+  type1notification.switchdebug = cpu->debug;
 }
 
 void ExternalCmds::setType2Notification() {
@@ -190,8 +190,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     cpu->cpuhalted = true;
     cpu->initMemAndRegs();
     cpu->vic->initVarsAndRegs();
-    cpu->cia1.init();
-    cpu->cia2.init();
+    cpu->cia1.init(true);
+    cpu->cia2.init(false);
     cpu->cpuhalted = false;
     return 0;
   case ExtCmd::JOYSTICKMODE1:
@@ -235,14 +235,15 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     ESP_LOGI(TAG, "refreshframecolor = %x", cpu->refreshframecolor);
     setType1Notification();
     return 1;
-  case ExtCmd::SWITCHCIA2:
-    cpu->deactivatecia2 = !cpu->deactivatecia2;
-    ESP_LOGI(TAG, "deactivatecia2 = %x", cpu->deactivatecia2);
-    setType1Notification();
-    return 1;
   case ExtCmd::SENDRAWKEYS:
     sendrawkeycodes = !sendrawkeycodes;
     ESP_LOGI(TAG, "sendrawkeycodes = %x", sendrawkeycodes);
+    setType1Notification();
+    return 1;
+  case ExtCmd::SWITCHDEBUG:
+    cpu->debug = !cpu->debug;
+    bool debug1 = cpu->debug.load(std::memory_order_acquire);
+    ESP_LOGI(TAG, "debug = %x", debug1);
     setType1Notification();
     return 1;
   }

@@ -28,8 +28,8 @@ struct BLENotificationStruct1 {
   uint8_t type;
   uint8_t joymode;
   uint8_t refreshframecolor;
-  uint8_t switchonoffcia2;
   uint8_t sendrawkeycodes;
+  uint8_t switchdebug;
 };
 
 struct BLENotificationStruct2 {

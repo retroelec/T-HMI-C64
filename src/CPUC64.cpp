@@ -33,6 +33,34 @@ inline uint8_t getCommonCIAReg(CIA &cia, uint8_t ciaidx) {
     return cia.timerB & 0xff;
   } else if (ciaidx == 0x07) {
     return (cia.timerB >> 8) & 0xff;
+  } else if (ciaidx == 0x08) {
+    uint8_t val;
+    if (cia.isTODFreezed) {
+      val = cia.ciareg[ciaidx];
+    } else {
+      val = cia.latchrundc08.load(std::memory_order_acquire);
+    }
+    cia.isTODFreezed = false;
+    return val;
+  } else if (ciaidx == 0x09) {
+    if (cia.isTODFreezed) {
+      return cia.ciareg[ciaidx];
+    } else {
+      return cia.latchrundc09.load(std::memory_order_acquire);
+    }
+  } else if (ciaidx == 0x0a) {
+    if (cia.isTODFreezed) {
+      return cia.ciareg[ciaidx];
+    } else {
+      return cia.latchrundc0a.load(std::memory_order_acquire);
+    }
+  } else if (ciaidx == 0x0b) {
+    cia.isTODFreezed = true;
+    cia.ciareg[0x08] = cia.latchrundc08.load(std::memory_order_acquire);
+    cia.ciareg[0x09] = cia.latchrundc09.load(std::memory_order_acquire);
+    cia.ciareg[0x0a] = cia.latchrundc0a.load(std::memory_order_acquire);
+    cia.ciareg[0x0b] = cia.latchrundc0b.load(std::memory_order_acquire);
+    return cia.ciareg[ciaidx];
   } else if (ciaidx == 0x0d) {
     uint8_t val = cia.latchdc0d;
     cia.latchdc0d = 0;
@@ -215,6 +243,81 @@ void CPUC64::adaptVICBaseAddrs(bool fromcia) {
   }
 }
 
+inline void setCommonCIAReg(CIA &cia, uint8_t ciaidx, uint8_t val) {
+  if (ciaidx == 0x04) {
+    cia.latchdc04 = val;
+  } else if (ciaidx == 0x05) {
+    cia.latchdc05 = val;
+    // timerA stopped? if yes, write timerA
+    if (!(cia.ciareg[0x0e] & 1)) {
+      cia.timerA = (cia.latchdc05 << 8) + cia.latchdc04;
+    }
+  } else if (ciaidx == 0x06) {
+    cia.latchdc06 = val;
+  } else if (ciaidx == 0x07) {
+    cia.latchdc07 = val;
+    // timerB stopped? if yes, write timerB
+    if (!(cia.ciareg[0x0f] & 1)) {
+      cia.timerB = (cia.latchdc07 << 8) + cia.latchdc06;
+    }
+  } else if (ciaidx == 0x08) {
+    if (cia.ciareg[0x0f] & 128) {
+      cia.latchalarmdc08.store(val, std::memory_order_release);
+    } else {
+      cia.ciareg[0x08] = val;
+      cia.latchrundc08.store(val, std::memory_order_release);
+      cia.latchrundc09.store(cia.ciareg[0x09], std::memory_order_release);
+      cia.latchrundc0a.store(cia.ciareg[0x0a], std::memory_order_release);
+      cia.latchrundc0b.store(cia.ciareg[0x0b], std::memory_order_release);
+    }
+    cia.isTODRunning.store(true, std::memory_order_release);
+  } else if (ciaidx == 0x09) {
+    if (cia.ciareg[0x0f] & 128) {
+      cia.latchalarmdc09.store(val, std::memory_order_release);
+    } else {
+      cia.ciareg[0x09] = val;
+    }
+  } else if (ciaidx == 0x0a) {
+    if (cia.ciareg[0x0f] & 128) {
+      cia.latchalarmdc0a.store(val, std::memory_order_release);
+    } else {
+      cia.ciareg[0x0a] = val;
+    }
+  } else if (ciaidx == 0x0b) {
+    cia.isTODRunning.store(false, std::memory_order_release);
+    if (cia.ciareg[0x0f] & 128) {
+      cia.latchalarmdc0b.store(val, std::memory_order_release);
+    } else {
+      cia.ciareg[0x0b] = val;
+    }
+  } else if (ciaidx == 0x0c) {
+    if (cia.serbitnr == 0) {
+      cia.serbitnr = 8;
+    } else {
+      cia.serbitnrnext = 8;
+    }
+    cia.ciareg[ciaidx] = val;
+  } else if (ciaidx == 0x0d) {
+    if (val & 0x80) {
+      cia.ciareg[ciaidx] |= val;
+    } else {
+      cia.ciareg[ciaidx] &= ~val;
+    }
+  } else if (ciaidx == 0x0e) {
+    cia.ciareg[ciaidx] = val;
+    if (val & 0x10) {
+      cia.timerA = (cia.latchdc05 << 8) + cia.latchdc04;
+    }
+  } else if (ciaidx == 0x0f) {
+    cia.ciareg[ciaidx] = val;
+    if (val & 0x10) {
+      cia.timerB = (cia.latchdc07 << 8) + cia.latchdc06;
+    }
+  } else {
+    cia.ciareg[ciaidx] = val;
+  }
+}
+
 void CPUC64::setMem(uint16_t addr, uint8_t val) {
   if (bankDIO && (addr >= 0xd000) && (addr <= 0xdfff)) {
     // ** VIC **
@@ -254,41 +357,12 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
     // ** CIA 1 **
     else if (addr <= 0xdcff) {
       uint8_t ciaidx = (addr - 0xdc00) % 0x10;
-      if (ciaidx == 0x04) {
-        cia1.latchdc04 = val;
-      } else if (ciaidx == 0x05) {
-        cia1.latchdc05 = val;
-        // timerA stopped? if yes, write timerA
-        if (!(cia1.ciareg[0x0e] & 1)) {
-          cia1.timerA = (cia1.latchdc05 << 8) + cia1.latchdc04;
-        }
-      } else if (ciaidx == 0x06) {
-        cia1.latchdc06 = val;
-      } else if (ciaidx == 0x07) {
-        cia1.latchdc07 = val;
-        // timerB stopped? if yes, write timerB
-        if (!(cia1.ciareg[0x0f] & 1)) {
-          cia1.timerB = (cia1.latchdc07 << 8) + cia1.latchdc06;
-        }
-      } else if (ciaidx == 0x0d) {
-        if (val & 0x80) {
-          cia1.ciareg[ciaidx] |= val;
-        } else {
-          cia1.ciareg[ciaidx] &= ~val;
-        }
-      } else if (ciaidx == 0x0e) {
-        cia1.ciareg[ciaidx] = val;
-        if (val & 0x10) {
-          cia1.timerA = (cia1.latchdc05 << 8) + cia1.latchdc04;
-        }
-      } else if (ciaidx == 0x0f) {
-        cia1.ciareg[ciaidx] = val;
-        if (val & 0x10) {
-          cia1.timerB = (cia1.latchdc07 << 8) + cia1.latchdc06;
-        }
-      } else {
-        cia1.ciareg[ciaidx] = val;
+      if (ciaidx == 0x00) {
+        cia1.ciareg[ciaidx] = val & cia1.ciareg[0x02];
+      } else if (ciaidx == 0x01) {
+        cia1.ciareg[ciaidx] = val & cia1.ciareg[0x03];
       }
+      setCommonCIAReg(cia1, ciaidx, val);
     }
     // ** CIA 2 **
     else if (addr <= 0xddff) {
@@ -309,43 +383,13 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
           vic->vicmem = 0x0000;
           break;
         }
-        cia2.ciareg[ciaidx] = val;
+        cia2.ciareg[ciaidx] = 0x94 | bank;
         // adapt VIC base addresses
         adaptVICBaseAddrs(true);
-      } else if (ciaidx == 0x04) {
-        cia2.latchdc04 = val;
-      } else if (ciaidx == 0x05) {
-        cia2.latchdc05 = val;
-        // timerA stopped? if yes, write timerA
-        if (!(cia2.ciareg[0x0e] & 1)) {
-          cia2.timerA = (cia2.latchdc05 << 8) + cia2.latchdc04;
-        }
-      } else if (ciaidx == 0x06) {
-        cia2.latchdc06 = val;
-      } else if (ciaidx == 0x07) {
-        cia2.latchdc07 = val;
-        // timerB stopped? if yes, write timerB
-        if (!(cia2.ciareg[0x0f] & 1)) {
-          cia2.timerB = (cia2.latchdc07 << 8) + cia2.latchdc06;
-        }
-      } else if (ciaidx == 0x0d) {
-        if (val & 0x80) {
-          cia2.ciareg[ciaidx] |= val;
-        } else {
-          cia2.ciareg[ciaidx] &= ~val;
-        }
-      } else if (ciaidx == 0x0e) {
-        cia2.ciareg[ciaidx] = val;
-        if (val & 0x10) {
-          cia2.timerA = (cia2.latchdc05 << 8) + cia2.latchdc04;
-        }
-      } else if (ciaidx == 0x0f) {
-        cia2.ciareg[ciaidx] = val;
-        if (val & 0x10) {
-          cia2.timerB = (cia2.latchdc07 << 8) + cia2.latchdc06;
-        }
+      } else if (ciaidx == 0x01) {
+        cia2.ciareg[ciaidx] = val & cia2.ciareg[0x03];
       } else {
-        cia2.ciareg[ciaidx] = val;
+        setCommonCIAReg(cia2, ciaidx, val);
       }
     }
   }
@@ -387,16 +431,20 @@ uint16_t CPUC64::getPC() { return pc; }
 void CPUC64::run() {
   // pc *must* be set externally!
   cpuhalted = false;
+  debug = false;
   numofcycles = 0;
   uint8_t badlinecycles = 0;
   while (true) {
     if (cpuhalted) {
       continue;
+    } else if (debug) {
+      // debug (use LOGE because LOGI doesn't work here...)
+      ESP_LOGE(TAG, "pc: %2x, cmd: %s, d012: %x", pc, cmdName[getMem(pc)],
+               vic->vicreg[0x12]);
     }
     execute(getMem(pc++));
-    if (numofcycles >=
-        63 - (4 / 2) -
-            badlinecycles) { // 4 = average number of cycles for an instruction
+    // 4 = average number of cycles for an instruction
+    if (numofcycles >= 63 - (4 / 2) - badlinecycles) {
       numofcyclespersecond += numofcycles;
       badlinecycles = vic->nextRasterline();
       // raster line interrupt?
@@ -411,27 +459,29 @@ void CPUC64::run() {
       if ((vic->vicreg[0x19] & 0x80) && (vic->vicreg[0x1a] & 6) && (!iflag)) {
         setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
       }
+      // CIA 1 TOD alarm
+      if (cia1.checkAlarm() && (!iflag)) {
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
+      }
       // CIA 1 Timer A
-      if (cia1.checkTimerA(numofcycles)) {
-        if (!iflag) {
-          setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
-        }
+      if (cia1.checkTimerA(numofcycles) && (!iflag)) {
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
       }
       // CIA 1 Timer B
-      if (cia1.checkTimerB(numofcycles)) {
-        if (!iflag) {
-          setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
-        }
+      if (cia1.checkTimerB(numofcycles) && (!iflag)) {
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
       }
-      if (!deactivatecia2) {
-        // CIA 2 Timer A
-        if (cia2.checkTimerA(numofcycles)) {
-          setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
-        }
-        // CIA 2 Timer B
-        if (cia2.checkTimerB(numofcycles)) {
-          setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
-        }
+      // CIA 2 TOD alarm
+      if (cia2.checkAlarm()) {
+        setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+      }
+      // CIA 2 Timer A
+      if (cia2.checkTimerA(numofcycles)) {
+        setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+      }
+      // CIA 2 Timer B
+      if (cia2.checkTimerB(numofcycles)) {
+        setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
       }
       if (restorenmi) {
         restorenmi = false;
@@ -473,7 +523,6 @@ void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb) {
   joystickmode = 0;
   kbjoystickmode = 0;
   refreshframecolor = true;
-  deactivatecia2 = false;
   restorenmi = false;
   numofcycles = 0;
   numofcyclespersecond = 0;

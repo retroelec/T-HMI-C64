@@ -1,95 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
-    android:background="@color/colorBackground">
+    android:background="@color/colorBackground"
+    android:padding="16dp">
 
     <Switch
         android:id="@+id/toggleRefreshframecolor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Frame color refresh"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
-    <Switch
-        android:id="@+id/toggleCIA2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="CIA2 active"
-        app:layout_constraintTop_toBottomOf="@id/toggleRefreshframecolor"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Switch
         android:id="@+id/toggleSendRawKeyCodes"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="Send raw keycodes"
-        app:layout_constraintTop_toBottomOf="@id/toggleCIA2"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toggleRefreshframecolor" />
+
+    <Switch
+        android:id="@+id/toggleDebug"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Debugging"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toggleSendRawKeyCodes" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/toggleSendRawKeyCodes"
-        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="32dp"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toggleDebug">
 
         <Button
             android:id="@+id/keystatus"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
             android:text="STATUS"
             android:theme="@style/ButtonTheme"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/keymemory"
-            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            android:layout_marginEnd="8dp"/>
+            app:layout_constraintEnd_toStartOf="@id/keymemory"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <Button
             android:id="@+id/keymemory"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
             android:text="MEMORY"
             android:theme="@style/ButtonTheme"
-            app:layout_constraintStart_toEndOf="@id/keystatus"
-            app:layout_constraintEnd_toStartOf="@id/reset"
-            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"/>
+            app:layout_constraintEnd_toStartOf="@id/reset"
+            app:layout_constraintStart_toEndOf="@id/keystatus"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <Button
             android:id="@+id/reset"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:text="RESET"
             android:theme="@style/ButtonTheme"
-            app:layout_constraintStart_toEndOf="@id/keymemory"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            android:layout_marginStart="8dp"/>
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/keymemory"
+            app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <Button
         android:id="@+id/close"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
         android:text="Close"
         android:theme="@style/ButtonTheme"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="32dp"/>
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

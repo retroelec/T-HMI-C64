@@ -76,8 +76,7 @@ private:
   void drawSpriteDataSCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                           uint8_t *data, uint8_t color);
   inline void drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, int16_t &xpos,
-                                    uint16_t bgcol, uint8_t bitnr,
-                                    uint16_t *tftcolor)
+                                    uint8_t bitnr, uint16_t *tftcolor)
       __attribute__((always_inline));
   void drawSpriteDataMC(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                         uint8_t *data, uint8_t color10, uint8_t color01,
