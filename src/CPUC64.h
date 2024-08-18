@@ -44,6 +44,8 @@ private:
 
   std::mutex pcMutex;
 
+  bool nmiAck;
+
   inline void adaptVICBaseAddrs(bool fromcia) __attribute__((always_inline));
   inline void decodeRegister1(uint8_t val) __attribute__((always_inline));
 

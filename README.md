@@ -29,26 +29,26 @@ The display can be rotated to support the resolution of a C64 (320x200).
 
 ### Joystick
 
-I connected an "Iduino joystick shield" to the T-HMI development board.
+I connected an "Arduino joystick shield" to the T-HMI development board.
 The joystick is optional (as there exists also a virtual joystick on the Android device) but recommended.
 It has an analog 2-axis thumb joystick and several buttons.
-As there are several games which use the space bar as a second fire button (e.g. Commando), another button of the Iduino joystick
+As there are several games which use the space bar as a second fire button (e.g. Commando), another button of the Arduino joystick
 can be used to simulate the pressing of the space bar.
 
 <img src="doc/joystick.png" alt="joystick" width="800"/>
 
 Connections:
 
-- connect T-HMI IO16 to iduino Y pin (yellow cable)
-- connect T-HMI IO15 to iduino X pin (white cable)
-- connect T-HMI VDD to iduino V pin (red cable)
-- connect T-HMI GND to iduino G pin (black cable)
-- connect T-HMI IO18 to iduino D pin (for D button, yellow cable)
-- optional: connect T-HMI IO17 to iduino B pin to simulate pressing the space bar (for B button, white cable)
+- connect T-HMI IO16 to Arduino Y pin (yellow cable)
+- connect T-HMI IO15 to Arduino X pin (white cable)
+- connect T-HMI VDD to Arduino V pin (red cable)
+- connect T-HMI GND to Arduino G pin (black cable)
+- connect T-HMI IO18 to Arduino D pin (for D button, yellow cable)
+- optional: connect T-HMI IO17 to Arduino B pin to simulate pressing the space bar (for B button, white cable)
 
-Switch voltage to 3.3V on the iduino module.
+Switch voltage to 3.3V on the Arduino module.
 
-If you do not use an iduino joystick or choose to use other pins on the development board,
+If you do not use an Arduino joystick or choose to use other pins on the development board,
 you may have to adapt the following constants in src/Config.h:
 
 - ADC_JOYSTICK_X
@@ -234,9 +234,10 @@ All hardware ports not explicitly mentioned including their corresponding regist
 
 "Software stuff" not emulated resp. known bugs (list probably not conclusive):
 
-- no SID emulation (and no plans to do this)
-- no tape/disk drive emulation
-- VIC registers $d011 is only partly implemented yet (todo: bit 3+4)
+- no SID emulation (no sound support of development board)
+- timing issues (e.g. no linecrunching possible - ESP32 is too slow)
+- no tape/disk drive emulation (and no plans to do this)
+- VIC yscroll (bit 0-2 of reg. $d011) does not work properly at top and bottom
 - not all "illegal" opcodes of the 6502 CPU are implemented yet
 - some games have graphic errors
 - some games are not working at all
@@ -251,35 +252,46 @@ Games that are playable:
 - Wizard of wor
 - Skramble (from anirog)
 - Galaxy
-- Burnin rubber
-- Lode runner
-- Donkey kong
-- Bubble bobble
-- Castle terror
+- Burnin Rubber
+- Lode Runner
+- Donkey Kong
+- Bubble Bobble
+- Castle Terror
 - Bagitman
 - Krakout
 - Miner 2049er
-- Dig dug
+- Dig Dug
 - Quartet
-- International soccer
+- International Soccer
 - Choplifter
-- Pole position (graphic errors before start of game)
+- Pole Position
+- Pole Position 2
 - Pacman
-- Boulder dash
-- Ghost and gobblins (graphic errors at top and bottom)
-- Great gianas sister
-- Hyper sports
-- Blue max
+- Boulder Dash
+- Ghost and Gobblins (graphic errors at top and bottom)
+- Great Gianas Sister
+- Hyper Sports
+- Blue Max
 - Commando (graphic errors at bottom)
-- Fort apocalypse
+- Fort Apocalypse
 - Hero
-- Burger time 97
+- Burger Time 97
+- Burger Time 2023
 - Outrun (small graphic errors in the middle of screen)
 - Q*bert
+- Space Taxi (onefiled version)
+- Jupiter Lander
+- Dark Caves
+- Blobber
+- Galaxions
+- BC's Quest for Tires
+- Stunt Car Racer
+- Tapper
 
 Games not working:
 
-- Terra cresta (endless loop)
-- Burger time (crashing)
+- Terra Cresta (no proper graphics after start, scrolling realized by linecrunching?)
+- Burger Time (crashing)
 - Arkanoid (endless loop)
+- Westbank (endless loop)
 
