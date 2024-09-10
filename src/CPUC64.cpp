@@ -387,8 +387,6 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
         cia2.ciareg[ciaidx] = 0x94 | bank;
         // adapt VIC base addresses
         adaptVICBaseAddrs(true);
-      } else if (ciaidx == 0x01) {
-        cia2.ciareg[ciaidx] = val & cia2.ciareg[0x03];
       } else if (ciaidx == 0x0d) {
         nmiAck = true;
         setCommonCIAReg(cia2, ciaidx, val);
@@ -436,16 +434,12 @@ void CPUC64::run() {
   // pc *must* be set externally!
   cpuhalted = false;
   debug = false;
+  perf = false;
   numofcycles = 0;
   uint8_t badlinecycles = 0;
   while (true) {
     if (cpuhalted) {
       continue;
-    } else if (debug) {
-      // debug (use LOGE because LOGI doesn't work here...)
-      ESP_LOGE(TAG, "pc: %2x, cmd: %s, a: %x, sr: %x, d012: %x, d011: %x", pc,
-               cmdName[getMem(pc)], a, sr, vic->vicreg[0x12],
-               vic->vicreg[0x11]);
     }
 
     // prepare next rasterline
@@ -460,6 +454,12 @@ void CPUC64::run() {
     // execute CPU cycles
     // (4 = average number of cycles for an instruction)
     while (numofcycles < 63 - (4 / 2) - badlinecycles) {
+      if (debug) {
+        // debug (use LOGE because LOGI doesn't work here...)
+        ESP_LOGE(TAG, "pc: %2x, cmd: %s, a: %x, sr: %x, d012: %x, d011: %x", pc,
+                 cmdName[getMem(pc)], a, sr, vic->vicreg[0x12],
+                 vic->vicreg[0x11]);
+      }
       execute(getMem(pc++));
     }
     numofcyclespersecond += numofcycles;

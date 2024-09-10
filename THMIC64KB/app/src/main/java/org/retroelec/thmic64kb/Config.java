@@ -37,4 +37,5 @@ public class Config {
     public static final byte SWITCHCIA2 = 23;
     public static final byte SENDRAWKEYS = 24;
     public static final byte SWITCHDEBUG = 25;
+    public static final byte SWITCHPERF = 26;
 }

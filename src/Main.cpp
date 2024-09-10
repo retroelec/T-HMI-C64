@@ -44,6 +44,9 @@ hw_timer_t *interruptSystem = NULL;
 TaskHandle_t cpuTask;
 
 void IRAM_ATTR interruptProfilingFunc() {
+  if (!cpu.perf) {
+    return;
+  }
   if (vic.cntRefreshs != 0) {
     ESP_LOGI(TAG, "fps: %d", vic.cntRefreshs);
   }
@@ -203,12 +206,10 @@ void Main::setup() {
   timerAlarmEnable(interruptSystem);
 
   // profiling: interrupt each second
-  /*
   interruptProfiling = timerBegin(3, 80, true);
   timerAttachInterrupt(interruptProfiling, &interruptProfilingFunc, true);
   timerAlarmWrite(interruptProfiling, 1000000, true);
   timerAlarmEnable(interruptProfiling);
-  */
 }
 
 void Main::loop() {

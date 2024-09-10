@@ -11,6 +11,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver {
     private Switch toggleRefreshframecolorSwitch;
     private Switch toggleSendRawKeyCodes;
     private Switch toggleDebug;
+    private Switch togglePerf;
     private Settings settings;
 
     private void sendCmd(byte[] data) {
@@ -27,6 +28,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver {
             toggleRefreshframecolorSwitch.setChecked(settings.isRefreshframecolor());
             toggleSendRawKeyCodes.setChecked(settings.isSendRawKeyCodes());
             toggleDebug.setChecked(settings.isDebug());
+            togglePerf.setChecked(settings.isPerf());
         });
     }
 
@@ -60,6 +62,9 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver {
 
         toggleDebug = findViewById(R.id.toggleDebug);
         toggleDebug.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHDEBUG, (byte) 0x00, (byte) 0x80}));
+
+        togglePerf = findViewById(R.id.togglePerf);
+        togglePerf.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHPERF, (byte) 0x00, (byte) 0x80}));
 
         final Button keystatus = findViewById(R.id.keystatus);
         keystatus.setOnClickListener(view -> {

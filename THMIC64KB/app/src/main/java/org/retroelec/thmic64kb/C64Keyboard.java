@@ -46,9 +46,9 @@ public class C64Keyboard extends LinearLayout {
     private Button keyslash;
 
     void initKBHashMap() {
-        map.put("LOAD", new byte[]{(byte) Config.LOAD, (byte) 0x00, (byte) 0x80});
-        map.put("RESTORE", new byte[]{(byte) Config.RESTORE, (byte) 0x00, (byte) 0x80});
-        map.put("RESTORERUNSTOP", new byte[]{(byte) Config.RESTORE, (byte) 0x01, (byte) 0x80});
+        map.put("LOAD", new byte[]{Config.LOAD, (byte) 0x00, (byte) 0x80});
+        map.put("RESTORE", new byte[]{Config.RESTORE, (byte) 0x00, (byte) 0x80});
+        map.put("RESTORERUNSTOP", new byte[]{Config.RESTORE, (byte) 0x01, (byte) 0x80});
         map.put("del", new byte[]{(byte) 0xfe, (byte) 0xfe, (byte) 0x00});
         map.put("home", new byte[]{(byte) 0xbf, (byte) 0xf7, (byte) 0x00});
         map.put("ctrl", new byte[]{(byte) 0x7f, (byte) 0xdf, (byte) 0x00});

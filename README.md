@@ -71,7 +71,7 @@ you may have to adapt the following constants in src/Config.h:
 
 I use arduino-cli to upload the provided binary files to the development board:
 
-- Download arduino-cli for your platform (download section from https://arduino.github.io/arduino-cli/0.35/installation/),
+- Download arduino-cli for your platform (https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz),
   unpack the binary and place it in a directory included in the search path of executables (e.g. /usr/local/bin on a linux system).
 - You may have to install python3 and python3-serial if not already installed. On my linux system I had to install python3-serial:  
   sudo apt install python3-serial
@@ -84,7 +84,7 @@ If you want to install the development environment, you can use the provided Mak
 
 #### Install development environment using Makefile (*not* necessary to run the emulator)
 
-- Download arduino-cli for your platform (download section from https://arduino.github.io/arduino-cli/0.35/installation/),
+- Download arduino-cli for your platform (https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz),
   unpack the binary and place it in a directory included in the search path of executables (e.g. /usr/local/bin on a linux system).
 - You may have to install GNU make if not already installed.
 - Install required Arduino core and libraries using the following command in the directory T-HMI-C64:  
@@ -244,13 +244,13 @@ All hardware ports not explicitly mentioned including their corresponding regist
 
 ### Games
 
-As there is no disk drive emulation, only "single-load games" can be played.
-Up to now I only tested a few games.
+As there is no disk drive emulation, only "onefiled games" can be played.
+Up to now I tested the following games.
 
 Games that are playable:
 
-- Wizard of wor
-- Skramble (from anirog)
+- Wizard of Wor
+- Skramble (from Anirog)
 - Galaxy
 - Burnin Rubber
 - Lode Runner
@@ -279,7 +279,7 @@ Games that are playable:
 - Burger Time 2023
 - Outrun (small graphic errors in the middle of screen)
 - Q*bert
-- Space Taxi (onefiled version)
+- Space Taxi
 - Jupiter Lander
 - Dark Caves
 - Blobber
@@ -287,11 +287,30 @@ Games that are playable:
 - BC's Quest for Tires
 - Stunt Car Racer
 - Tapper
+- Starforce
+- 8Midas
+- Acid Runner (wrong colors)
+- Gyroscope
+- International Karate
+- Jumpman
+- Little Computer People
+- Montezuma's Revenge
+- Pooyan
+- Track & Field
+- Wonder Boy
+- Squish'em
+- Thing on a spring
+- Xevious
+- Zalaga
+- Zaxxon
 
 Games not working:
 
-- Terra Cresta (no proper graphics after start, scrolling realized by linecrunching?)
+- Terra Cresta (weird graphics after start)
 - Burger Time (crashing)
 - Arkanoid (endless loop)
 - Westbank (endless loop)
-
+- 1942 (playable, but no proper scrolling)
+- Lemmings (playable, but incomplete graphics)
+- Buggy Boy (endless loop)
+- Rambo (crashing)

@@ -93,6 +93,7 @@ public class BLEManager {
                             settings.setRefreshframecolor(receivedData[2] != 0);
                             settings.setSendRawKeyCodes(receivedData[3] != 0);
                             settings.setDebug(receivedData[4] != 0);
+                            settings.setPerf(receivedData[5] != 0);
                             settings.notifySettingsObserver();
                             break;
                         case 2:

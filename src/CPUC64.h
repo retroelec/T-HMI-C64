@@ -69,12 +69,12 @@ public:
   std::atomic<uint16_t> adjustcycles;
   std::atomic<uint16_t> measuredcycles;
 
-  std::atomic<bool> debug;
-
   // set by class ExternalCmds
   uint8_t joystickmode;
   uint8_t kbjoystickmode;
   bool refreshframecolor;
+  bool debug;
+  bool perf;
 
   bool restorenmi;
 

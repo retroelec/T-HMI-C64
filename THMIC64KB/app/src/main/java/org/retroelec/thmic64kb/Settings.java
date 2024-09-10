@@ -6,6 +6,7 @@ public class Settings {
     boolean refreshframecolor;
     boolean sendRawKeyCodes;
     boolean debug;
+    boolean perf;
 
     public void registerSettingsObserver(SettingsObserver observer) {
         this.observer = observer;
@@ -51,5 +52,13 @@ public class Settings {
 
     public void setDebug(boolean debug) {
         this.debug = debug;
+    }
+
+    public boolean isPerf() {
+        return perf;
+    }
+
+    public void setPerf(boolean perf) {
+        this.perf = perf;
     }
 }

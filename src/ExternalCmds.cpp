@@ -39,7 +39,8 @@ enum class ExtCmd {
   GETSTATUS = 21,
   SWITCHFRAMECOLORREFRESH = 22,
   SENDRAWKEYS = 24,
-  SWITCHDEBUG = 25
+  SWITCHDEBUG = 25,
+  SWITCHPERF = 26
 };
 
 void ExternalCmds::init(uint8_t *ram, CPUC64 *cpu) {
@@ -54,6 +55,7 @@ void ExternalCmds::setType1Notification() {
   type1notification.refreshframecolor = cpu->refreshframecolor;
   type1notification.sendrawkeycodes = sendrawkeycodes;
   type1notification.switchdebug = cpu->debug;
+  type1notification.switchperf = cpu->perf;
 }
 
 void ExternalCmds::setType2Notification() {
@@ -242,8 +244,12 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 1;
   case ExtCmd::SWITCHDEBUG:
     cpu->debug = !cpu->debug;
-    bool debug1 = cpu->debug.load(std::memory_order_acquire);
-    ESP_LOGI(TAG, "debug = %x", debug1);
+    ESP_LOGI(TAG, "debug = %x", cpu->debug);
+    setType1Notification();
+    return 1;
+  case ExtCmd::SWITCHPERF:
+    cpu->perf = !cpu->perf;
+    ESP_LOGI(TAG, "perf = %x", cpu->perf);
     setType1Notification();
     return 1;
   }

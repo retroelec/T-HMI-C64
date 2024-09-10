@@ -30,6 +30,7 @@ struct BLENotificationStruct1 {
   uint8_t refreshframecolor;
   uint8_t sendrawkeycodes;
   uint8_t switchdebug;
+  uint8_t switchperf;
 };
 
 struct BLENotificationStruct2 {
