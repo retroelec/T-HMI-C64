@@ -177,6 +177,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 2;
   case ExtCmd::SHOWMEM:
     addr = buffer[3] + (buffer[4] << 8);
+    // use addr also as debugging start address
+    cpu->debugstartaddr = addr;
     ESP_LOGI(TAG, "addr: %x", addr);
     setType3Notification(addr);
     for (uint8_t i = 0; i < BLENOTIFICATIONTYPE3NUMOFBYTES / 8; i++) {
@@ -244,6 +246,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 1;
   case ExtCmd::SWITCHDEBUG:
     cpu->debug = !cpu->debug;
+    cpu->debuggingstarted = false;
     ESP_LOGI(TAG, "debug = %x", cpu->debug);
     setType1Notification();
     return 1;

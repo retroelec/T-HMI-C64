@@ -270,6 +270,16 @@ private:
   void cmd6502xaaImmediate();
   void cmd6502sbxImmediate();
   void cmd6502lasAbsolute();
+  void cmd6502rlaZeropage();
+  void cmd6502rlaZeropageX();
+  void cmd6502rlaIndirectX();
+  void cmd6502rlaIndirectY();
+  void cmd6502rlaAbsolute();
+  void cmd6502rlaAbsoluteX();
+  void cmd6502rlaAbsoluteY();
+  void cmd6502tas();
+  void cmd6502arr();
+  void cmd6502shy();
 
   // undocumented implied nop commands are defined virtual so them may be used
   // for logging, profiling etc.
@@ -280,12 +290,12 @@ private:
   virtual void cmd6502nopda();
   virtual void cmd6502nopfa();
 
-  virtual void cmd6502illegal();
+  virtual void cmd6502halt();
 
   void (CPU6502::*cmdarr6502[256])() = {
       // 0x00
       &CPU6502::cmd6502brk, &CPU6502::cmd6502oraIndirectX,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502asoIndirectX,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502asoIndirectX,
       &CPU6502::cmd6502nopZeropage, &CPU6502::cmd6502oraZeropage,
       &CPU6502::cmd6502aslZeropage, &CPU6502::cmd6502asoZeropage,
       &CPU6502::cmd6502php, &CPU6502::cmd6502oraImmediate,
@@ -294,7 +304,7 @@ private:
       &CPU6502::cmd6502aslAbsolute, &CPU6502::cmd6502asoAbsolute,
       // 0x10
       &CPU6502::cmd6502bpl, &CPU6502::cmd6502oraIndirectY,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502asoIndirectY,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502asoIndirectY,
       &CPU6502::cmd6502nopZeropageX, &CPU6502::cmd6502oraZeropageX,
       &CPU6502::cmd6502aslZeropageX, &CPU6502::cmd6502asoZeropageX,
       &CPU6502::cmd6502clc, &CPU6502::cmd6502oraAbsoluteY,
@@ -303,25 +313,25 @@ private:
       &CPU6502::cmd6502aslAbsoluteX, &CPU6502::cmd6502asoAbsoluteX,
       // 0x20
       &CPU6502::cmd6502jsr, &CPU6502::cmd6502andIndirectX,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502illegal,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502rlaIndirectX,
       &CPU6502::cmd6502bitZeropage, &CPU6502::cmd6502andZeropage,
-      &CPU6502::cmd6502rolZeropage, &CPU6502::cmd6502illegal,
+      &CPU6502::cmd6502rolZeropage, &CPU6502::cmd6502rlaZeropage,
       &CPU6502::cmd6502plp, &CPU6502::cmd6502andImmediate,
       &CPU6502::cmd6502rolA, &CPU6502::cmd6502ancImmediate,
       &CPU6502::cmd6502bitAbsolute, &CPU6502::cmd6502andAbsolute,
-      &CPU6502::cmd6502rolAbsolute, &CPU6502::cmd6502illegal,
+      &CPU6502::cmd6502rolAbsolute, &CPU6502::cmd6502rlaAbsolute,
       // 0x30
       &CPU6502::cmd6502bmi, &CPU6502::cmd6502andIndirectY,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502illegal,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502rlaIndirectY,
       &CPU6502::cmd6502nopZeropageX, &CPU6502::cmd6502andZeropageX,
-      &CPU6502::cmd6502rolZeropageX, &CPU6502::cmd6502illegal,
+      &CPU6502::cmd6502rolZeropageX, &CPU6502::cmd6502rlaZeropageX,
       &CPU6502::cmd6502sec, &CPU6502::cmd6502andAbsoluteY,
-      &CPU6502::cmd6502nop3a, &CPU6502::cmd6502illegal,
+      &CPU6502::cmd6502nop3a, &CPU6502::cmd6502rlaAbsoluteY,
       &CPU6502::cmd6502skwAbsoluteX, &CPU6502::cmd6502andAbsoluteX,
-      &CPU6502::cmd6502rolAbsoluteX, &CPU6502::cmd6502illegal,
+      &CPU6502::cmd6502rolAbsoluteX, &CPU6502::cmd6502rlaAbsoluteX,
       // 0x40
       &CPU6502::cmd6502rti, &CPU6502::cmd6502eorIndirectX,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502sreIndirectX,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502sreIndirectX,
       &CPU6502::cmd6502nopZeropage, &CPU6502::cmd6502eorZeropage,
       &CPU6502::cmd6502lsrZeropage, &CPU6502::cmd6502sreZeropage,
       &CPU6502::cmd6502pha, &CPU6502::cmd6502eorImmediate,
@@ -330,7 +340,7 @@ private:
       &CPU6502::cmd6502lsrAbsolute, &CPU6502::cmd6502sreAbsolute,
       // 0x50
       &CPU6502::cmd6502bvc, &CPU6502::cmd6502eorIndirectY,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502sreIndirectY,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502sreIndirectY,
       &CPU6502::cmd6502nopZeropageX, &CPU6502::cmd6502eorZeropageX,
       &CPU6502::cmd6502lsrZeropageX, &CPU6502::cmd6502sreZeropageX,
       &CPU6502::cmd6502cli, &CPU6502::cmd6502eorAbsoluteY,
@@ -339,16 +349,16 @@ private:
       &CPU6502::cmd6502lsrAbsoluteX, &CPU6502::cmd6502sreAbsoluteX,
       // 0x60
       &CPU6502::cmd6502rts, &CPU6502::cmd6502adcIndirectX,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502rraIndirectX,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502rraIndirectX,
       &CPU6502::cmd6502nopZeropage, &CPU6502::cmd6502adcZeropage,
       &CPU6502::cmd6502rorZeropage, &CPU6502::cmd6502rraZeropage,
       &CPU6502::cmd6502pla, &CPU6502::cmd6502adcImmediate,
-      &CPU6502::cmd6502rorA, &CPU6502::cmd6502illegal,
-      &CPU6502::cmd6502jmpIndirect, &CPU6502::cmd6502adcAbsolute,
-      &CPU6502::cmd6502rorAbsolute, &CPU6502::cmd6502rraAbsolute,
+      &CPU6502::cmd6502rorA, &CPU6502::cmd6502arr, &CPU6502::cmd6502jmpIndirect,
+      &CPU6502::cmd6502adcAbsolute, &CPU6502::cmd6502rorAbsolute,
+      &CPU6502::cmd6502rraAbsolute,
       // 0x70
       &CPU6502::cmd6502bvs, &CPU6502::cmd6502adcIndirectY,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502rraIndirectY,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502rraIndirectY,
       &CPU6502::cmd6502nopZeropageX, &CPU6502::cmd6502adcZeropageX,
       &CPU6502::cmd6502rorZeropageX, &CPU6502::cmd6502rraZeropageX,
       &CPU6502::cmd6502sei, &CPU6502::cmd6502adcAbsoluteY,
@@ -366,13 +376,12 @@ private:
       &CPU6502::cmd6502saxAbsolute,
       // 0x90
       &CPU6502::cmd6502bcc, &CPU6502::cmd6502staIndirectY,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502shaZeropageY,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502shaZeropageY,
       &CPU6502::cmd6502styZeropageX, &CPU6502::cmd6502staZeropageX,
       &CPU6502::cmd6502stxZeropageY, &CPU6502::cmd6502saxZeropageY,
       &CPU6502::cmd6502tya, &CPU6502::cmd6502staAbsoluteY, &CPU6502::cmd6502txs,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502illegal,
-      &CPU6502::cmd6502staAbsoluteX, &CPU6502::cmd6502shxAbsoluteY,
-      &CPU6502::cmd6502shaAbsoluteY,
+      &CPU6502::cmd6502tas, &CPU6502::cmd6502shy, &CPU6502::cmd6502staAbsoluteX,
+      &CPU6502::cmd6502shxAbsoluteY, &CPU6502::cmd6502shaAbsoluteY,
       // 0xa0
       &CPU6502::cmd6502ldyImmediate, &CPU6502::cmd6502ldaIndirectX,
       &CPU6502::cmd6502ldxImmediate, &CPU6502::cmd6502laxIndirectX,
@@ -384,7 +393,7 @@ private:
       &CPU6502::cmd6502laxAbsolute,
       // 0xb0
       &CPU6502::cmd6502bcs, &CPU6502::cmd6502ldaIndirectY,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502laxIndirectY,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502laxIndirectY,
       &CPU6502::cmd6502ldyZeropageX, &CPU6502::cmd6502ldaZeropageX,
       &CPU6502::cmd6502ldxZeropageY, &CPU6502::cmd6502laxZeropageY,
       &CPU6502::cmd6502clv, &CPU6502::cmd6502ldaAbsoluteY, &CPU6502::cmd6502tsx,
@@ -402,7 +411,7 @@ private:
       &CPU6502::cmd6502dcpAbsolute,
       // 0xd0
       &CPU6502::cmd6502bne, &CPU6502::cmd6502cmpIndirectY,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502dcpIndirectY,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502dcpIndirectY,
       &CPU6502::cmd6502nopZeropageX, &CPU6502::cmd6502cmpZeropageX,
       &CPU6502::cmd6502decZeropageX, &CPU6502::cmd6502dcpZeropageX,
       &CPU6502::cmd6502cld, &CPU6502::cmd6502cmpAbsoluteY,
@@ -420,7 +429,7 @@ private:
       &CPU6502::cmd6502isbAbsolute,
       // 0xf0
       &CPU6502::cmd6502beq, &CPU6502::cmd6502sbcIndirectY,
-      &CPU6502::cmd6502illegal, &CPU6502::cmd6502isbIndirectY,
+      &CPU6502::cmd6502halt, &CPU6502::cmd6502isbIndirectY,
       &CPU6502::cmd6502nopZeropageX, &CPU6502::cmd6502sbcZeropageX,
       &CPU6502::cmd6502incZeropageX, &CPU6502::cmd6502isbZeropageX,
       &CPU6502::cmd6502sed, &CPU6502::cmd6502sbcAbsoluteY,
@@ -431,40 +440,41 @@ private:
 protected:
   const char *cmdName[256] = {
       // 0x00
-      "brk", "oraIndirectX", "illegal", "asoIndirectX", "nopZeropage",
+      "brk", "oraIndirectX", "hlt", "asoIndirectX", "nopZeropage",
       "oraZeropage", "aslZeropage", "asoZeropage", "php", "oraImmediate",
       "aslA", "ancImmediate", "skwAbsolute", "oraAbsolute", "aslAbsolute",
       "asoAbsolute",
       // 0x10
-      "bpl", "oraIndirectY", "illegal", "asoIndirectY", "nopZeropageX",
+      "bpl", "oraIndirectY", "hlt", "asoIndirectY", "nopZeropageX",
       "oraZeropageX", "aslZeropageX", "asoZeropageX", "clc", "oraAbsoluteY",
       "nop1a", "asoAbsoluteY", "skwAbsoluteX", "oraAbsoluteX", "aslAbsoluteX",
       "asoAbsoluteX",
       // 0x20
-      "jsr", "andIndirectX", "illegal", "illegal", "bitZeropage", "andZeropage",
-      "rolZeropage", "illegal", "plp", "andImmediate", "rolA", "ancImmediate",
-      "bitAbsolute", "andAbsolute", "rolAbsolute", "illegal",
+      "jsr", "andIndirectX", "hlt", "rlaIndirectX", "bitZeropage",
+      "andZeropage", "rolZeropage", "rlaZeropage", "plp", "andImmediate",
+      "rolA", "ancImmediate", "bitAbsolute", "andAbsolute", "rolAbsolute",
+      "rlaAbsolute",
       // 0x30
-      "bmi", "andIndirectY", "illegal", "illegal", "nopZeropageX",
-      "andZeropageX", "rolZeropageX", "illegal", "sec", "andAbsoluteY", "nop3a",
-      "illegal", "skwAbsoluteX", "andAbsoluteX", "rolAbsoluteX", "illegal",
+      "bmi", "andIndirectY", "hlt", "rlaIndirectY", "nopZeropageX",
+      "andZeropageX", "rolZeropageX", "rlaZeropageX", "sec", "andAbsoluteY",
+      "nop3a", "rlaAbsoluteY", "skwAbsoluteX", "andAbsoluteX", "rolAbsoluteX",
+      "rlaAbsoluteX",
       // 0x40
-      "rti", "eorIndirectX", "illegal", "sreIndirectX", "nopZeropage",
+      "rti", "eorIndirectX", "hlt", "sreIndirectX", "nopZeropage",
       "eorZeropage", "lsrZeropage", "sreZeropage", "pha", "eorImmediate",
       "lsrA", "alrImmediate", "jmpAbsolute", "eorAbsolute", "lsrAbsolute",
       "sreAbsolute",
       // 0x50
-      "bvc", "eorIndirectY", "illegal", "sreIndirectY", "nopZeropageX",
+      "bvc", "eorIndirectY", "hlt", "sreIndirectY", "nopZeropageX",
       "eorZeropageX", "lsrZeropageX", "sreZeropageX", "cli", "eorAbsoluteY",
       "nop5a", "sreAbsoluteY", "skwAbsoluteX", "eorAbsoluteX", "lsrAbsoluteX",
       "sreAbsoluteX",
       // 0x60
-      "rts", "adcIndirectX", "illegal", "rraIndirectX", "nopZeropage",
+      "rts", "adcIndirectX", "hlt", "rraIndirectX", "nopZeropage",
       "adcZeropage", "rorZeropage", "rraZeropage", "pla", "adcImmediate",
-      "rorA", "illegal", "jmpIndirect", "adcAbsolute", "rorAbsolute",
-      "rraAbsolute",
+      "rorA", "arr", "jmpIndirect", "adcAbsolute", "rorAbsolute", "rraAbsolute",
       // 0x70
-      "bvs", "adcIndirectY", "illegal", "rraIndirectY", "nopZeropageX",
+      "bvs", "adcIndirectY", "hlt", "rraIndirectY", "nopZeropageX",
       "adcZeropageX", "rorZeropageX", "rraZeropageX", "sei", "adcAbsoluteY",
       "nop7a", "rraAbsoluteY", "skwAbsoluteX", "adcAbsoluteX", "rorAbsoluteX",
       "rraAbsoluteX",
@@ -474,17 +484,16 @@ protected:
       "nopImmediate", "txa", "xaaImmediate", "styAbsolute", "staAbsolute",
       "stxAbsolute", "saxAbsolute",
       // 0x90
-      "bcc", "staIndirectY", "illegal", "shaZeropageY", "styZeropageX",
+      "bcc", "staIndirectY", "hlt", "shaZeropageY", "styZeropageX",
       "staZeropageX", "stxZeropageY", "saxZeropageY", "tya", "staAbsoluteY",
-      "txs", "illegal", "illegal", "staAbsoluteX", "shxAbsoluteY",
-      "shaAbsoluteY",
+      "txs", "tas", "shy", "staAbsoluteX", "shxAbsoluteY", "shaAbsoluteY",
       // 0xa0
       "ldyImmediate", "ldaIndirectX", "ldxImmediate", "laxIndirectX",
       "ldyZeropage", "ldaZeropage", "ldxZeropage", "laxZeropage", "tay",
       "ldaImmediate", "tax", "lxaImmediate", "ldyAbsolute", "ldaAbsolute",
       "ldxAbsolute", "laxAbsolute",
       // 0xb0
-      "bcs", "ldaIndirectY", "illegal", "laxIndirectY", "ldyZeropageX",
+      "bcs", "ldaIndirectY", "hlt", "laxIndirectY", "ldyZeropageX",
       "ldaZeropageX", "ldxZeropageY", "laxZeropageY", "clv", "ldaAbsoluteY",
       "tsx", "lasAbsolute", "ldyAbsoluteX", "ldaAbsoluteX", "ldxAbsoluteY",
       "laxAbsoluteY",
@@ -494,7 +503,7 @@ protected:
       "cmpImmediate", "dex", "sbxImmediate", "cpyAbsolute", "cmpAbsolute",
       "decAbsolute", "dcpAbsolute",
       // 0xd0
-      "bne", "cmpIndirectY", "illegal", "dcpIndirectY", "nopZeropageX",
+      "bne", "cmpIndirectY", "hlt", "dcpIndirectY", "nopZeropageX",
       "cmpZeropageX", "decZeropageX", "dcpZeropageX", "cld", "cmpAbsoluteY",
       "nopda", "dcpAbsoluteY", "skwAbsoluteX", "cmpAbsoluteX", "decAbsoluteX",
       "dcpAbsoluteX",
@@ -504,7 +513,7 @@ protected:
       "sbcImmediate", "nop", "sbcImmediate", "cpxAbsolute", "sbcAbsolute",
       "incAbsolute", "isbAbsolute",
       // 0xf0
-      "beq", "sbcIndirectY", "illegal", "isbIndirectY", "nopZeropageX",
+      "beq", "sbcIndirectY", "hlt", "isbIndirectY", "nopZeropageX",
       "sbcZeropageX", "incZeropageX", "isbZeropageX", "sed", "sbcAbsoluteY",
       "nopfa", "isbAbsoluteY", "skwAbsoluteX", "sbcAbsoluteX", "incAbsoluteX",
       "isbAbsoluteX"};
@@ -530,7 +539,7 @@ protected:
 
 public:
   // number of cycles since last adjustment
-  uint32_t numofcycles;
+  uint8_t numofcycles;
 
   // stop cpu
   std::atomic<bool> cpuhalted;

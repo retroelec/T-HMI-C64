@@ -276,7 +276,7 @@ uint8_t CPU6502::pullfromstack() {
   return getMem(z1);
 }
 
-void CPU6502::cmd6502illegal() { cpuhalted = true; }
+void CPU6502::cmd6502halt() { cpuhalted = true; }
 
 void CPU6502::cmd6502brk() {
   pc++;
@@ -401,16 +401,15 @@ void CPU6502::cmd6502aslAbsoluteX() {
 }
 
 void CPU6502::cmd6502jsr() {
-  // Zieladresse
   uint8_t ql = getMem(pc++);
-  uint8_t qh = getMem(pc);
-  uint16_t q = (ql + (qh << 8));
   // push actual address to 6502 stack
   uint8_t pcl = pc & 0xFF;
   uint8_t pch = (pc >> 8);
   pushtostack(pch);
   pushtostack(pcl);
   // set destination address
+  uint8_t qh = getMem(pc);
+  uint16_t q = (ql + (qh << 8));
   pc = q;
   numofcycles += 6;
 }
@@ -1772,6 +1771,100 @@ void CPU6502::cmd6502lasAbsolute() {
   sp = x;
   atestandsetNZ();
   numofcycles += 4;
+}
+
+void CPU6502::cmd6502rlaZeropage() {
+  modeZeropage();
+  rolbase();
+  uint8_t r = getMem(z);
+  a &= r;
+  atestandsetNZ();
+  numofcycles += 5;
+}
+
+void CPU6502::cmd6502rlaZeropageX() {
+  modeZeropageX();
+  rolbase();
+  uint8_t r = getMem(z);
+  a &= r;
+  atestandsetNZ();
+  numofcycles += 6;
+}
+
+void CPU6502::cmd6502rlaIndirectX() {
+  modeIndirectX();
+  rolbase();
+  uint8_t r = getMem(z);
+  a &= r;
+  atestandsetNZ();
+  numofcycles += 8;
+}
+
+void CPU6502::cmd6502rlaIndirectY() {
+  modeIndirectY();
+  rolbase();
+  uint8_t r = getMem(z);
+  a &= r;
+  atestandsetNZ();
+  numofcycles += 8;
+}
+
+void CPU6502::cmd6502rlaAbsolute() {
+  modeAbsolute();
+  rolbase();
+  uint8_t r = getMem(z);
+  a &= r;
+  atestandsetNZ();
+  numofcycles += 6;
+}
+
+void CPU6502::cmd6502rlaAbsoluteX() {
+  modeAbsoluteX();
+  rolbase();
+  uint8_t r = getMem(z);
+  a &= r;
+  atestandsetNZ();
+  numofcycles += 7;
+}
+
+void CPU6502::cmd6502rlaAbsoluteY() {
+  modeAbsoluteY();
+  rolbase();
+  uint8_t r = getMem(z);
+  a &= r;
+  atestandsetNZ();
+  numofcycles += 7;
+}
+
+void CPU6502::cmd6502tas() {
+  uint8_t r = a & x;
+  sp = r;
+  modeAbsoluteY();
+  r &= zh + 1;
+  setMem(z, r);
+  numofcycles += 5;
+}
+
+void CPU6502::cmd6502arr() {
+  uint8_t r = getMem(pc++);
+  a &= r;
+  cflag = a & 128;
+  vflag = ((a & 128) >> 1) ^ (a & 64);
+  uint16_t r1 = a;
+  if (cflag) {
+    r1 |= 0x100;
+  }
+  r1 >>= 1;
+  setNZ(r1);
+  a = r1;
+  numofcycles += 2;
+}
+
+void CPU6502::cmd6502shy() {
+  modeAbsoluteX();
+  uint8_t r = y & (zh + 1);
+  setMem(z, r);
+  numofcycles += 5;
 }
 
 void CPU6502::execute(uint8_t idx) { (this->*cmdarr6502[idx])(); }

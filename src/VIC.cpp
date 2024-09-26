@@ -65,34 +65,40 @@ void VIC::drawblankline(uint8_t line) {
   }
 }
 
-bool VIC::shiftDyDx(uint8_t line, int8_t dy, uint8_t dx, uint16_t bgcol,
-                    uint16_t &idx) {
-  only38cols = !(vicreg[0x16] & 8);
-  if ((line < dy) || (line >= 200 + dy)) {
-    uint16_t framecol = tftColorFromC64ColorArr[vicreg[0x20] & 15];
-    for (uint8_t xp = 0; xp < 8; xp++) {
-      if (only38cols) {
-        bitmap[idx++] = framecol;
-      } else {
-        bitmap[idx++] = bgcol;
-      }
+void VIC::shiftDy(uint8_t line, int8_t dy, uint16_t bgcol) {
+  uint16_t idx = line * 320;
+  bool only24rows = !(vicreg[0x11] & 8);
+  if (only24rows) {
+    if ((line <= 3) || (line >= 196)) {
+      drawblankline(line);
+      return;
     }
-    for (uint16_t xp = 8; xp < 39 * 8; xp++) {
-      bitmap[idx++] = bgcol;
-    }
-    for (uint8_t xp = 0; xp < 8; xp++) {
-      if (only38cols) {
-        bitmap[idx++] = framecol;
-      } else {
-        bitmap[idx++] = bgcol;
-      }
-    }
-    return true;
   }
+  if ((line < dy) || (dy <= line - 200)) {
+    uint16_t framecol = tftColorFromC64ColorArr[vicreg[0x20] & 15];
+    if (only38cols) {
+      for (uint8_t xp = 0; xp < 8; xp++) {
+        bitmap[idx++] = framecol;
+      }
+      for (uint16_t xp = 8; xp < 39 * 8; xp++) {
+        bitmap[idx++] = bgcol;
+      }
+      for (uint8_t xp = 0; xp < 8; xp++) {
+        bitmap[idx++] = framecol;
+      }
+    } else {
+      for (uint16_t xp = 0; xp < 40 * 8; xp++) {
+        bitmap[idx++] = bgcol;
+      }
+    }
+    return;
+  }
+}
+
+void VIC::shiftDx(uint8_t dx, uint16_t bgcol, uint16_t &idx) {
   for (uint8_t i = 0; i < dx; i++) {
     bitmap[idx++] = bgcol;
   }
-  return false;
 }
 
 void VIC::drawOnly38ColsFrame(uint16_t tmpidx) {
@@ -115,22 +121,32 @@ void VIC::drawStdCharModeInt(uint8_t *screenMap, uint16_t bgcol, uint8_t row,
 }
 
 void VIC::drawStdCharMode(uint8_t *screenMap, uint8_t bgColor, uint8_t line,
-                          int8_t dy, uint8_t dx, uint16_t idx) {
+                          int8_t dy, uint8_t dx) {
   uint16_t bgcol = tftColorFromC64ColorArr[bgColor & 15];
-  if (shiftDyDx(line, dy, dx, bgcol, idx)) {
-    return;
+  shiftDy(line, dy, bgcol);
+  uint16_t lowval = 0;
+  uint16_t highval = 200 * 320;
+  bool only24rows = !(vicreg[0x11] & 8);
+  if (only24rows) {
+    lowval = 4 * 320;
+    highval = 196 * 320;
   }
-  uint8_t y = line >> 3;
-  uint8_t row = line & 7;
-  uint16_t idxmap = y * 40;
-  uint16_t xp = 0;
-  drawStdCharModeInt(screenMap, bgcol, row, 0, xp, idxmap++, idx);
-  drawOnly38ColsFrame(idx - 8 - dx);
-  for (uint8_t x = 1; x < 39; x++) {
+  int32_t idx2 = (line + dy) * 320;
+  if ((idx2 >= lowval) && (idx2 < highval)) {
+    uint16_t idx = (uint16_t)idx2;
+    shiftDx(dx, bgcol, idx);
+    uint8_t y = line >> 3;
+    uint8_t row = line & 7;
+    uint16_t idxmap = y * 40;
+    uint16_t xp = 0;
     drawStdCharModeInt(screenMap, bgcol, row, 0, xp, idxmap++, idx);
+    drawOnly38ColsFrame(idx - 8 - dx);
+    for (uint8_t x = 1; x < 39; x++) {
+      drawStdCharModeInt(screenMap, bgcol, row, 0, xp, idxmap++, idx);
+    }
+    drawStdCharModeInt(screenMap, bgcol, row, dx, xp, idxmap, idx);
+    drawOnly38ColsFrame(idx - 8);
   }
-  drawStdCharModeInt(screenMap, bgcol, row, dx, xp, idxmap, idx);
-  drawOnly38ColsFrame(idx - 8);
 }
 
 void VIC::drawMCCharModeInt(uint8_t *screenMap, uint16_t bgcol,
@@ -150,27 +166,36 @@ void VIC::drawMCCharModeInt(uint8_t *screenMap, uint16_t bgcol,
 }
 
 void VIC::drawMCCharMode(uint8_t *screenMap, uint8_t bgColor, uint8_t color1,
-                         uint8_t color2, uint8_t line, int8_t dy, uint8_t dx,
-                         uint16_t idx) {
+                         uint8_t color2, uint8_t line, int8_t dy, uint8_t dx) {
   uint16_t bgcol = tftColorFromC64ColorArr[bgColor & 15];
-  if (shiftDyDx(line, dy, dx, bgcol, idx)) {
-    return;
+  shiftDy(line, dy, bgcol);
+  uint16_t lowval = 0;
+  uint16_t highval = 200 * 320;
+  bool only24rows = !(vicreg[0x11] & 8);
+  if (only24rows) {
+    lowval = 4 * 320;
+    highval = 196 * 320;
   }
-  uint16_t tftColArr[4];
-  tftColArr[0] = bgcol;
-  tftColArr[1] = tftColorFromC64ColorArr[color1 & 15];
-  tftColArr[2] = tftColorFromC64ColorArr[color2 & 15];
-  uint8_t y = line >> 3;
-  uint8_t row = line & 7;
-  uint16_t idxmap = y * 40;
-  uint16_t xp = 0;
-  drawMCCharModeInt(screenMap, bgcol, tftColArr, row, 0, xp, idxmap++, idx);
-  drawOnly38ColsFrame(idx - 8 - dx);
-  for (uint8_t x = 1; x < 39; x++) {
+  int32_t idx2 = (line + dy) * 320;
+  if ((idx2 >= lowval) && (idx2 < highval)) {
+    uint16_t idx = (uint16_t)idx2;
+    shiftDx(dx, bgcol, idx);
+    uint16_t tftColArr[4];
+    tftColArr[0] = bgcol;
+    tftColArr[1] = tftColorFromC64ColorArr[color1 & 15];
+    tftColArr[2] = tftColorFromC64ColorArr[color2 & 15];
+    uint8_t y = line >> 3;
+    uint8_t row = line & 7;
+    uint16_t idxmap = y * 40;
+    uint16_t xp = 0;
     drawMCCharModeInt(screenMap, bgcol, tftColArr, row, 0, xp, idxmap++, idx);
+    drawOnly38ColsFrame(idx - 8 - dx);
+    for (uint8_t x = 1; x < 39; x++) {
+      drawMCCharModeInt(screenMap, bgcol, tftColArr, row, 0, xp, idxmap++, idx);
+    }
+    drawMCCharModeInt(screenMap, bgcol, tftColArr, row, dx, xp, idxmap, idx);
+    drawOnly38ColsFrame(idx - 8);
   }
-  drawMCCharModeInt(screenMap, bgcol, tftColArr, row, dx, xp, idxmap, idx);
-  drawOnly38ColsFrame(idx - 8);
 }
 
 void VIC::drawExtBGColCharModeInt(uint8_t *screenMap, uint8_t *bgColArr,
@@ -186,23 +211,32 @@ void VIC::drawExtBGColCharModeInt(uint8_t *screenMap, uint8_t *bgColArr,
 }
 
 void VIC::drawExtBGColCharMode(uint8_t *screenMap, uint8_t *bgColArr,
-                               uint8_t line, int8_t dy, uint8_t dx,
-                               uint16_t idx) {
+                               uint8_t line, int8_t dy, uint8_t dx) {
   uint8_t bgcol0 = tftColorFromC64ColorArr[bgColArr[0]];
-  if (shiftDyDx(line, dy, dx, bgcol0, idx)) {
-    return;
+  shiftDy(line, dy, bgcol0);
+  uint16_t lowval = 0;
+  uint16_t highval = 200 * 320;
+  bool only24rows = !(vicreg[0x11] & 8);
+  if (only24rows) {
+    lowval = 4 * 320;
+    highval = 196 * 320;
   }
-  uint8_t y = line >> 3;
-  uint8_t row = line & 7;
-  uint16_t idxmap = y * 40;
-  uint16_t xp = 0;
-  drawExtBGColCharModeInt(screenMap, bgColArr, row, 0, xp, idxmap++, idx);
-  drawOnly38ColsFrame(idx - 8 - dx);
-  for (uint8_t x = 1; x < 39; x++) {
+  int32_t idx2 = (line + dy) * 320;
+  if ((idx2 >= lowval) && (idx2 < highval)) {
+    uint16_t idx = (uint16_t)idx2;
+    shiftDx(dx, bgcol0, idx);
+    uint8_t y = line >> 3;
+    uint8_t row = line & 7;
+    uint16_t idxmap = y * 40;
+    uint16_t xp = 0;
     drawExtBGColCharModeInt(screenMap, bgColArr, row, 0, xp, idxmap++, idx);
+    drawOnly38ColsFrame(idx - 8 - dx);
+    for (uint8_t x = 1; x < 39; x++) {
+      drawExtBGColCharModeInt(screenMap, bgColArr, row, 0, xp, idxmap++, idx);
+    }
+    drawExtBGColCharModeInt(screenMap, bgColArr, row, dx, xp, idxmap, idx);
+    drawOnly38ColsFrame(idx - 8);
   }
-  drawExtBGColCharModeInt(screenMap, bgColArr, row, dx, xp, idxmap, idx);
-  drawOnly38ColsFrame(idx - 8);
 }
 
 void VIC::drawMCBitmapModeInt(uint8_t *multicolorBitmap, uint8_t *colorMap1,
@@ -220,29 +254,39 @@ void VIC::drawMCBitmapModeInt(uint8_t *multicolorBitmap, uint8_t *colorMap1,
 
 void VIC::drawMCBitmapMode(uint8_t *multicolorBitmap, uint8_t *colorMap1,
                            uint8_t backgroundColor, uint8_t line, int8_t dy,
-                           uint8_t dx, uint16_t idx) {
+                           uint8_t dx) {
   uint16_t tftColArr[4];
   tftColArr[0] = tftColorFromC64ColorArr[backgroundColor & 0x0f];
-  if (shiftDyDx(line, dy, dx, tftColArr[0], idx)) {
-    return;
+  shiftDy(line, dy, tftColArr[0]);
+  uint16_t lowval = 0;
+  uint16_t highval = 200 * 320;
+  bool only24rows = !(vicreg[0x11] & 8);
+  if (only24rows) {
+    lowval = 4 * 320;
+    highval = 196 * 320;
   }
-  uint8_t y = line >> 3;
-  uint8_t row = line & 7;
-  uint16_t cidx = y * 40;
-  uint16_t mcidx = (y * 40) << 3;
-  uint16_t xp = 0;
-  drawMCBitmapModeInt(multicolorBitmap, colorMap1, tftColArr, cidx++, mcidx,
-                      row, 0, xp, idx);
-  mcidx += 8;
-  drawOnly38ColsFrame(idx - 8 - dx);
-  for (uint8_t x = 1; x < 39; x++) {
+  int32_t idx2 = (line + dy) * 320;
+  if ((idx2 >= lowval) && (idx2 < highval)) {
+    uint16_t idx = (uint16_t)idx2;
+    shiftDx(dx, tftColArr[0], idx);
+    uint8_t y = line >> 3;
+    uint8_t row = line & 7;
+    uint16_t cidx = y * 40;
+    uint16_t mcidx = (y * 40) << 3;
+    uint16_t xp = 0;
     drawMCBitmapModeInt(multicolorBitmap, colorMap1, tftColArr, cidx++, mcidx,
                         row, 0, xp, idx);
     mcidx += 8;
+    drawOnly38ColsFrame(idx - 8 - dx);
+    for (uint8_t x = 1; x < 39; x++) {
+      drawMCBitmapModeInt(multicolorBitmap, colorMap1, tftColArr, cidx++, mcidx,
+                          row, 0, xp, idx);
+      mcidx += 8;
+    }
+    drawMCBitmapModeInt(multicolorBitmap, colorMap1, tftColArr, cidx, mcidx,
+                        row, dx, xp, idx);
+    drawOnly38ColsFrame(idx - 8);
   }
-  drawMCBitmapModeInt(multicolorBitmap, colorMap1, tftColArr, cidx, mcidx, row,
-                      dx, xp, idx);
-  drawOnly38ColsFrame(idx - 8);
 }
 
 void VIC::drawStdBitmapModeInt(uint8_t *hiresBitmap, uint8_t *colorMap,
@@ -258,25 +302,37 @@ void VIC::drawStdBitmapModeInt(uint8_t *hiresBitmap, uint8_t *colorMap,
 }
 
 void VIC::drawStdBitmapMode(uint8_t *hiresBitmap, uint8_t *colorMap,
-                            uint8_t line, int8_t dy, uint8_t dx, uint16_t idx) {
+                            uint8_t line, int8_t dy, uint8_t dx) {
   // todo: background color is specific for each "tile"
-  if (shiftDyDx(line, dy, dx, 0, idx)) {
-    return;
+  shiftDy(line, dy, 0);
+  uint16_t lowval = 0;
+  uint16_t highval = 200 * 320;
+  bool only24rows = !(vicreg[0x11] & 8);
+  if (only24rows) {
+    lowval = 4 * 320;
+    highval = 196 * 320;
   }
-  uint8_t y = line >> 3;
-  uint8_t row = line & 7;
-  uint16_t colidx = y * 40;
-  uint16_t hiidx = (y * 40) << 3;
-  uint16_t xp = 0;
-  drawStdBitmapModeInt(hiresBitmap, colorMap, hiidx, colidx, row, 0, xp, idx);
-  hiidx += 8;
-  drawOnly38ColsFrame(idx - 8 - dx);
-  for (uint8_t x = 1; x < 39; x++) {
+  int32_t idx2 = (line + dy) * 320;
+  if ((idx2 >= lowval) && (idx2 < highval)) {
+    uint16_t idx = (uint16_t)idx2;
+    shiftDx(dx, 0, idx);
+    uint8_t y = line >> 3;
+    uint8_t row = line & 7;
+    uint16_t colidx = y * 40;
+    uint16_t hiidx = (y * 40) << 3;
+    uint16_t xp = 0;
     drawStdBitmapModeInt(hiresBitmap, colorMap, hiidx, colidx, row, 0, xp, idx);
     hiidx += 8;
+    drawOnly38ColsFrame(idx - 8 - dx);
+    for (uint8_t x = 1; x < 39; x++) {
+      drawStdBitmapModeInt(hiresBitmap, colorMap, hiidx, colidx, row, 0, xp,
+                           idx);
+      hiidx += 8;
+    }
+    drawStdBitmapModeInt(hiresBitmap, colorMap, hiidx, colidx, row, dx, xp,
+                         idx);
+    drawOnly38ColsFrame(idx - 8);
   }
-  drawStdBitmapModeInt(hiresBitmap, colorMap, hiidx, colidx, row, dx, xp, idx);
-  drawOnly38ColsFrame(idx - 8);
 }
 
 void VIC::drawSpriteDataSC(uint8_t bitnr, int16_t xpos, uint8_t ypos,
@@ -548,8 +604,8 @@ void VIC::init(uint8_t *ram, uint8_t *charrom) {
   this->chrom = charrom;
 
   // allocate bitmap memory to be transfered to LCD
-  // (consider xscroll and yscroll offset)
-  bitmap = new uint16_t[320 * (200 + 7) + 7]();
+  // (consider xscroll offset)
+  bitmap = new uint16_t[320 * 200 + 7]();
 
   colormap = new uint8_t[40 * 25]();
 
@@ -585,12 +641,10 @@ uint8_t VIC::nextRasterline() {
       screenblank = true;
     }
   }
-  uint8_t ld011 = (rasterline >= 256) ? 0x80 : 0;
-  vicreg[0x11] &= 0x7f;
-  vicreg[0x11] |= ld011;
-  uint8_t vicregd012 = (rasterline & 0xff);
-  vicreg[0x12] = vicregd012;
-  if ((latchd012 == vicregd012) && ((latchd011 & 0x80) == ld011)) {
+  uint8_t raster8 = (rasterline >= 256) ? 0x80 : 0;
+  uint8_t raster7 = (rasterline & 0xff);
+  vicreg[0x12] = raster7;
+  if ((latchd012 == raster7) && ((latchd011 & 0x80) == raster8)) {
     if (vicreg[0x1a] & 1) {
       vicreg[0x19] |= 0x81;
     } else {
@@ -598,8 +652,8 @@ uint8_t VIC::nextRasterline() {
     }
   }
   // badline?
-  if (((vicreg[0x11] & 7) == (vicregd012 & 7)) && (vicregd012 >= 0x30) &&
-      (vicregd012 <= 0xf7)) {
+  if (((vicreg[0x11] & 7) == (raster7 & 7)) && (raster7 >= 0x30) &&
+      (raster7 <= 0xf7)) {
     return 40;
   }
   return 0;
@@ -613,48 +667,35 @@ void VIC::drawRasterline() {
       drawblankline(dline);
       return;
     }
+    only38cols = !(vicreg[0x16] & 8);
     uint8_t d011 = vicreg[0x11];
     uint8_t deltay = d011 & 7;
-    bool only24rows = !(vicreg[0x11] & 8);
-    if (only24rows) {
-      if ((dline <= 3) || (dline >= 196)) {
-        drawblankline(dline);
-        return;
-      }
-      int16_t linealreadydrawn = dline + deltay - 3;
-      if ((linealreadydrawn <= 3) || (linealreadydrawn >= 196)) {
-        return;
-      }
-    }
     memset(spritedatacoll, false, sizeof(bool) * sizeof(spritedatacoll));
     uint8_t d016 = vicreg[0x16];
     uint8_t deltax = d016 & 7;
-    int32_t idx = (dline + deltay - 3) * 320;
-    if ((idx >= 0) && (idx <= 63680)) {
-      bool bmm = d011 & 32;
-      bool ecm = d011 & 64;
-      bool mcm = d016 & 16;
-      if (bmm) {
-        if (mcm) {
-          drawMCBitmapMode(ram + bitmapstart, ram + screenmemstart,
-                           vicreg[0x21], dline, deltay - 3, deltax, idx);
-        } else {
-          drawStdBitmapMode(ram + bitmapstart, ram + screenmemstart, dline,
-                            deltay - 3, deltax, idx);
-        }
+    bool bmm = d011 & 32;
+    bool ecm = d011 & 64;
+    bool mcm = d016 & 16;
+    if (bmm) {
+      if (mcm) {
+        drawMCBitmapMode(ram + bitmapstart, ram + screenmemstart, vicreg[0x21],
+                         dline, deltay - 3, deltax);
       } else {
-        if ((!ecm) && (!mcm)) {
-          drawStdCharMode(ram + screenmemstart, vicreg[0x21], dline, deltay - 3,
-                          deltax, idx);
-        } else if ((!ecm) && mcm) {
-          drawMCCharMode(ram + screenmemstart, vicreg[0x21], vicreg[0x22],
-                         vicreg[0x23], dline, deltay - 3, deltax, idx);
-        } else if (ecm && (!mcm)) {
-          uint8_t bgColArr[] = {vicreg[0x21], vicreg[0x22], vicreg[0x23],
-                                vicreg[0x24]};
-          drawExtBGColCharMode(ram + screenmemstart, bgColArr, dline,
-                               deltay - 3, deltax, idx);
-        }
+        drawStdBitmapMode(ram + bitmapstart, ram + screenmemstart, dline,
+                          deltay - 3, deltax);
+      }
+    } else {
+      if ((!ecm) && (!mcm)) {
+        drawStdCharMode(ram + screenmemstart, vicreg[0x21], dline, deltay - 3,
+                        deltax);
+      } else if ((!ecm) && mcm) {
+        drawMCCharMode(ram + screenmemstart, vicreg[0x21], vicreg[0x22],
+                       vicreg[0x23], dline, deltay - 3, deltax);
+      } else if (ecm && (!mcm)) {
+        uint8_t bgColArr[] = {vicreg[0x21], vicreg[0x22], vicreg[0x23],
+                              vicreg[0x24]};
+        drawExtBGColCharMode(ram + screenmemstart, bgColArr, dline, deltay - 3,
+                             deltax);
       }
     }
     drawSprites(line + deltay - 3);

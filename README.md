@@ -3,7 +3,7 @@
 C64 emulator for the development board Lilygo T-HMI equipped with an ESP32-S3 chip, a 2.8 inch touch display LCD screen (ST7789V driver) and a SD card slot.
 The keyboard for the emulator is simulated by an Android app, communication between the app and the emulator is realized using BLE (Bluetooth Low Energy).
 
-<img src="doc/donkey_kong.png" alt="class diagram" width="800"/>
+[![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
 
 ## Hardware
 
@@ -71,8 +71,8 @@ you may have to adapt the following constants in src/Config.h:
 
 I use arduino-cli to upload the provided binary files to the development board:
 
-- Download arduino-cli for your platform (https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz),
-  unpack the binary and place it in a directory included in the search path of executables (e.g. /usr/local/bin on a linux system).
+- Download arduino-cli for your platform (e.g. https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz for linux),
+  unpack the binary and place it in a directory included in the search path of executables (e.g. /usr/local/bin on linux).
 - You may have to install python3 and python3-serial if not already installed. On my linux system I had to install python3-serial:  
   sudo apt install python3-serial
 - You may have to install esptool to flash the microcontroller if not already installed:  
@@ -108,7 +108,7 @@ From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
 In Arduino Preferences, on the Settings tab, enter the [Espressif Arduino ESP32 Package](https://espressif.github.io/arduino-esp32/package_esp32_index.json)
 URL in the Additional boards manager URLs input box.
 Click OK and the software will install.
-Search for ESP32 in Tools → Board Manager and install ESP32-Arduino SDK (V 2.0.5 or above and below V3.0).
+Search for ESP32 in Tools → Board Manager and install ESP32-Arduino SDK (V2.0.17, must be below V3.0).
 
 Use the following settings in the Tools menu of the Arduino IDE 2.3.2:
 
@@ -235,10 +235,9 @@ All hardware ports not explicitly mentioned including their corresponding regist
 "Software stuff" not emulated resp. known bugs (list probably not conclusive):
 
 - no SID emulation (no sound support of development board)
-- timing issues (e.g. no linecrunching possible - ESP32 is too slow)
 - no tape/disk drive emulation (and no plans to do this)
-- VIC yscroll (bit 0-2 of reg. $d011) does not work properly at top and bottom
-- not all "illegal" opcodes of the 6502 CPU are implemented yet
+- timing issues (probably not resolvable because of too low performance)
+- "illegal instructions" test suite fails
 - some games have graphic errors
 - some games are not working at all
 
@@ -303,6 +302,8 @@ Games that are playable:
 - Xevious
 - Zalaga
 - Zaxxon
+- Rambo
+- Rick Dangerous
 
 Games not working:
 
@@ -313,4 +314,4 @@ Games not working:
 - 1942 (playable, but no proper scrolling)
 - Lemmings (playable, but incomplete graphics)
 - Buggy Boy (endless loop)
-- Rambo (crashing)
+

@@ -85,6 +85,9 @@ uint8_t CPUC64::getMem(uint16_t addr) {
         uint8_t val = vic->vicreg[vicidx];
         vic->vicreg[vicidx] = 0;
         return val;
+      } else if (vicidx == 0x11) {
+        uint8_t raster8 = (vic->rasterline >= 256) ? 0x80 : 0;
+        return vic->vicreg[0x11] & 0x7f | raster8;
       } else {
         return vic->vicreg[vicidx];
       }
@@ -406,7 +409,7 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
   }
 }
 
-void CPUC64::cmd6502illegal() {
+void CPUC64::cmd6502halt() {
   cpuhalted = true;
   ESP_LOGE(TAG, "illegal code, cpu halted, pc = %x", pc - 1);
 }
@@ -430,10 +433,55 @@ uint8_t CPUC64::getSR() { return sr; }
 
 uint16_t CPUC64::getPC() { return pc; }
 
+void CPUC64::checkciatimers(uint8_t cycles) {
+  // CIA 1 TOD alarm
+  if (cia1.checkAlarm() && (!iflag)) {
+    setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
+  }
+  // CIA 1 Timer A
+  if (cia1.checkTimerA(cycles) && (!iflag)) {
+    setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
+  }
+  // CIA 1 Timer B
+  if (cia1.checkTimerB(cycles) && (!iflag)) {
+    setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
+  }
+  // CIA 2 TOD alarm
+  if (cia2.checkAlarm() && nmiAck) {
+    nmiAck = false;
+    setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+  }
+  // CIA 2 Timer A
+  if (cia2.checkTimerA(cycles) && nmiAck) {
+    nmiAck = false;
+    setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+  }
+  // CIA 2 Timer B
+  if (cia2.checkTimerB(cycles) && nmiAck) {
+    nmiAck = false;
+    setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+  }
+}
+
+void CPUC64::logDebugInfo() {
+  if (debug &&
+      (debuggingstarted || (debugstartaddr == 0) || (pc == debugstartaddr))) {
+    debuggingstarted = true;
+    // debug (use LOGE because LOGI doesn't work here...)
+    ESP_LOGE(
+        TAG,
+        "pc: %2x, cmd: %s, a: %x, sr: %x, d012: %x, d011: %x, timerA(2): %x",
+        pc, cmdName[getMem(pc)], a, sr, getMem(0xd012), getMem(0xd011),
+        cia2.timerA);
+  }
+}
+
 void CPUC64::run() {
   // pc *must* be set externally!
   cpuhalted = false;
   debug = false;
+  debugstartaddr = 0;
+  debuggingstarted = false;
   perf = false;
   numofcycles = 0;
   uint8_t badlinecycles = 0;
@@ -453,57 +501,37 @@ void CPUC64::run() {
     }
     // execute CPU cycles
     // (4 = average number of cycles for an instruction)
-    while (numofcycles < 63 - (4 / 2) - badlinecycles) {
-      if (debug) {
-        // debug (use LOGE because LOGI doesn't work here...)
-        ESP_LOGE(TAG, "pc: %2x, cmd: %s, a: %x, sr: %x, d012: %x, d011: %x", pc,
-                 cmdName[getMem(pc)], a, sr, vic->vicreg[0x12],
-                 vic->vicreg[0x11]);
-      }
-      execute(getMem(pc++));
-    }
-    numofcyclespersecond += numofcycles;
-    uint32_t numofcyclessaved = numofcycles;
     numofcycles = 0;
+    uint8_t numofcyclestoexe = 63 - (4 / 2) - badlinecycles;
+    uint8_t numofcyclestmp = 0;
+    uint8_t i = 0;
+    while (numofcycles < numofcyclestoexe) {
+      if (cpuhalted) {
+        break;
+      }
+      logDebugInfo();
+      execute(getMem(pc++));
+      // only check each second time for timers (otherwise performance is too
+      // low)
+      if (i % 2) {
+        checkciatimers(numofcycles - numofcyclestmp);
+        numofcyclestmp = numofcycles;
+      }
+      i++;
+    }
     // draw rasterline
     vic->drawRasterline();
     // sprite collision interrupt?
     if ((vic->vicreg[0x19] & 0x80) && (vic->vicreg[0x1a] & 6) && (!iflag)) {
       setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
     }
-    // CIA 1 TOD alarm
-    if (cia1.checkAlarm() && (!iflag)) {
-      setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
-    }
-    // CIA 1 Timer A
-    if (cia1.checkTimerA(numofcyclessaved) && (!iflag)) {
-      setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
-    }
-    // CIA 1 Timer B
-    if (cia1.checkTimerB(numofcyclessaved) && (!iflag)) {
-      setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
-    }
-    // CIA 2 TOD alarm
-    if (cia2.checkAlarm() && nmiAck) {
-      nmiAck = false;
-      setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
-    }
-    // CIA 2 Timer A
-    if (cia2.checkTimerA(numofcyclessaved) && nmiAck) {
-      nmiAck = false;
-      setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
-    }
-    // CIA 2 Timer B
-    if (cia2.checkTimerB(numofcyclessaved) && nmiAck) {
-      nmiAck = false;
-      setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
-    }
     if (restorenmi && nmiAck) {
       restorenmi = false;
       setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
     }
     // throttle 6502 CPU
-    measuredcycles.fetch_add(numofcyclessaved, std::memory_order_release);
+    numofcyclespersecond += numofcycles;
+    measuredcycles.fetch_add(numofcycles, std::memory_order_release);
     uint16_t adjustcyclestmp = adjustcycles.load(std::memory_order_acquire);
     if (adjustcyclestmp > 0) {
       ets_delay_us(adjustcyclestmp);
@@ -516,6 +544,7 @@ void CPUC64::initMemAndRegs() {
   ESP_LOGI(TAG, "CPUC64::initMemAndRegs");
   setMem(0, 0x2f);
   setMem(1, 0x37);
+  setMem(0x8004, 0);
   sp = 0xFF;
   iflag = true;
   dflag = false;

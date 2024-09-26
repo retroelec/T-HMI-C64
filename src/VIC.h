@@ -35,8 +35,10 @@ private:
                              uint16_t *tftColArr, bool *collArr, uint8_t dx)
       __attribute__((always_inline));
   void drawblankline(uint8_t line);
-  inline bool shiftDyDx(uint8_t line, int8_t dy, uint8_t dx, uint16_t bgcol,
-                        uint16_t &idx) __attribute__((always_inline));
+  inline void shiftDy(uint8_t line, int8_t dy, uint16_t bgcol)
+      __attribute__((always_inline));
+  inline void shiftDx(uint8_t dx, uint16_t bgcol, uint16_t &idx)
+      __attribute__((always_inline));
   inline void drawOnly38ColsFrame(uint16_t tmpidx)
       __attribute__((always_inline));
   inline void drawStdCharModeInt(uint8_t *screenMap, uint16_t bgcol,
@@ -44,20 +46,19 @@ private:
                                  uint16_t idxmap, uint16_t &idx)
       __attribute__((always_inline));
   void drawStdCharMode(uint8_t *screenMap, uint8_t bgColor, uint8_t line,
-                       int8_t dy, uint8_t dx, uint16_t idx);
+                       int8_t dy, uint8_t dx);
   inline void drawExtBGColCharModeInt(uint8_t *screenMap, uint8_t *bgColArr,
                                       uint8_t row, uint8_t dx, uint16_t &xp,
                                       uint16_t idxmap, uint16_t &idx)
       __attribute__((always_inline));
   void drawExtBGColCharMode(uint8_t *screenMap, uint8_t *bgColArr, uint8_t line,
-                            int8_t dy, uint8_t dx, uint16_t idx);
+                            int8_t dy, uint8_t dx);
   inline void drawMCCharModeInt(uint8_t *screenMap, uint16_t bgcol,
                                 uint16_t *tftColArr, uint8_t row, uint8_t dx,
                                 uint16_t &xp, uint16_t idxmap, uint16_t &idx)
       __attribute__((always_inline));
   void drawMCCharMode(uint8_t *screenMap, uint8_t bgColor1, uint8_t bgColor2,
-                      uint8_t bgColor3, uint8_t line, int8_t dy, uint8_t dx,
-                      uint16_t idx);
+                      uint8_t bgColor3, uint8_t line, int8_t dy, uint8_t dx);
   inline void drawMCBitmapModeInt(uint8_t *multicolorBitmap, uint8_t *colorMap1,
                                   uint16_t *tftColArr, uint16_t cidx,
                                   uint16_t mcidx, uint8_t row, uint8_t dx,
@@ -65,13 +66,13 @@ private:
       __attribute__((always_inline));
   void drawMCBitmapMode(uint8_t *multicolorBitmap, uint8_t *colorMap1,
                         uint8_t backgroundColor, uint8_t line, int8_t dy,
-                        uint8_t dx, uint16_t idx);
+                        uint8_t dx);
   void drawStdBitmapModeInt(uint8_t *hiresBitmap, uint8_t *colorMap,
                             uint16_t hiidx, uint16_t &colidx, uint8_t row,
                             uint8_t dx, uint16_t &xp, uint16_t &idx)
       __attribute__((always_inline));
   void drawStdBitmapMode(uint8_t *hiresBitmap, uint8_t *colorMap, uint8_t line,
-                         int8_t dy, uint8_t dx, uint16_t idx);
+                         int8_t dy, uint8_t dx);
   void drawSpriteDataSC(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                         uint8_t *data, uint8_t color);
   void drawSpriteDataSCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,

@@ -149,15 +149,19 @@ void IRAM_ATTR interruptSystemFunc() {
   throttlingCnt++;
   uint16_t measuredcyclestmp =
       cpu.measuredcycles.load(std::memory_order_acquire);
-  if (measuredcyclestmp > throttlingCnt * Config::INTERRUPTSYSTEMRESOLUTION) {
-    uint16_t adjustcycles =
-        measuredcyclestmp - throttlingCnt * Config::INTERRUPTSYSTEMRESOLUTION;
-    cpu.adjustcycles.store(adjustcycles, std::memory_order_release);
-    numofburnedcyclespersecond += adjustcycles;
-  }
-  if (throttlingCnt == 50) {
-    throttlingCnt = 0;
-    cpu.measuredcycles.store(0, std::memory_order_release);
+  // do not throttle at first half of each "measurement period" (otherwise CPU
+  // is throtteled a little bit too much)
+  if (throttlingCnt >= Config::THROTTELINGNUMSTEPS / 2) {
+    if (measuredcyclestmp > throttlingCnt * Config::INTERRUPTSYSTEMRESOLUTION) {
+      uint16_t adjustcycles =
+          measuredcyclestmp - throttlingCnt * Config::INTERRUPTSYSTEMRESOLUTION;
+      cpu.adjustcycles.store(adjustcycles, std::memory_order_release);
+      numofburnedcyclespersecond += adjustcycles;
+    }
+    if (throttlingCnt == Config::THROTTELINGNUMSTEPS) {
+      throttlingCnt = 0;
+      cpu.measuredcycles.store(0, std::memory_order_release);
+    }
   }
 }
 

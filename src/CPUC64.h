@@ -48,6 +48,8 @@ private:
 
   inline void adaptVICBaseAddrs(bool fromcia) __attribute__((always_inline));
   inline void decodeRegister1(uint8_t val) __attribute__((always_inline));
+  inline void checkciatimers(uint8_t cycles) __attribute__((always_inline));
+  inline void logDebugInfo() __attribute__((always_inline));
 
 public:
   VIC *vic;
@@ -74,6 +76,8 @@ public:
   uint8_t kbjoystickmode;
   bool refreshframecolor;
   bool debug;
+  uint16_t debugstartaddr;
+  bool debuggingstarted;
   bool perf;
 
   bool restorenmi;
@@ -81,8 +85,7 @@ public:
   inline uint8_t getMem(uint16_t addr) __attribute__((always_inline));
   inline void setMem(uint16_t addr, uint8_t val) __attribute__((always_inline));
 
-  void cmd6502illegal() override;
-  // void cmd6502nop1a() override;
+  void cmd6502halt() override;
   void run() override;
 
   void initMemAndRegs();
