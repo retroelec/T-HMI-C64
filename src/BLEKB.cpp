@@ -205,8 +205,10 @@ void BLEKB::init(ExternalCmds *externalCmds) {
       new BLEKBCharacteristicCallback(*this, *externalCmds));
   pCharacteristic->setValue("THMIC64");
   pService->start();
-  BLEAdvertising *pAdvertising = pServer->getAdvertising();
-  pAdvertising->start();
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(Config::SERVICE_UUID);
+  pAdvertising->setMinPreferred(0x12);
+  BLEDevice::startAdvertising();
 }
 
 void BLEKB::handleKeyPress() {
