@@ -169,10 +169,9 @@ void cpuCode(void *parameter) {
   ESP_LOGI(TAG, "cpuTask running on core %d", xPortGetCoreID());
 
   // interrupt each 100 ms to increment CIA real time clock (TOD)
-  interruptTOD = timerBegin(2, 80, true);
-  timerAttachInterrupt(interruptTOD, &interruptTODFunc, true);
-  timerAlarmWrite(interruptTOD, 100000, true);
-  timerAlarmEnable(interruptTOD);
+  interruptTOD = timerBegin(1000000);
+  timerAttachInterrupt(interruptTOD, &interruptTODFunc);
+  timerAlarm(interruptTOD, 100000, true, 0);
 
   cpu.run();
   // cpu runs forever -> no vTaskDelete(NULL);
@@ -204,16 +203,14 @@ void Main::setup() {
                           1);       // Core where the task should run
 
   // interrupt each 1000 us to get keyboard codes and throttle 6502 CPU
-  interruptSystem = timerBegin(1, 80, true);
-  timerAttachInterrupt(interruptSystem, &interruptSystemFunc, true);
-  timerAlarmWrite(interruptSystem, Config::INTERRUPTSYSTEMRESOLUTION, true);
-  timerAlarmEnable(interruptSystem);
+  interruptSystem = timerBegin(1000000);
+  timerAttachInterrupt(interruptSystem, &interruptSystemFunc);
+  timerAlarm(interruptSystem, Config::INTERRUPTSYSTEMRESOLUTION, true, 0);
 
   // profiling: interrupt each second
-  interruptProfiling = timerBegin(3, 80, true);
-  timerAttachInterrupt(interruptProfiling, &interruptProfilingFunc, true);
-  timerAlarmWrite(interruptProfiling, 1000000, true);
-  timerAlarmEnable(interruptProfiling);
+  interruptProfiling = timerBegin(1000000);
+  timerAttachInterrupt(interruptProfiling, &interruptProfilingFunc);
+  timerAlarm(interruptProfiling, 1000000, true, 0);
 }
 
 void Main::loop() {

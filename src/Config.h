@@ -29,9 +29,8 @@ static const uint8_t SD_MOSI_PIN = 11;
 static const uint8_t SD_SCLK_PIN = 12;
 
 // BLEKB
-static const std::string SERVICE_UUID = "695ba701-a48c-43f6-9028-3c885771f19f";
-static const std::string CHARACTERISTIC_UUID =
-    "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
+static const char *SERVICE_UUID = "695ba701-a48c-43f6-9028-3c885771f19f";
+static const char *CHARACTERISTIC_UUID = "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
 
 // Joystick
 static const adc2_channel_t ADC_JOYSTICK_X = ADC2_CHANNEL_4;

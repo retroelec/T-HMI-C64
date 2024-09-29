@@ -18,14 +18,16 @@
 #include "Config.h"
 #include "JoystickInitializationException.h"
 #include <driver/adc.h>
+#include <driver/gpio.h>
+#include <soc/gpio_struct.h>
 
 void Joystick::init() {
   // init adc (x and y axis)
-  adc2_config_channel_atten(Config::ADC_JOYSTICK_X, ADC_ATTEN_11db);
-  adc2_config_channel_atten(Config::ADC_JOYSTICK_Y, ADC_ATTEN_11db);
+  adc2_config_channel_atten(Config::ADC_JOYSTICK_X, ADC_ATTEN_DB_11);
+  adc2_config_channel_atten(Config::ADC_JOYSTICK_Y, ADC_ATTEN_DB_11);
   // init gpio (fire buttons)
   gpio_config_t io_conf;
-  io_conf.intr_type = (gpio_int_type_t)GPIO_PIN_INTR_DISABLE;
+  io_conf.intr_type = (gpio_int_type_t)GPIO_INTR_DISABLE;
   io_conf.mode = GPIO_MODE_INPUT;
   io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
@@ -40,9 +42,9 @@ void Joystick::init() {
 uint8_t Joystick::getValue(bool port2, uint8_t dc00, uint8_t dc02) {
   // assume return value of adc2_get_raw is ESP_OK
   int valueX;
-  adc2_get_raw(Config::ADC_JOYSTICK_X, ADC_WIDTH_12Bit, &valueX);
+  adc2_get_raw(Config::ADC_JOYSTICK_X, ADC_WIDTH_BIT_12, &valueX);
   int valueY;
-  adc2_get_raw(Config::ADC_JOYSTICK_Y, ADC_WIDTH_12Bit, &valueY);
+  adc2_get_raw(Config::ADC_JOYSTICK_Y, ADC_WIDTH_BIT_12, &valueY);
   // GPIO.in1.val must be used for GPIO pins > 32
   uint8_t valueFire = (GPIO.in >> Config::JOYSTICK_FIRE_PIN) & 0x01;
   // C64 register value

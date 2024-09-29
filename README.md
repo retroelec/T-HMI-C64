@@ -5,6 +5,14 @@ The keyboard for the emulator is simulated by an Android app, communication betw
 
 [![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
 
+Contact: retroelec42@gmail.com
+
+## News
+
+- Using Arduino core V3.0 (migration of code from V2.0 to V3.0 -> breaking changes -> see also chapter "Compiling code without changing the actual version of your installed Arduino core")
+- BLE advertising improvements (patch by Heiko K.)
+- Reset Button (DIV screen) works now :)
+
 ## Hardware
 
 From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
@@ -97,10 +105,19 @@ If you want to install the development environment, you can use the provided Mak
 - On a linux system you may have to add the group dialout to your user to be able to upload code as a normal user:  
   sudo usermod -a -G dialout your-username  
   (You have to logout and login again to get the group get active.)
-- Compile code:  
+- Compile code (see also chapter "Compiling code without changing the actual version of your installed Arduino core"):  
   make
 - Upload code:  
   make upload
+
+##### Compiling code without changing the actual version of your installed Arduino core
+
+You may have installed already a specfic Arduino core for other projects (e.g. Arduino core 2.0.x) and you don't want to change this setup.
+For this situation you can use a prepared docker image to compile the code:
+
+- install podman
+- get prepared docker image: podman pull docker.io/retroelec42/arduino-cli:latest
+- compile using docker image: make podcompile
 
 #### Install development environment using Arduino IDE (*not* necessary to run the emulator)
 
@@ -108,7 +125,7 @@ From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
 In Arduino Preferences, on the Settings tab, enter the [Espressif Arduino ESP32 Package](https://espressif.github.io/arduino-esp32/package_esp32_index.json)
 URL in the Additional boards manager URLs input box.
 Click OK and the software will install.
-Search for ESP32 in Tools → Board Manager and install ESP32-Arduino SDK (V2.0.17, must be below V3.0).
+Search for ESP32 in Tools → Board Manager and install ESP32-Arduino SDK (V3.0.5).
 
 Use the following settings in the Tools menu of the Arduino IDE 2.3.2:
 
@@ -132,7 +149,7 @@ Use the following settings in the Tools menu of the Arduino IDE 2.3.2:
 | USB Mode                             | Hardware CDC and JTAG             |
 | Core Debug Level                     | Info                              |
 
-The following Arduino libraries are used (all are part of ESP32 Arduino core, version 2.0.0):
+The following Arduino libraries are used (all are part of ESP32 Arduino core, version 3.0):
 
 - FS
 - SD_MMC
@@ -208,6 +225,8 @@ Afterwards, as usual, you can start the game by typing "RUN" followed by pressin
 
 <img src="doc/loadprg.gif" alt="class diagram" width="800"/>
 
+Hint: You can use [D64 Editor](https://www.d64editor.com/) to extract prg files from d64 files (also works unter linux using wine).
+
 ## Software
 
 ### Class diagram
@@ -238,6 +257,7 @@ All hardware ports not explicitly mentioned including their corresponding regist
 - no tape/disk drive emulation (and no plans to do this)
 - timing issues (probably not resolvable because of too low performance)
 - "illegal instructions" test suite fails
+- rarly CPU is blocked after loading a game
 - some games have graphic errors
 - some games are not working at all
 

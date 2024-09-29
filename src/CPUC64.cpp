@@ -528,7 +528,7 @@ void CPUC64::run() {
     measuredcycles.fetch_add(numofcycles, std::memory_order_release);
     uint16_t adjustcyclestmp = adjustcycles.load(std::memory_order_acquire);
     if (adjustcyclestmp > 0) {
-      ets_delay_us(adjustcyclestmp);
+      esp_rom_delay_us(adjustcyclestmp);
       adjustcycles.store(0, std::memory_order_release);
     }
   }

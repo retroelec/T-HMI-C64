@@ -18,6 +18,7 @@
 #include "HardwareInitializationException.h"
 #include <FreeRTOS.h>
 #include <driver/gpio.h>
+#include <soc/gpio_struct.h>
 #include <string>
 #include <task.h>
 
@@ -90,7 +91,7 @@ void fill_lu_pinbitmask() {
 
 esp_err_t config_lcd() {
   gpio_config_t io_conf;
-  io_conf.intr_type = (gpio_int_type_t)GPIO_PIN_INTR_DISABLE;
+  io_conf.intr_type = (gpio_int_type_t)GPIO_INTR_DISABLE;
   io_conf.mode = GPIO_MODE_OUTPUT;
   io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_conf.pull_up_en = GPIO_PULLUP_DISABLE;

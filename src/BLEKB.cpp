@@ -18,6 +18,7 @@
 #include "Config.h"
 #include "ExternalCmds.h"
 #include "Joystick.h"
+#include <cstring>
 #include <esp_log.h>
 
 static const char *TAG = "BLEKB";
@@ -108,7 +109,7 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
   if (!blekb.deviceConnected) {
     return;
   }
-  std::string value = pCharacteristic->getValue();
+  String value = pCharacteristic->getValue();
   uint8_t len = value.length() > 255 ? 255 : value.length();
   if (len == 1) { // virtual joystick
     uint8_t virtjoy = (uint8_t)value[0];

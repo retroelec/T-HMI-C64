@@ -18,7 +18,6 @@
 #define JOYSTICK_H
 
 #include <cstdint>
-#include <driver/gpio.h>
 
 class Joystick {
 private:
