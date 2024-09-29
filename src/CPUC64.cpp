@@ -503,7 +503,6 @@ void CPUC64::run() {
     // (4 = average number of cycles for an instruction)
     numofcycles = 0;
     uint8_t numofcyclestoexe = 63 - (4 / 2) - badlinecycles;
-    uint8_t numofcyclestmp = 0;
     uint8_t i = 0;
     while (numofcycles < numofcyclestoexe) {
       if (cpuhalted) {
@@ -511,14 +510,9 @@ void CPUC64::run() {
       }
       logDebugInfo();
       execute(getMem(pc++));
-      // only check each second time for timers (otherwise performance is too
-      // low)
-      if (i % 2) {
-        checkciatimers(numofcycles - numofcyclestmp);
-        numofcyclestmp = numofcycles;
-      }
-      i++;
     }
+    // cia timers
+    checkciatimers(numofcycles);
     // draw rasterline
     vic->drawRasterline();
     // sprite collision interrupt?
