@@ -17,6 +17,7 @@
 #ifndef VIC_H
 #define VIC_H
 
+#include "ConfigDisplay.h"
 #include <cstdint>
 
 class VIC {
@@ -27,6 +28,7 @@ private:
   bool spritedatacoll[320];
   uint8_t startbyte;
   bool only38cols;
+  ConfigDisplay configDisplay;
 
   inline void drawByteStdData(uint8_t data, uint16_t &idx, uint16_t &xp,
                               uint16_t col, uint16_t bgcol, uint8_t dx)
@@ -109,6 +111,7 @@ public:
 
   VIC();
   void initVarsAndRegs();
+  void initLCDController();
   void init(uint8_t *ram, uint8_t *charrom);
   void refresh(bool refreshframecolor);
   uint8_t nextRasterline();

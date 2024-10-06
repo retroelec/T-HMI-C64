@@ -203,3 +203,5 @@ void ST7789V::drawFrame(uint16_t frameColor) {
 void ST7789V::drawBitmap(uint16_t *bitmap) {
   ST7789V::copyData(0, 20, 320, 200, bitmap);
 }
+
+const uint16_t *ST7789V::getC64Colors() const { return c64Colors; }

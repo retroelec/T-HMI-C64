@@ -1,6 +1,9 @@
-# C64 Emulator on an ESP32-S3 with BLE keyboard for development board Lilygo T-HMI
+# C64 Emulator for ESP32-S3 development boards with BLE keyboard (ready for for development boards Lilygo T-HMI and T-Display S3 AMOLED)
 
-C64 emulator for the development board Lilygo T-HMI equipped with an ESP32-S3 chip, a 2.8 inch touch display LCD screen (ST7789V driver) and a SD card slot.
+C64 emulator for ESP32-S3 development boards.
+Initially developed for the Lilygo T-HMI board equipped with an ESP32-S3 chip, a 2.8 inch touch display LCD screen (ST7789V driver) and an SD card slot.
+The emulator was later expanded to also support the board T-Display S3 AMOLED. Adjustments for other boards shouldn't be very difficult.
+
 The keyboard for the emulator is simulated by an Android app, communication between the app and the emulator is realized using BLE (Bluetooth Low Energy).
 
 [![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
@@ -9,11 +12,12 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- Expanding emulator to support development board T-Display S3 AMOLED
 - Using Arduino core V3.0 (migration of code from V2.0 to V3.0 -> breaking changes -> see also chapter "Compiling code without changing the actual version of your installed Arduino core")
 - BLE advertising improvements (patch by Heiko K.)
 - Reset Button (DIV screen) works now :)
 
-## Hardware
+## Lilygo T-HMI development board
 
 From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
 
@@ -75,7 +79,7 @@ you may have to adapt the following constants in src/Config.h:
 - THMIC64KB/app/src/ : source code of Android app
 - Makefile : used to install development environment and to compile + upload code
 
-### Install C64 Emulator
+### Install C64 Emulator on Lilygo T-HMI
 
 I use arduino-cli to upload the provided binary files to the development board:
 
@@ -157,6 +161,29 @@ The following Arduino libraries are used (all are part of ESP32 Arduino core, ve
 
 To upload the emulator from the Arduino IDE just open the file T-HMI-C64.ino
 and choose menu Sketch - Upload or press ctrl-u.
+
+### Install C64 Emulator on T-Display S3 AMOLED
+
+Provided files (source code and binary files) are ready for the board T-HMI.
+If you want to install the emulator on the T-Display S3 AMOLED board, you have to make minimal adaptions in the source code
+and compile the code afterwards.
+
+Adaptions of source code:
+
+- src/Config.h: set constants LCDWIDTH and REFRESHDELAY to 536 and 13 (as written in the comment)
+- src/ConfigDisplay.h: uncomment the following lines: //#include "RM67162.h" and // ConfigDisplay() { displayDriver = new RM67162(); }
+                       and comment the lines #include "ST7789V.h" and ConfigDisplay() { displayDriver = new ST7789V(); }
+
+Compile and upload the code to the T-Display S3 AMOLED board (see chapter "Install C64 Emulator on Lilygo T-HMI").
+
+<img src="doc/tdisps3amoled.jpg" alt="T-HMI" width="800"/>
+
+### Porting emulator to other ESP32-S3 development boards
+
+To expand the emulator for other ESP32-S3 development boards you have to to the following steps:
+
+- Provide display driver files analogous to ST7789V.* or RM67162.* (you guessed it: display driver files for ST7789V and RM67162 boards are already provided)
+- adapt src/Config.h and src/ConfigDisplay.h
 
 ### Install Android App
 

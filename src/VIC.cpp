@@ -15,18 +15,15 @@
  http://www.gnu.org/licenses/.
 */
 #include "VIC.h"
-#include "ST7789V.h"
+#include "Config.h"
+#include "DisplayDriver.h"
 #include <cstring>
 
-static uint16_t tftColorFromC64ColorArr[16] = {
-    ST7789V::c64_black,     ST7789V::c64_white,      ST7789V::c64_red,
-    ST7789V::c64_turquoise, ST7789V::c64_purple,     ST7789V::c64_green,
-    ST7789V::c64_blue,      ST7789V::c64_yellow,     ST7789V::c64_orange,
-    ST7789V::c64_brown,     ST7789V::c64_lightred,   ST7789V::c64_grey1,
-    ST7789V::c64_grey2,     ST7789V::c64_lightgreen, ST7789V::c64_lightblue,
-    ST7789V::c64_grey3};
+static const uint16_t *tftColorFromC64ColorArr;
 
 static bool collArr[4] = {false, true, true, true};
+
+VIC::VIC() { bitmap = nullptr; }
 
 void VIC::drawByteStdData(uint8_t data, uint16_t &idx, uint16_t &xp,
                           uint16_t col, uint16_t bgcol, uint8_t dx) {
@@ -573,8 +570,6 @@ void VIC::drawSprites(uint8_t line) {
   }
 }
 
-VIC::VIC() { bitmap = nullptr; }
-
 void VIC::initVarsAndRegs() {
   for (uint8_t i = 0; i < 0x40; i++) {
     vicreg[i] = 0;
@@ -595,6 +590,8 @@ void VIC::initVarsAndRegs() {
   charset = chrom;
 }
 
+void VIC::initLCDController() { configDisplay.displayDriver->init(); }
+
 void VIC::init(uint8_t *ram, uint8_t *charrom) {
   if (bitmap != nullptr) {
     // init method must be called only once
@@ -607,24 +604,22 @@ void VIC::init(uint8_t *ram, uint8_t *charrom) {
   // (consider xscroll offset)
   bitmap = new uint16_t[320 * 200 + 7]();
 
+  // div init
   colormap = new uint8_t[40 * 25]();
-
+  tftColorFromC64ColorArr = configDisplay.displayDriver->getC64Colors();
   initVarsAndRegs();
-
-  // init LCD driver
-  ST7789V::init();
 }
 
 void VIC::checkFrameColor() {
   uint8_t framecol = vicreg[0x20] & 15;
   if (framecol != syncd020) {
     syncd020 = framecol;
-    ST7789V::drawFrame(tftColorFromC64ColorArr[framecol]);
+    configDisplay.displayDriver->drawFrame(tftColorFromC64ColorArr[framecol]);
   }
 }
 
 void VIC::refresh(bool refreshframecolor) {
-  ST7789V::drawBitmap(bitmap);
+  configDisplay.displayDriver->drawBitmap(bitmap);
   if (refreshframecolor) {
     checkFrameColor();
   }

@@ -1,6 +1,6 @@
 PORT := /dev/ttyACM0
 FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,LoopCore=0,DebugLevel=info
-SOURCEFILES=$(wildcard src/*.cpp)
+SOURCEFILES=$(wildcard src/*.cpp src/rm67162/*.cpp)
 
 default:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h
 	arduino-cli compile --fqbn $(FQBN) --build-path build T-HMI-C64.ino

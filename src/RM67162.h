@@ -14,37 +14,41 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef ST7789V_H
-#define ST7789V_H
+#ifndef RM67162_H
+#define RM67162_H
 
+#include "Config.h"
 #include "DisplayDriver.h"
 #include <cstdint>
 
-class ST7789V : public DisplayDriver {
+// no elegant/simple solution for max() at compile time in C++11
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
+class RM67162 : public DisplayDriver {
 private:
-  inline static void writeCmd(uint8_t cmd) __attribute__((always_inline));
-  inline static void writeData(uint8_t data) __attribute__((always_inline));
-  static void copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
-                       uint16_t *data);
+  static const uint16_t BORDERWIDTH = (Config::LCDWIDTH - 320) / 2;
+  static const uint16_t BORDERHEIGHT = (Config::LCDHEIGHT - 200) / 2;
+  static const uint16_t FRAMEMEMSIZE =
+      MAX(320 * BORDERHEIGHT, BORDERWIDTH *Config::LCDHEIGHT);
   static uint16_t *framecolormem;
 
 public:
   static const uint16_t c64_black = 0x0000;
   static const uint16_t c64_white = 0xffff;
-  static const uint16_t c64_red = 0x8000;
-  static const uint16_t c64_turquoise = 0xa7fc;
-  static const uint16_t c64_purple = 0xc218;
-  static const uint16_t c64_green = 0x064a;
-  static const uint16_t c64_blue = 0x0014;
-  static const uint16_t c64_yellow = 0xe74e;
-  static const uint16_t c64_orange = 0xd42a;
-  static const uint16_t c64_brown = 0x6200;
-  static const uint16_t c64_lightred = 0xfbae;
-  static const uint16_t c64_grey1 = 0x3186;
-  static const uint16_t c64_grey2 = 0x73ae;
-  static const uint16_t c64_lightgreen = 0xa7ec;
-  static const uint16_t c64_lightblue = 0x043f;
-  static const uint16_t c64_grey3 = 0xb5d6;
+  static const uint16_t c64_red = 0x0088;
+  static const uint16_t c64_turquoise = 0xfca7;
+  static const uint16_t c64_purple = 0x18c2;
+  static const uint16_t c64_green = 0x4a06;
+  static const uint16_t c64_blue = 0x1400;
+  static const uint16_t c64_yellow = 0x4ee7;
+  static const uint16_t c64_orange = 0x2ad4;
+  static const uint16_t c64_brown = 0x0062;
+  static const uint16_t c64_lightred = 0xaefb;
+  static const uint16_t c64_grey1 = 0x8631;
+  static const uint16_t c64_grey2 = 0xae73;
+  static const uint16_t c64_lightgreen = 0xeca7;
+  static const uint16_t c64_lightblue = 0x3f04;
+  static const uint16_t c64_grey3 = 0xd6b5;
 
   const uint16_t c64Colors[16] = {
       c64_black,  c64_white,      c64_red,       c64_turquoise,
@@ -58,4 +62,4 @@ public:
   const uint16_t *getC64Colors() const override;
 };
 
-#endif // ST7789V_H
+#endif // RM67162_H

@@ -14,26 +14,17 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
+#ifndef CONFIGDISPLAY_H
+#define CONFIGDISPLAY_H
 
-#include "src/Main.h"
-#include <esp_log.h>
+#include "DisplayDriver.h"
+#include "ST7789V.h"
+//#include "RM67162.h"
 
-static const char *TAG = "T-HMI-C64";
+struct ConfigDisplay {
+  DisplayDriver *displayDriver;
+  ConfigDisplay() { displayDriver = new ST7789V(); }
+  // ConfigDisplay() { displayDriver = new RM67162(); }
+};
 
-void setup() {
-  Serial.begin(115200);
-  vTaskDelay(500 / portTICK_PERIOD_MS);
-  ESP_LOGI(TAG, "start setup...");
-  ESP_LOGI(TAG, "setup() running on core %d", xPortGetCoreID());
-  try {
-    Main::setup();
-  } catch (...) {
-    ESP_LOGE(TAG, "setup() failed");
-    while (true) {
-    }
-  }
-  vTaskDelay(1000 / portTICK_PERIOD_MS);
-  ESP_LOGI(TAG, "setup done");
-}
-
-void loop() { Main::loop(); }
+#endif // CONFIGDISPLAY_H

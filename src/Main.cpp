@@ -168,6 +168,9 @@ void IRAM_ATTR interruptSystemFunc() {
 void cpuCode(void *parameter) {
   ESP_LOGI(TAG, "cpuTask running on core %d", xPortGetCoreID());
 
+  // init LCD driver
+  vic.initLCDController();
+
   // interrupt each 100 ms to increment CIA real time clock (TOD)
   interruptTOD = timerBegin(1000000);
   timerAttachInterrupt(interruptTOD, &interruptTODFunc);
@@ -215,5 +218,5 @@ void Main::setup() {
 
 void Main::loop() {
   vic.refresh(cpu.refreshframecolor);
-  vTaskDelay(1);
+  vTaskDelay(Config::REFRESHDELAY);
 }
