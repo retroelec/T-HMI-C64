@@ -17,7 +17,7 @@
 #ifndef EXTERNALCMDS_H
 #define EXTERNALCMDS_H
 
-class CPUC64;
+class C64Emu;
 
 #include "SDCard.h"
 #include <cstdint>
@@ -31,6 +31,7 @@ struct BLENotificationStruct1 {
   uint8_t sendrawkeycodes;
   uint8_t switchdebug;
   uint8_t switchperf;
+  uint8_t switchdetectreleasekey;
 };
 
 struct BLENotificationStruct2 {
@@ -64,10 +65,9 @@ struct BLENotificationStruct3 {
 
 class ExternalCmds {
 private:
+  C64Emu *c64emu;
   uint8_t *ram;
-  CPUC64 *cpu;
   SDCard sdcard;
-
   bool sendrawkeycodes;
 
   void setVarTab(uint16_t addr);
@@ -80,7 +80,7 @@ public:
   BLENotificationStruct2 type2notification;
   BLENotificationStruct3 type3notification;
 
-  void init(uint8_t *ram, CPUC64 *cpu);
+  void init(uint8_t *ram, C64Emu *c64emu);
   uint8_t executeExternalCmd(uint8_t *buffer);
 };
 

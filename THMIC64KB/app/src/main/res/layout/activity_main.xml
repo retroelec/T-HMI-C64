@@ -64,6 +64,14 @@
             android:text="JOY2"
             android:textColor="@android:color/white" />
 
+        <ImageButton
+            android:id="@+id/powerOff"
+            android:src="@drawable/pow"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:backgroundTint="#777777"
+            android:textColor="@android:color/white" />
+
     </TableRow>
 
     <org.retroelec.thmic64kb.C64Keyboard

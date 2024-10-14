@@ -8,6 +8,8 @@ import android.os.Vibrator;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -19,9 +21,14 @@ public class C64Keyboard extends LinearLayout {
 
     private static final int KEYBGCOLOR = 0xff2b2121;
     private static final int KEYSELECTEDCOLOR = 0xff777777;
+    private static final int DURATION_VIBRATION_EFFECT = 100;
+    private static final int DURATION_VISUAL_EFFECT = 200;
 
     private MyApplication myApplication;
     private Settings settings;
+
+    private long startTime = 0;
+    private final Handler handler = new Handler();
 
     private final Map<String, byte[]> map = new HashMap<>();
     private Button keyshiftleft;
@@ -44,6 +51,55 @@ public class C64Keyboard extends LinearLayout {
     private Button keycomma;
     private Button keyperiod;
     private Button keyslash;
+    private Button keyf1;
+    private Button keyf3;
+    private Button keyf5;
+    private Button keyf7;
+    private Button keyload;
+    private Button keyleftarrow;
+    private Button keyplus;
+    private Button keyminus;
+    private Button keypound;
+    private ImageButton keyhome;
+    private ImageButton keydel;
+    private Button keyq;
+    private Button keyw;
+    private Button keye;
+    private Button keyr;
+    private Button keyt;
+    private Button keyy;
+    private Button keyu;
+    private Button keyi;
+    private Button keyo;
+    private Button keyp;
+    private Button keyat;
+    private Button keymul;
+    private Button keyarrowup;
+    private Button keyrestore;
+    private ImageButton keyrunstop;
+    private Button keya;
+    private Button keys;
+    private Button keyd;
+    private Button keyf;
+    private Button keyg;
+    private Button keyh;
+    private Button keyj;
+    private Button keyk;
+    private Button keyl;
+    private Button keyequal;
+    private Button keyreturn;
+    private Button keyz;
+    private Button keyx;
+    private Button keyc;
+    private Button keyv;
+    private Button keyb;
+    private Button keyn;
+    private Button keym;
+    private Button keycrsrdown;
+    private Button keycrsrup;
+    private Button keycrsrright;
+    private Button keycrsrleft;
+    private Button keyspace;
 
     void initKBHashMap() {
         map.put("LOAD", new byte[]{Config.LOAD, (byte) 0x00, (byte) 0x80});
@@ -244,7 +300,7 @@ public class C64Keyboard extends LinearLayout {
     private void sendKey(Context context, byte[] data) {
         Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
         if (vibrator != null && vibrator.hasVibrator()) {
-            vibrator.vibrate(VibrationEffect.createOneShot(75, VibrationEffect.DEFAULT_AMPLITUDE));
+            vibrator.vibrate(VibrationEffect.createOneShot(DURATION_VIBRATION_EFFECT, VibrationEffect.DEFAULT_AMPLITUDE));
         }
         boolean isShifted = keyshiftleft.isSelected() || keyshiftright.isSelected();
         boolean isCtrl = keyctrl.isSelected();
@@ -279,59 +335,123 @@ public class C64Keyboard extends LinearLayout {
         }
     }
 
+    private void sendReleaseKey(Context context) {
+        byte[] datatosend = new byte[]{(byte) Config.KEYRELEASED};
+        BLEManager bleManager = myApplication.getBleManager();
+        if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
+            bleManager.sendData(datatosend);
+        }
+    }
+
+    @FunctionalInterface
+    interface ActionDownHandler {
+        boolean handleActionDown(Context context, String key);
+    }
+
+    private View.OnTouchListener createTouchListener(Context context, String key, ActionDownHandler actionDownHandler, boolean visualEffect) {
+        return (view, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                if (visualEffect) {
+                    view.setBackgroundColor(KEYSELECTEDCOLOR);
+                }
+                startTime = System.currentTimeMillis();
+                return actionDownHandler.handleActionDown(context, key);
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (visualEffect) {
+                    view.setBackgroundColor(KEYBGCOLOR);
+                }
+                long endTime = System.currentTimeMillis();
+                long duration = endTime - startTime;
+                long delay = settings.getMinKeyPressedDuration() - duration;
+                if (delay > 0) {
+                    handler.postDelayed(() -> sendReleaseKey(context), delay);
+                } else {
+                    sendReleaseKey(context);
+                }
+                return true;
+            }
+            return false;
+        };
+    }
+
+    ActionDownHandler standardActionDown = (context, key) -> {
+        sendKey(context, map.get(key));
+        return true;
+    };
+
+    ActionDownHandler shiftLeftActionDown = (context, key) -> {
+        if (settings.isSendRawKeyCodes()) {
+            sendKey(context, map.get(key));
+        } else {
+            if (keyshiftlock.isSelected()) {
+                return true;
+            }
+            keyshiftleft.setSelected(!keyshiftleft.isSelected());
+            Log.d("THMIC64", "shift button clicked, selected: " + keyshiftleft.isSelected());
+            handleShiftKeys(keyshiftleft.isSelected(), ShiftKey.LEFT);
+        }
+        return true;
+    };
+
+    ActionDownHandler shiftRightActionDown = (context, key) -> {
+        if (settings.isSendRawKeyCodes()) {
+            sendKey(context, map.get(key));
+        } else {
+            if (keyshiftlock.isSelected()) {
+                return true;
+            }
+            keyshiftright.setSelected(!keyshiftright.isSelected());
+            Log.d("THMIC64", "shift button clicked, selected: " + keyshiftright.isSelected());
+            handleShiftKeys(keyshiftright.isSelected(), ShiftKey.RIGHT);
+        }
+        return true;
+    };
+
+    private ActionDownHandler ctrlActionDown = (context, key) -> {
+        if (settings.isSendRawKeyCodes()) {
+            sendKey(context, map.get(key));
+        } else {
+            keyctrl.setSelected(!keyctrl.isSelected());
+            Log.d("THMIC64", "ctrl button clicked, selected: " + keyctrl.isSelected());
+            handleCtrlKey(keyctrl.isSelected());
+        }
+        return true;
+    };
+
+    private final ActionDownHandler restoreActionDownHandler = (context, key) -> {
+        // combination "RUN/STOP" + "RESTORE" is replaced by "COMMODRE" + "RESTORE"
+        if (keycommodore.isSelected()) {
+            keycommodore.setSelected(false);
+            handleCommodoreKey(false);
+            sendKey(context, map.get("RESTORERUNSTOP"));
+        } else {
+            sendKey(context, map.get(key));
+        }
+        return true;
+    };
+
+    private final ActionDownHandler shiftlockActionDown = (context, key) -> {
+        keyshiftlock.setSelected(!keyshiftlock.isSelected());
+        handleShiftKeys(keyshiftlock.isSelected(), ShiftKey.LOCK);
+        return true;
+    };
+
+    private final ActionDownHandler commodoreActionDown = (context, key) -> {
+        if (settings.isSendRawKeyCodes()) {
+            keycommodore.setBackgroundColor(KEYSELECTEDCOLOR);
+            new Handler().postDelayed(() -> keycommodore.setBackgroundColor(KEYBGCOLOR), DURATION_VISUAL_EFFECT);
+            sendKey(context, map.get(key));
+        } else {
+            keycommodore.setSelected(!keycommodore.isSelected());
+            Log.d("THMIC64", "commodore button clicked, selected: " + keycommodore.isSelected());
+            handleCommodoreKey(keycommodore.isSelected());
+        }
+        return true;
+    };
+
     private void init(Context context) {
         myApplication = (MyApplication) context.getApplicationContext();
         settings = myApplication.getSettings();
-
-        Button keyf1;
-        Button keyf3;
-        Button keyf5;
-        Button keyf7;
-        Button keyload;
-        Button keyleftarrow;
-        Button keyplus;
-        Button keyminus;
-        Button keypound;
-        ImageButton keyhome;
-        ImageButton keydel;
-        Button keyq;
-        Button keyw;
-        Button keye;
-        Button keyr;
-        Button keyt;
-        Button keyy;
-        Button keyu;
-        Button keyi;
-        Button keyo;
-        Button keyp;
-        Button keyat;
-        Button keymul;
-        Button keyarrowup;
-        Button keyrestore;
-        ImageButton keyrunstop;
-        Button keya;
-        Button keys;
-        Button keyd;
-        Button keyf;
-        Button keyg;
-        Button keyh;
-        Button keyj;
-        Button keyk;
-        Button keyl;
-        Button keyequal;
-        Button keyreturn;
-        Button keyz;
-        Button keyx;
-        Button keyc;
-        Button keyv;
-        Button keyb;
-        Button keyn;
-        Button keym;
-        Button keycrsrdown;
-        Button keycrsrup;
-        Button keycrsrright;
-        Button keycrsrleft;
-        Button keyspace;
         LayoutInflater.from(context).inflate(R.layout.keyboard, this, true);
         keyshiftleft = findViewById(R.id.keyshiftleft);
         keyf1 = findViewById(R.id.keyf1);
@@ -407,327 +527,74 @@ public class C64Keyboard extends LinearLayout {
         keycrsrleft = findViewById(R.id.keycrsrleft);
         keyspace = findViewById(R.id.keyspace);
 
-        keyf1.setOnClickListener(view -> {
-            String key = "f1";
-            sendKey(context, map.get(key));
-        });
-        keyf3.setOnClickListener(view -> {
-            String key = "f3";
-            sendKey(context, map.get(key));
-        });
-        keyf5.setOnClickListener(view -> {
-            String key = "f5";
-            sendKey(context, map.get(key));
-        });
-        keyf7.setOnClickListener(view -> {
-            String key = "f7";
-            sendKey(context, map.get(key));
-        });
-        keyload.setOnClickListener(view -> {
-            String key = "LOAD";
-            sendKey(context, map.get(key));
-        });
-        keyleftarrow.setOnClickListener(view -> {
-            String key = "leftarrow";
-            sendKey(context, map.get(key));
-        });
-        key1.setOnClickListener(view -> {
-            String key = "1";
-            sendKey(context, map.get(key));
-        });
-        key2.setOnClickListener(view -> {
-            String key = "2";
-            sendKey(context, map.get(key));
-        });
-        key3.setOnClickListener(view -> {
-            String key = "3";
-            sendKey(context, map.get(key));
-        });
-        key4.setOnClickListener(view -> {
-            String key = "4";
-            sendKey(context, map.get(key));
-        });
-        key5.setOnClickListener(view -> {
-            String key = "5";
-            sendKey(context, map.get(key));
-        });
-        key6.setOnClickListener(view -> {
-            String key = "6";
-            sendKey(context, map.get(key));
-        });
-        key7.setOnClickListener(view -> {
-            String key = "7";
-            sendKey(context, map.get(key));
-        });
-        key8.setOnClickListener(view -> {
-            String key = "8";
-            sendKey(context, map.get(key));
-        });
-        key9.setOnClickListener(view -> {
-            String key = "9";
-            sendKey(context, map.get(key));
-        });
-        key0.setOnClickListener(view -> {
-            String key = "0";
-            sendKey(context, map.get(key));
-        });
-        keyplus.setOnClickListener(view -> {
-            String key = "+";
-            sendKey(context, map.get(key));
-        });
-        keyminus.setOnClickListener(view -> {
-            String key = "-";
-            sendKey(context, map.get(key));
-        });
-        keypound.setOnClickListener(view -> {
-            String key = "£";
-            sendKey(context, map.get(key));
-        });
-        keyhome.setOnClickListener(view -> {
-            keyhome.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keyhome.setBackgroundColor(KEYBGCOLOR), 200);
-            String key = "home";
-            sendKey(context, map.get(key));
-        });
-        keydel.setOnClickListener(view -> {
-            keydel.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keydel.setBackgroundColor(KEYBGCOLOR), 200);
-            String key = "del";
-            sendKey(context, map.get(key));
-        });
-        keyctrl.setOnClickListener(view -> {
-            if (settings.isSendRawKeyCodes()) {
-                String key = "ctrl";
-                sendKey(context, map.get(key));
-            } else {
-                keyctrl.setSelected(!keyctrl.isSelected());
-                Log.d("THMIC64", "ctrl button clicked, selected: " + keyctrl.isSelected());
-                handleCtrlKey(keyctrl.isSelected());
-            }
-        });
-        keyq.setOnClickListener(view -> {
-            String key = "Q";
-            sendKey(context, map.get(key));
-        });
-        keyw.setOnClickListener(view -> {
-            String key = "W";
-            sendKey(context, map.get(key));
-        });
-        keye.setOnClickListener(view -> {
-            String key = "E";
-            sendKey(context, map.get(key));
-        });
-        keyr.setOnClickListener(view -> {
-            String key = "R";
-            sendKey(context, map.get(key));
-        });
-        keyt.setOnClickListener(view -> {
-            String key = "T";
-            sendKey(context, map.get(key));
-        });
-        keyy.setOnClickListener(view -> {
-            String key = "Y";
-            sendKey(context, map.get(key));
-        });
-        keyu.setOnClickListener(view -> {
-            String key = "U";
-            sendKey(context, map.get(key));
-        });
-        keyi.setOnClickListener(view -> {
-            String key = "I";
-            sendKey(context, map.get(key));
-        });
-        keyo.setOnClickListener(view -> {
-            String key = "O";
-            sendKey(context, map.get(key));
-        });
-        keyp.setOnClickListener(view -> {
-            String key = "P";
-            sendKey(context, map.get(key));
-        });
-        keyat.setOnClickListener(view -> {
-            String key = "@";
-            sendKey(context, map.get(key));
-        });
-        keymul.setOnClickListener(view -> {
-            String key = "*";
-            sendKey(context, map.get(key));
-        });
-        keyarrowup.setOnClickListener(view -> {
-            String key = "uparrow";
-            sendKey(context, map.get(key));
-        });
-        keyrestore.setOnClickListener(view -> {
-            // combination "RUN/STOP" + "RESTORE" is replaced by "COMMODRE" + "RESTORE"
-            if (keycommodore.isSelected()) {
-                keycommodore.setSelected(false);
-                handleCommodoreKey(false);
-                String key = "RESTORERUNSTOP";
-                sendKey(context, map.get(key));
-            } else {
-                String key = "RESTORE";
-                sendKey(context, map.get(key));
-            }
-        });
-        keyrunstop.setOnClickListener(view -> {
-            keyrunstop.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keyrunstop.setBackgroundColor(KEYBGCOLOR), 200);
-            String key = "runstop";
-            sendKey(context, map.get(key));
-        });
-        keyshiftlock.setOnClickListener(view -> {
-            keyshiftlock.setSelected(!keyshiftlock.isSelected());
-            handleShiftKeys(keyshiftlock.isSelected(), ShiftKey.LOCK);
-        });
-        keya.setOnClickListener(view -> {
-            String key = "A";
-            sendKey(context, map.get(key));
-        });
-        keys.setOnClickListener(view -> {
-            String key = "S";
-            sendKey(context, map.get(key));
-        });
-        keyd.setOnClickListener(view -> {
-            String key = "D";
-            sendKey(context, map.get(key));
-        });
-        keyf.setOnClickListener(view -> {
-            String key = "F";
-            sendKey(context, map.get(key));
-        });
-        keyg.setOnClickListener(view -> {
-            String key = "G";
-            sendKey(context, map.get(key));
-        });
-        keyh.setOnClickListener(view -> {
-            String key = "H";
-            sendKey(context, map.get(key));
-        });
-        keyj.setOnClickListener(view -> {
-            String key = "J";
-            sendKey(context, map.get(key));
-        });
-        keyk.setOnClickListener(view -> {
-            String key = "K";
-            sendKey(context, map.get(key));
-        });
-        keyl.setOnClickListener(view -> {
-            String key = "L";
-            sendKey(context, map.get(key));
-        });
-        keycolon.setOnClickListener(view -> {
-            String key = ":";
-            sendKey(context, map.get(key));
-        });
-        keysemicolon.setOnClickListener(view -> {
-            String key = ";";
-            sendKey(context, map.get(key));
-        });
-        keyequal.setOnClickListener(view -> {
-            String key = "=";
-            sendKey(context, map.get(key));
-        });
-        keyreturn.setOnClickListener(view -> {
-            String key = "return";
-            sendKey(context, map.get(key));
-        });
-        keycommodore.setOnClickListener(view -> {
-            if (settings.isSendRawKeyCodes()) {
-                keycommodore.setBackgroundColor(KEYSELECTEDCOLOR);
-                new Handler().postDelayed(() -> keycommodore.setBackgroundColor(KEYBGCOLOR), 200);
-                String key = "commodore";
-                sendKey(context, map.get(key));
-            } else {
-                keycommodore.setSelected(!keycommodore.isSelected());
-                Log.d("THMIC64", "commodore button clicked, selected: " + keycommodore.isSelected());
-                handleCommodoreKey(keycommodore.isSelected());
-            }
-        });
-        keyshiftleft.setOnClickListener(view -> {
-            if (settings.isSendRawKeyCodes()) {
-                String key = "shiftleft";
-                sendKey(context, map.get(key));
-            } else {
-                if (keyshiftlock.isSelected()) {
-                    return;
-                }
-                keyshiftleft.setSelected(!keyshiftleft.isSelected());
-                Log.d("THMIC64", "shift button clicked, selected: " + keyshiftleft.isSelected());
-                handleShiftKeys(keyshiftleft.isSelected(), ShiftKey.LEFT);
-            }
-        });
-        keyz.setOnClickListener(view -> {
-            String key = "Z";
-            sendKey(context, map.get(key));
-        });
-        keyx.setOnClickListener(view -> {
-            String key = "X";
-            sendKey(context, map.get(key));
-        });
-        keyc.setOnClickListener(view -> {
-            String key = "C";
-            sendKey(context, map.get(key));
-        });
-        keyv.setOnClickListener(view -> {
-            String key = "V";
-            sendKey(context, map.get(key));
-        });
-        keyb.setOnClickListener(view -> {
-            String key = "B";
-            sendKey(context, map.get(key));
-        });
-        keyn.setOnClickListener(view -> {
-            String key = "N";
-            sendKey(context, map.get(key));
-        });
-        keym.setOnClickListener(view -> {
-            String key = "M";
-            sendKey(context, map.get(key));
-        });
-        keycomma.setOnClickListener(view -> {
-            String key = ",";
-            sendKey(context, map.get(key));
-        });
-        keyperiod.setOnClickListener(view -> {
-            String key = ".";
-            sendKey(context, map.get(key));
-        });
-        keyslash.setOnClickListener(view -> {
-            String key = "/";
-            sendKey(context, map.get(key));
-        });
-        keyshiftright.setOnClickListener(view -> {
-            if (settings.isSendRawKeyCodes()) {
-                String key = "shiftright";
-                sendKey(context, map.get(key));
-            } else {
-                if (keyshiftlock.isSelected()) {
-                    return;
-                }
-                keyshiftright.setSelected(!keyshiftright.isSelected());
-                Log.d("THMIC64", "shift button clicked, selected: " + keyshiftright.isSelected());
-                handleShiftKeys(keyshiftright.isSelected(), ShiftKey.RIGHT);
-            }
-        });
-        keycrsrdown.setOnClickListener(view -> {
-            String key = "crsrdown";
-            sendKey(context, map.get(key));
-        });
-        keycrsrup.setOnClickListener(view -> {
-            String key = "crsrup";
-            sendKey(context, map.get(key));
-        });
-        keycrsrright.setOnClickListener(view -> {
-            String key = "crsrright";
-            sendKey(context, map.get(key));
-        });
-        keycrsrleft.setOnClickListener(view -> {
-            String key = "crsrleft";
-            sendKey(context, map.get(key));
-        });
-        keyspace.setOnClickListener(view -> {
-            String key = "space";
-            sendKey(context, map.get(key));
-        });
+        keyf1.setOnTouchListener(createTouchListener(context, "f1", standardActionDown, false));
+        keyf3.setOnTouchListener(createTouchListener(context, "f3", standardActionDown, false));
+        keyf5.setOnTouchListener(createTouchListener(context, "f5", standardActionDown, false));
+        keyf7.setOnTouchListener(createTouchListener(context, "f7", standardActionDown, false));
+        keyload.setOnTouchListener(createTouchListener(context, "LOAD", standardActionDown, false));
+        keyleftarrow.setOnTouchListener(createTouchListener(context, "leftarrow", standardActionDown, true));
+        key1.setOnTouchListener(createTouchListener(context, "1", standardActionDown, true));
+        key2.setOnTouchListener(createTouchListener(context, "2", standardActionDown, true));
+        key3.setOnTouchListener(createTouchListener(context, "3", standardActionDown, true));
+        key4.setOnTouchListener(createTouchListener(context, "4", standardActionDown, true));
+        key5.setOnTouchListener(createTouchListener(context, "5", standardActionDown, true));
+        key6.setOnTouchListener(createTouchListener(context, "6", standardActionDown, true));
+        key7.setOnTouchListener(createTouchListener(context, "7", standardActionDown, true));
+        key8.setOnTouchListener(createTouchListener(context, "8", standardActionDown, true));
+        key9.setOnTouchListener(createTouchListener(context, "9", standardActionDown, true));
+        key0.setOnTouchListener(createTouchListener(context, "0", standardActionDown, true));
+        keyplus.setOnTouchListener(createTouchListener(context, "+", standardActionDown, true));
+        keyminus.setOnTouchListener(createTouchListener(context, "-", standardActionDown, true));
+        keypound.setOnTouchListener(createTouchListener(context, "£", standardActionDown, true));
+        keyhome.setOnTouchListener(createTouchListener(context, "home", standardActionDown, true));
+        keydel.setOnTouchListener(createTouchListener(context, "del", standardActionDown, true));
+        keyctrl.setOnTouchListener(createTouchListener(context, "ctrl", ctrlActionDown, false));
+        keyq.setOnTouchListener(createTouchListener(context, "Q", standardActionDown, true));
+        keyw.setOnTouchListener(createTouchListener(context, "W", standardActionDown, true));
+        keye.setOnTouchListener(createTouchListener(context, "E", standardActionDown, true));
+        keyr.setOnTouchListener(createTouchListener(context, "R", standardActionDown, true));
+        keyt.setOnTouchListener(createTouchListener(context, "T", standardActionDown, true));
+        keyy.setOnTouchListener(createTouchListener(context, "Y", standardActionDown, true));
+        keyu.setOnTouchListener(createTouchListener(context, "U", standardActionDown, true));
+        keyi.setOnTouchListener(createTouchListener(context, "I", standardActionDown, true));
+        keyo.setOnTouchListener(createTouchListener(context, "O", standardActionDown, true));
+        keyp.setOnTouchListener(createTouchListener(context, "P", standardActionDown, true));
+        keyat.setOnTouchListener(createTouchListener(context, "@", standardActionDown, true));
+        keymul.setOnTouchListener(createTouchListener(context, "*", standardActionDown, true));
+        keyarrowup.setOnTouchListener(createTouchListener(context, "uparrow", standardActionDown, true));
+        keyrestore.setOnTouchListener(createTouchListener(context, "RESTORE", restoreActionDownHandler, true));
+        keyrunstop.setOnTouchListener(createTouchListener(context, "runstop", standardActionDown, true));
+        keyshiftlock.setOnTouchListener(createTouchListener(context, "shiftlock", shiftlockActionDown, false));
+        keycommodore.setOnTouchListener(createTouchListener(context, "commodore", commodoreActionDown, false));
+        keya.setOnTouchListener(createTouchListener(context, "A", standardActionDown, true));
+        keys.setOnTouchListener(createTouchListener(context, "S", standardActionDown, true));
+        keyd.setOnTouchListener(createTouchListener(context, "D", standardActionDown, true));
+        keyf.setOnTouchListener(createTouchListener(context, "F", standardActionDown, true));
+        keyg.setOnTouchListener(createTouchListener(context, "G", standardActionDown, true));
+        keyh.setOnTouchListener(createTouchListener(context, "H", standardActionDown, true));
+        keyj.setOnTouchListener(createTouchListener(context, "J", standardActionDown, true));
+        keyk.setOnTouchListener(createTouchListener(context, "K", standardActionDown, true));
+        keyl.setOnTouchListener(createTouchListener(context, "L", standardActionDown, true));
+        keycolon.setOnTouchListener(createTouchListener(context, ":", standardActionDown, true));
+        keysemicolon.setOnTouchListener(createTouchListener(context, ";", standardActionDown, true));
+        keyequal.setOnTouchListener(createTouchListener(context, "=", standardActionDown, true));
+        keyreturn.setOnTouchListener(createTouchListener(context, "return", standardActionDown, true));
+        keyz.setOnTouchListener(createTouchListener(context, "Z", standardActionDown, true));
+        keyx.setOnTouchListener(createTouchListener(context, "X", standardActionDown, true));
+        keyc.setOnTouchListener(createTouchListener(context, "C", standardActionDown, true));
+        keyv.setOnTouchListener(createTouchListener(context, "V", standardActionDown, true));
+        keyb.setOnTouchListener(createTouchListener(context, "B", standardActionDown, true));
+        keyn.setOnTouchListener(createTouchListener(context, "N", standardActionDown, true));
+        keym.setOnTouchListener(createTouchListener(context, "M", standardActionDown, true));
+        keycomma.setOnTouchListener(createTouchListener(context, ",", standardActionDown, true));
+        keyperiod.setOnTouchListener(createTouchListener(context, ".", standardActionDown, true));
+        keyslash.setOnTouchListener(createTouchListener(context, "/", standardActionDown, true));
+        keyshiftleft.setOnTouchListener(createTouchListener(context, "shiftleft", shiftLeftActionDown, false));
+        keyshiftright.setOnTouchListener(createTouchListener(context, "shiftright", shiftRightActionDown, false));
+        keycrsrdown.setOnTouchListener(createTouchListener(context, "crsrdown", standardActionDown, true));
+        keycrsrup.setOnTouchListener(createTouchListener(context, "crsrup", standardActionDown, true));
+        keycrsrright.setOnTouchListener(createTouchListener(context, "crsrright", standardActionDown, true));
+        keycrsrleft.setOnTouchListener(createTouchListener(context, "crsrleft", standardActionDown, true));
+        keyspace.setOnTouchListener(createTouchListener(context, "space", standardActionDown, true));
     }
 }

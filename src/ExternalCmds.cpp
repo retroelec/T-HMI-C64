@@ -15,7 +15,7 @@
  http://www.gnu.org/licenses/.
 */
 #include "ExternalCmds.h"
-#include "CPUC64.h"
+#include "C64Emu.h"
 #include "loadactions.h"
 #include <esp_log.h>
 
@@ -34,56 +34,58 @@ enum class ExtCmd {
   SHOWREG = 13,
   SHOWMEM = 14,
   RESTORE = 15,
-  SETVARTAB = 16,
   RESET = 20,
   GETSTATUS = 21,
   SWITCHFRAMECOLORREFRESH = 22,
   SENDRAWKEYS = 24,
   SWITCHDEBUG = 25,
-  SWITCHPERF = 26
+  SWITCHPERF = 26,
+  SWITCHDETECTRELEASEKEY = 27,
+  POWEROFF = 30
 };
 
-void ExternalCmds::init(uint8_t *ram, CPUC64 *cpu) {
+void ExternalCmds::init(uint8_t *ram, C64Emu *c64emu) {
   this->ram = ram;
-  this->cpu = cpu;
+  this->c64emu = c64emu;
   sendrawkeycodes = false;
 }
 
 void ExternalCmds::setType1Notification() {
   type1notification.type = 1;
-  type1notification.joymode = cpu->joystickmode;
-  type1notification.refreshframecolor = cpu->refreshframecolor;
+  type1notification.joymode = c64emu->cpu.joystickmode;
+  type1notification.refreshframecolor = c64emu->cpu.refreshframecolor;
   type1notification.sendrawkeycodes = sendrawkeycodes;
-  type1notification.switchdebug = cpu->debug;
-  type1notification.switchperf = cpu->perf;
+  type1notification.switchdebug = c64emu->cpu.debug;
+  type1notification.switchperf = c64emu->cpu.perf;
+  type1notification.switchdetectreleasekey = c64emu->blekb.detectreleasekey;
 }
 
 void ExternalCmds::setType2Notification() {
   type2notification.type = 2;
-  type2notification.cpuRunning = !cpu->cpuhalted;
-  type2notification.pc = cpu->getPC();
-  type2notification.a = cpu->getA();
-  type2notification.x = cpu->getX();
-  type2notification.y = cpu->getY();
-  type2notification.sr = cpu->getSR();
-  type2notification.d011 = cpu->getMem(0xd011);
-  type2notification.d016 = cpu->getMem(0xd016);
-  type2notification.d018 = cpu->getMem(0xd018);
-  type2notification.d019 = cpu->getMem(0xd019);
-  type2notification.d01a = cpu->getMem(0xd01a);
-  type2notification.register1 = cpu->getMem(1);
-  type2notification.dc0d = cpu->getMem(0xdc0d);
-  type2notification.dc0e = cpu->getMem(0xdc0e);
-  type2notification.dc0f = cpu->getMem(0xdc0f);
-  type2notification.dd0d = cpu->getMem(0xdd0d);
-  type2notification.dd0e = cpu->getMem(0xdd0e);
-  type2notification.dd0f = cpu->getMem(0xdd0f);
+  type2notification.cpuRunning = !c64emu->cpu.cpuhalted;
+  type2notification.pc = c64emu->cpu.getPC();
+  type2notification.a = c64emu->cpu.getA();
+  type2notification.x = c64emu->cpu.getX();
+  type2notification.y = c64emu->cpu.getY();
+  type2notification.sr = c64emu->cpu.getSR();
+  type2notification.d011 = c64emu->cpu.getMem(0xd011);
+  type2notification.d016 = c64emu->cpu.getMem(0xd016);
+  type2notification.d018 = c64emu->cpu.getMem(0xd018);
+  type2notification.d019 = c64emu->cpu.getMem(0xd019);
+  type2notification.d01a = c64emu->cpu.getMem(0xd01a);
+  type2notification.register1 = c64emu->cpu.getMem(1);
+  type2notification.dc0d = c64emu->cpu.getMem(0xdc0d);
+  type2notification.dc0e = c64emu->cpu.getMem(0xdc0e);
+  type2notification.dc0f = c64emu->cpu.getMem(0xdc0f);
+  type2notification.dd0d = c64emu->cpu.getMem(0xdd0d);
+  type2notification.dd0e = c64emu->cpu.getMem(0xdd0e);
+  type2notification.dd0f = c64emu->cpu.getMem(0xdd0f);
 }
 
 void ExternalCmds::setType3Notification(uint16_t addr) {
   type3notification.type = 3;
   for (uint8_t i = 0; i < BLENOTIFICATIONTYPE3NUMOFBYTES; i++) {
-    type3notification.mem[i] = cpu->getMem(addr + i);
+    type3notification.mem[i] = c64emu->cpu.getMem(addr + i);
   }
 }
 
@@ -92,7 +94,7 @@ void ExternalCmds::setVarTab(uint16_t addr) {
   ram[0x2d] = addr % 256;
   ram[0x2e] = addr / 256;
   // clr
-  cpu->setPC(0xa52a);
+  c64emu->cpu.setPC(0xa52a);
 }
 
 uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
@@ -104,7 +106,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   case ExtCmd::LOAD:
     ESP_LOGI(TAG, "load from sdcard...");
-    cpu->cpuhalted = true;
+    c64emu->cpu.cpuhalted = true;
     fileloaded = false;
     if (sdcard.init()) {
       uint8_t cury = ram[0xd6];
@@ -123,15 +125,15 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     memcpy(ram + addr, src_loadactions_prg + 2, src_loadactions_prg_len - 2);
     if (fileloaded) {
       fileloaded = false;
-      cpu->exeSubroutine(addr, 1, 0, 0);
+      c64emu->cpu.exeSubroutine(addr, 1, 0, 0);
     } else {
-      cpu->exeSubroutine(addr, 0, 0, 0);
+      c64emu->cpu.exeSubroutine(addr, 0, 0, 0);
     }
-    cpu->cpuhalted = false;
+    c64emu->cpu.cpuhalted = false;
     return 0;
   case ExtCmd::RECEIVEDATA:
     ESP_LOGI(TAG, "enter receivedata");
-    cpu->cpuhalted = true;
+    c64emu->cpu.cpuhalted = true;
     // simple "protocol":
     // - byte 4: number of bytes which were received (max 249 bytes)
     // - byte 5-6: address the bytes must be written to
@@ -141,22 +143,16 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     for (uint8_t i = 0; i < buffer[3]; i++) {
       ram[addr++] = buffer[i + 6];
     }
-    cpu->cpuhalted = false;
+    c64emu->cpu.cpuhalted = false;
     ESP_LOGI(TAG, "leave receivedata");
     return 0;
   case ExtCmd::RESTORE:
     if (buffer[1] == 1) {
       // restore + run/stop
-      cpu->setMem(0xdc00, 0);
-      cpu->setKeycodes(0x7f, 0);
+      c64emu->cpu.setMem(0xdc00, 0);
+      c64emu->cpu.setKeycodes(0x7f, 0);
     }
-    cpu->restorenmi = true;
-    return 0;
-  case ExtCmd::SETVARTAB:
-    cpu->cpuhalted = true;
-    addr = buffer[3] + (buffer[4] << 8);
-    setVarTab(addr);
-    cpu->cpuhalted = false;
+    c64emu->cpu.restorenmi = true;
     return 0;
   case ExtCmd::SHOWREG:
     setType2Notification();
@@ -178,7 +174,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::SHOWMEM:
     addr = buffer[3] + (buffer[4] << 8);
     // use addr also as debugging start address
-    cpu->debugstartaddr = addr;
+    c64emu->cpu.debugstartaddr = addr;
     ESP_LOGI(TAG, "addr: %x", addr);
     setType3Notification(addr);
     for (uint8_t i = 0; i < BLENOTIFICATIONTYPE3NUMOFBYTES / 8; i++) {
@@ -191,43 +187,43 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     }
     return 3;
   case ExtCmd::RESET:
-    cpu->cpuhalted = true;
-    cpu->initMemAndRegs();
-    cpu->vic->initVarsAndRegs();
-    cpu->cia1.init(true);
-    cpu->cia2.init(false);
-    cpu->cpuhalted = false;
+    c64emu->cpu.cpuhalted = true;
+    c64emu->cpu.initMemAndRegs();
+    c64emu->cpu.vic->initVarsAndRegs();
+    c64emu->cpu.cia1.init(true);
+    c64emu->cpu.cia2.init(false);
+    c64emu->cpu.cpuhalted = false;
     return 0;
   case ExtCmd::JOYSTICKMODE1:
-    cpu->joystickmode = 1;
-    cpu->kbjoystickmode = 0;
-    ESP_LOGI(TAG, "joystickmode = %x", cpu->joystickmode);
+    c64emu->cpu.joystickmode = 1;
+    c64emu->cpu.kbjoystickmode = 0;
+    ESP_LOGI(TAG, "joystickmode = %x", c64emu->cpu.joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::JOYSTICKMODE2:
-    cpu->joystickmode = 2;
-    cpu->kbjoystickmode = 0;
-    ESP_LOGI(TAG, "joystickmode = %x", cpu->joystickmode);
+    c64emu->cpu.joystickmode = 2;
+    c64emu->cpu.kbjoystickmode = 0;
+    ESP_LOGI(TAG, "joystickmode = %x", c64emu->cpu.joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::JOYSTICKMODEOFF:
-    cpu->joystickmode = 0;
-    ESP_LOGI(TAG, "joystickmode = %x", cpu->joystickmode);
+    c64emu->cpu.joystickmode = 0;
+    ESP_LOGI(TAG, "joystickmode = %x", c64emu->cpu.joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::KBJOYSTICKMODE1:
-    cpu->kbjoystickmode = 1;
-    cpu->joystickmode = 0;
-    ESP_LOGI(TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
+    c64emu->cpu.kbjoystickmode = 1;
+    c64emu->cpu.joystickmode = 0;
+    ESP_LOGI(TAG, "kbjoystickmode = %x", c64emu->cpu.kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODE2:
-    cpu->kbjoystickmode = 2;
-    cpu->joystickmode = 0;
-    ESP_LOGI(TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
+    c64emu->cpu.kbjoystickmode = 2;
+    c64emu->cpu.joystickmode = 0;
+    ESP_LOGI(TAG, "kbjoystickmode = %x", c64emu->cpu.kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODEOFF:
-    cpu->kbjoystickmode = 0;
-    ESP_LOGI(TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
+    c64emu->cpu.kbjoystickmode = 0;
+    ESP_LOGI(TAG, "kbjoystickmode = %x", c64emu->cpu.kbjoystickmode);
     return 0;
   case ExtCmd::GETSTATUS:
     // just send type 1 notification
@@ -235,8 +231,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHFRAMECOLORREFRESH:
-    cpu->refreshframecolor = !cpu->refreshframecolor;
-    ESP_LOGI(TAG, "refreshframecolor = %x", cpu->refreshframecolor);
+    c64emu->cpu.refreshframecolor = !c64emu->cpu.refreshframecolor;
+    ESP_LOGI(TAG, "refreshframecolor = %x", c64emu->cpu.refreshframecolor);
     setType1Notification();
     return 1;
   case ExtCmd::SENDRAWKEYS:
@@ -245,16 +241,25 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHDEBUG:
-    cpu->debug = !cpu->debug;
-    cpu->debuggingstarted = false;
-    ESP_LOGI(TAG, "debug = %x", cpu->debug);
+    c64emu->cpu.debug = !c64emu->cpu.debug;
+    c64emu->cpu.debuggingstarted = false;
+    ESP_LOGI(TAG, "debug = %x", c64emu->cpu.debug);
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHPERF:
-    cpu->perf = !cpu->perf;
-    ESP_LOGI(TAG, "perf = %x", cpu->perf);
+    c64emu->cpu.perf = !c64emu->cpu.perf;
+    ESP_LOGI(TAG, "perf = %x", c64emu->cpu.perf);
     setType1Notification();
     return 1;
+  case ExtCmd::SWITCHDETECTRELEASEKEY:
+    c64emu->blekb.detectreleasekey = !c64emu->blekb.detectreleasekey;
+    ESP_LOGI(TAG, "detectreleasekey = %x", c64emu->blekb.detectreleasekey);
+    setType1Notification();
+    return 1;
+  case ExtCmd::POWEROFF:
+    pinMode(Config::PWR_ON, OUTPUT);
+    digitalWrite(Config::PWR_ON, LOW);
+    return 0;
   }
   return 0;
 }

@@ -7,6 +7,9 @@ public class Settings {
     boolean sendRawKeyCodes;
     boolean debug;
     boolean perf;
+    boolean detectReleaseKey;
+    short minKeyPressedDuration;
+    boolean powerOff;
 
     public void registerSettingsObserver(SettingsObserver observer) {
         this.observer = observer;
@@ -60,5 +63,29 @@ public class Settings {
 
     public void setPerf(boolean perf) {
         this.perf = perf;
+    }
+
+    public boolean isDetectReleaseKey() {
+        return detectReleaseKey;
+    }
+
+    public void setDetectReleaseKey(boolean detectReleaseKey) {
+        this.detectReleaseKey = detectReleaseKey;
+    }
+
+    public short getMinKeyPressedDuration() {
+        return minKeyPressedDuration;
+    }
+
+    public void setMinKeyPressedDuration(short minKeyPressedDuration) {
+        this.minKeyPressedDuration = minKeyPressedDuration;
+    }
+
+    public boolean isPowerOff() {
+        return powerOff;
+    }
+
+    public void setPowerOff(boolean powerOff) {
+        this.powerOff = powerOff;
     }
 }

@@ -6,44 +6,74 @@
     android:background="@color/colorBackground"
     android:padding="16dp">
 
+    <!-- left column elements -->
     <Switch
         android:id="@+id/toggleRefreshframecolor"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Frame color refresh"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-
-    <Switch
-        android:id="@+id/toggleSendRawKeyCodes"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Send raw keycodes"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toggleRefreshframecolor" />
 
     <Switch
         android:id="@+id/toggleDebug"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Debugging"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:text="Monitor CPU"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toggleSendRawKeyCodes" />
+        app:layout_constraintTop_toBottomOf="@id/toggleRefreshframecolor" />
 
     <Switch
         android:id="@+id/togglePerf"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Performance"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:text="Monitor Perf."
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toggleDebug" />
+
+    <!-- right column elements -->
+    <Switch
+        android:id="@+id/toggleSendRawKeyCodes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Send raw keycodes"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/toggleRefreshframecolor"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Switch
+        android:id="@+id/toggleDetectReleaseKey"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Detect release key"
+        app:layout_constraintStart_toStartOf="@id/toggleSendRawKeyCodes"
+        app:layout_constraintTop_toBottomOf="@id/toggleSendRawKeyCodes" />
+
+    <TextView
+        android:id="@+id/labelMinKeyDuration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Min. key pressed dur."
+        app:layout_constraintStart_toStartOf="@id/toggleSendRawKeyCodes"
+        app:layout_constraintTop_toBottomOf="@id/toggleDetectReleaseKey" />
+
+    <EditText
+        android:id="@+id/inputMinKeyPressedDuration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="Min: 120, Max: 300"
+        android:inputType="number"
+        android:ems="3"
+        android:maxLength="3"
+        android:imeOptions="actionDone"
+        android:background="@drawable/textborder"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/labelMinKeyDuration"
+        app:layout_constraintTop_toBottomOf="@id/toggleDetectReleaseKey" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
@@ -51,7 +81,7 @@
         android:layout_marginTop="32dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/togglePerf">
+        app:layout_constraintTop_toBottomOf="@id/inputMinKeyPressedDuration">
 
         <Button
             android:id="@+id/keystatus"

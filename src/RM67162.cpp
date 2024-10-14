@@ -18,6 +18,7 @@
 // files rm67162.cpp, rm67162.h and pins_config.h are copied from
 // https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED/tree/main/examples/factory
 #include "Config.h"
+#ifdef USE_RM67162
 #include "rm67162/rm67162.h"
 
 uint16_t *RM67162::framecolormem;
@@ -53,3 +54,4 @@ void RM67162::drawBitmap(uint16_t *bitmap) {
 }
 
 const uint16_t *RM67162::getC64Colors() const { return c64Colors; }
+#endif

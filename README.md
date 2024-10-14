@@ -1,8 +1,7 @@
-# C64 Emulator for ESP32-S3 development boards with BLE keyboard (ready for for development boards Lilygo T-HMI and T-Display S3 AMOLED)
+# C64 Emulator for ESP32-S3 with "Android keyboard" (BLE) for Lilygo T-HMI (and T-Display S3 AMOLED) development board(s)
 
-C64 emulator for ESP32-S3 development boards.
-Initially developed for the Lilygo T-HMI board equipped with an ESP32-S3 chip, a 2.8 inch touch display LCD screen (ST7789V driver) and an SD card slot.
-The emulator was later expanded to also support the board T-Display S3 AMOLED. Adjustments for other boards shouldn't be very difficult.
+C64 emulator for the development board Lilygo T-HMI equipped with an ESP32-S3 chip, a 2.8 inch touch display LCD screen (ST7789V driver) and an SD card slot.
+The emulator was later expanded to also support the board T-Display S3 AMOLED. Adjustments for other ESP32-S3 boards shouldn't be too difficult.
 
 The keyboard for the emulator is simulated by an Android app, communication between the app and the emulator is realized using BLE (Bluetooth Low Energy).
 
@@ -12,6 +11,8 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- Improved keyboard handling (optional detection of releasing a key)
+- Operating the T-HMI via battery works now
 - Expanding emulator to support development board T-Display S3 AMOLED
 - Using Arduino core V3.0 (migration of code from V2.0 to V3.0 -> breaking changes -> see also chapter "Compiling code without changing the actual version of your installed Arduino core")
 - BLE advertising improvements (patch by Heiko K.)
@@ -79,7 +80,7 @@ you may have to adapt the following constants in src/Config.h:
 - THMIC64KB/app/src/ : source code of Android app
 - Makefile : used to install development environment and to compile + upload code
 
-### Install C64 Emulator on Lilygo T-HMI
+### Install C64 Emulator on the Lilygo T-HMI board
 
 I use arduino-cli to upload the provided binary files to the development board:
 
@@ -162,28 +163,17 @@ The following Arduino libraries are used (all are part of ESP32 Arduino core, ve
 To upload the emulator from the Arduino IDE just open the file T-HMI-C64.ino
 and choose menu Sketch - Upload or press ctrl-u.
 
-### Install C64 Emulator on T-Display S3 AMOLED
+### Install C64 Emulator on the T-Display S3 AMOLED board
 
 Provided files (source code and binary files) are ready for the board T-HMI.
-If you want to install the emulator on the T-Display S3 AMOLED board, you have to make minimal adaptions in the source code
-and compile the code afterwards.
+If you want to install the emulator on the T-Display S3 AMOLED board, you have to adapt src/Config.h:
 
-Adaptions of source code:
-
-- src/Config.h: set constants LCDWIDTH and REFRESHDELAY to 536 and 13 (as written in the comment)
-- src/ConfigDisplay.h: uncomment the following lines: //#include "RM67162.h" and // ConfigDisplay() { displayDriver = new RM67162(); }
-                       and comment the lines #include "ST7789V.h" and ConfigDisplay() { displayDriver = new ST7789V(); }
+comment line "#define BOARD_T_HMI"  
+uncomment line "//#define BOARD_T_DISPLAY_S3"  
 
 Compile and upload the code to the T-Display S3 AMOLED board (see chapter "Install C64 Emulator on Lilygo T-HMI").
 
 <img src="doc/tdisps3amoled.jpg" alt="T-HMI" width="800"/>
-
-### Porting emulator to other ESP32-S3 development boards
-
-To expand the emulator for other ESP32-S3 development boards you have to to the following steps:
-
-- Provide display driver files analogous to ST7789V.* or RM67162.* (you guessed it: display driver files for ST7789V and RM67162 boards are already provided)
-- adapt src/Config.h and src/ConfigDisplay.h
 
 ### Install Android App
 
@@ -218,19 +208,29 @@ after "hardware reseting" the development board.
 
 As it is not possible to press two keys together on the Android keyboard, the keys Shift, Ctrl and Commodore are special keys
 which usually are pressed first, followed by another key to simulate the corresponding key combination.
+
 If it is necessary to send the raw key code of these special keys (e.g. some pinball games use the shift key), you have to
-set the corresponding switch in the Android app (DIV screen).
+set the corresponding switch in the Android app ("Send raw keycodes", DIV screen).
+
+By default, only the pressing of a key is sent to the emulator, which results in, for example, only one space being output
+even if the space key is held down. With the 'Detect release key' option (DIV Screen), the C64 keyboard is emulated more authentically
+(with the drawback that typing speed may be slightly reduced).
+
 The key combination Run/Stop + Restore has been replaced by first pressing the Commodore key and then pressing the Restore key.
 
 Besides the normal C64 keys this virtual keyboard also provides red extra buttons to send "external commands".
 Actually the LOAD, DIV and several JOYSTICK buttons are available:
 
 - LOAD: load a C64 program from SD card
-- DIV: opens an extra screen with additional settings / extra functionality
+- DIV: opens an extra screen with some settings / extra functionality
 - JOYSTICK 1: connected joystick can be used as a joystick in port 1
 - JOYSTICK 2: connected joystick can be used as a joystick in port 2
 - KBJOYSTICK 1: "virtual joystick" can be used as a joystick in port 1
 - KBJOYSTICK 2: "virtual joystick" can be used as a joystick in port 2
+
+<img src="doc/THMIC64KB_Div.png" alt="DIV Screen" width="800"/>
+
+Extra functionality and some settings are available in the DIV screen.
 
 <img src="doc/THMIC64KB_VirtJoystick.png" alt="Virtual Joystick" width="800"/>
 

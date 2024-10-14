@@ -23,12 +23,11 @@ static const char *TAG = "SDCard";
 SDCard::SDCard() : initalized(false) {}
 
 bool SDCard::init() {
+#if defined(USE_SDCARD)
   if (initalized) {
     return true;
   }
   vTaskDelay(500 / portTICK_PERIOD_MS);
-  pinMode(Config::PWR_EN_PIN, OUTPUT);
-  digitalWrite(Config::PWR_EN_PIN, HIGH);
   SD_MMC.setPins(Config::SD_SCLK_PIN, Config::SD_MOSI_PIN, Config::SD_MISO_PIN);
   bool rlst = SD_MMC.begin("/sdcard", true);
   if (!rlst) {
@@ -36,6 +35,9 @@ bool SDCard::init() {
   }
   initalized = true;
   return true;
+#else
+  return false;
+#endif
 }
 
 uint16_t SDCard::load(fs::FS &fs, uint8_t *cursorpos, uint8_t *ram) {

@@ -22,6 +22,7 @@
 #include <soc/gpio_struct.h>
 
 void Joystick::init() {
+#ifdef USE_JOYSTICK
   // init adc (x and y axis)
   adc2_config_channel_atten(Config::ADC_JOYSTICK_X, ADC_ATTEN_DB_11);
   adc2_config_channel_atten(Config::ADC_JOYSTICK_Y, ADC_ATTEN_DB_11);
@@ -37,16 +38,24 @@ void Joystick::init() {
   if (err != ESP_OK) {
     throw JoystickInitializationException(esp_err_to_name(err));
   }
+#endif
 }
 
 uint8_t Joystick::getValue(bool port2, uint8_t dc00, uint8_t dc02) {
   // assume return value of adc2_get_raw is ESP_OK
   int valueX;
-  adc2_get_raw(Config::ADC_JOYSTICK_X, ADC_WIDTH_BIT_12, &valueX);
   int valueY;
+  uint8_t valueFire;
+#if defined USE_JOYSTICK
+  adc2_get_raw(Config::ADC_JOYSTICK_X, ADC_WIDTH_BIT_12, &valueX);
   adc2_get_raw(Config::ADC_JOYSTICK_Y, ADC_WIDTH_BIT_12, &valueY);
   // GPIO.in1.val must be used for GPIO pins > 32
-  uint8_t valueFire = (GPIO.in >> Config::JOYSTICK_FIRE_PIN) & 0x01;
+  valueFire = (GPIO.in >> Config::JOYSTICK_FIRE_PIN) & 0x01;
+#else
+  valueX = (LEFT_THRESHOLD + RIGHT_THRESHOLD) / 2;
+  valueY = (UP_THRESHOLD + DOWN_THRESHOLD) / 2;
+  valueFire = 1;
+#endif
   // C64 register value
   uint8_t value = 0xff;
   if (port2 && ((dc02 & 0x7f) == 0x7f)) {
@@ -69,5 +78,9 @@ uint8_t Joystick::getValue(bool port2, uint8_t dc00, uint8_t dc02) {
 }
 
 bool Joystick::getFire2() {
+#if defined USE_JOYSTICK
   return ((GPIO.in >> Config::JOYSTICK_FIRE2_PIN) & 0x01) == 0;
+#else
+  return false;
+#endif
 }

@@ -14,13 +14,24 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef CONFIGBOARD_H
+#define CONFIGBOARD_H
 
-class Main {
-public:
-  static void setup();
-  static void loop();
+#include "BoardDriver.h"
+#include "Config.h"
+#if defined(BOARD_T_HMI)
+#include "T_HMI.h"
+#elif defined(BOARD_T_DISPLAY_S3)
+#include "T_DISPLAY_S3.h"
+#endif
+
+struct ConfigBoard {
+  BoardDriver *boardDriver;
+#if defined(BOARD_T_HMI)
+  ConfigBoard() { boardDriver = new T_HMI(); }
+#elif defined(BOARD_T_DISPLAY_S3)
+  ConfigBoard() { boardDriver = new T_DISPLAY_S3(); }
+#endif
 };
 
-#endif // MAIN_H
+#endif // CONFIGBOARD_H

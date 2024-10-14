@@ -26,13 +26,6 @@
 
 class RM67162 : public DisplayDriver {
 private:
-  static const uint16_t BORDERWIDTH = (Config::LCDWIDTH - 320) / 2;
-  static const uint16_t BORDERHEIGHT = (Config::LCDHEIGHT - 200) / 2;
-  static const uint16_t FRAMEMEMSIZE =
-      MAX(320 * BORDERHEIGHT, BORDERWIDTH *Config::LCDHEIGHT);
-  static uint16_t *framecolormem;
-
-public:
   static const uint16_t c64_black = 0x0000;
   static const uint16_t c64_white = 0xffff;
   static const uint16_t c64_red = 0x0088;
@@ -56,6 +49,13 @@ public:
       c64_orange, c64_brown,      c64_lightred,  c64_grey1,
       c64_grey2,  c64_lightgreen, c64_lightblue, c64_grey3};
 
+  static const uint16_t BORDERWIDTH = (Config::LCDWIDTH - 320) / 2;
+  static const uint16_t BORDERHEIGHT = (Config::LCDHEIGHT - 200) / 2;
+  static const uint16_t FRAMEMEMSIZE =
+      MAX(320 * BORDERHEIGHT, BORDERWIDTH *Config::LCDHEIGHT);
+  static uint16_t *framecolormem;
+
+public:
   void init() override;
   void drawFrame(uint16_t frameColor) override;
   void drawBitmap(uint16_t *bitmap) override;

@@ -15,10 +15,13 @@
  http://www.gnu.org/licenses/.
 */
 
-#include "src/Main.h"
+#include "src/C64Emu.h"
+#include "src/Config.h"
 #include <esp_log.h>
 
 static const char *TAG = "T-HMI-C64";
+
+C64Emu c64Emu;
 
 void setup() {
   Serial.begin(115200);
@@ -26,7 +29,7 @@ void setup() {
   ESP_LOGI(TAG, "start setup...");
   ESP_LOGI(TAG, "setup() running on core %d", xPortGetCoreID());
   try {
-    Main::setup();
+    c64Emu.setup();
   } catch (...) {
     ESP_LOGE(TAG, "setup() failed");
     while (true) {
@@ -36,4 +39,4 @@ void setup() {
   ESP_LOGI(TAG, "setup done");
 }
 
-void loop() { Main::loop(); }
+void loop() { c64Emu.loop(); }

@@ -6,7 +6,6 @@ public class MyApplication extends Application {
     private BLEManager bleManager;
     private Settings settings;
     private Type2Notification type2Notification;
-
     private Type3Notification type3Notification;
 
     public BLEManager getBleManager() {

@@ -14,36 +14,19 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#include "Main.h"
-#include "BLEKB.h"
-#include "CPUC64.h"
+#include "C64Emu.h"
 #include "Config.h"
-#include "ExternalCmds.h"
 #include "HardwareInitializationException.h"
 #include "VIC.h"
 #include "roms/charset.h"
 #include <cstdint>
 #include <esp_log.h>
 
-static const char *TAG = "Main";
+static const char *TAG = "C64Emu";
 
-uint8_t *ram;
-VIC vic;
-CPUC64 cpu;
-BLEKB blekb;
-ExternalCmds externalCmds;
+C64Emu *C64Emu::instance = nullptr;
 
-uint16_t checkForKeyboardCnt = 0;
-
-uint8_t throttlingCnt = 0;
-uint32_t numofburnedcyclespersecond = 0;
-
-hw_timer_t *interruptProfiling = NULL;
-hw_timer_t *interruptTOD = NULL;
-hw_timer_t *interruptSystem = NULL;
-TaskHandle_t cpuTask;
-
-void IRAM_ATTR interruptProfilingFunc() {
+void IRAM_ATTR C64Emu::interruptProfilingFunc() {
   if (!cpu.perf) {
     return;
   }
@@ -57,7 +40,7 @@ void IRAM_ATTR interruptProfilingFunc() {
   numofburnedcyclespersecond = 0;
 }
 
-bool updateTOD(CIA &cia) {
+bool C64Emu::updateTOD(CIA &cia) {
   uint8_t dc08 = cia.latchrundc08.load(std::memory_order_acquire);
   dc08++;
   if (dc08 > 9) {
@@ -124,7 +107,7 @@ bool updateTOD(CIA &cia) {
   return false;
 }
 
-void IRAM_ATTR interruptTODFunc() {
+void IRAM_ATTR C64Emu::interruptTODFunc() {
   if (cpu.cia1.isTODRunning.load(std::memory_order_acquire)) {
     if (updateTOD(cpu.cia1)) {
       cpu.cia1.isAlarm.store(true, std::memory_order_release);
@@ -137,7 +120,7 @@ void IRAM_ATTR interruptTODFunc() {
   }
 }
 
-void IRAM_ATTR interruptSystemFunc() {
+void IRAM_ATTR C64Emu::interruptSystemFunc() {
   // check for keyboard inputs ca. each 8 ms
   checkForKeyboardCnt++;
   if (checkForKeyboardCnt == (8333 / Config::INTERRUPTSYSTEMRESOLUTION)) {
@@ -165,7 +148,7 @@ void IRAM_ATTR interruptSystemFunc() {
   }
 }
 
-void cpuCode(void *parameter) {
+void C64Emu::cpuCode(void *parameter) {
   ESP_LOGI(TAG, "cpuTask running on core %d", xPortGetCoreID());
 
   // init LCD driver
@@ -173,14 +156,19 @@ void cpuCode(void *parameter) {
 
   // interrupt each 100 ms to increment CIA real time clock (TOD)
   interruptTOD = timerBegin(1000000);
-  timerAttachInterrupt(interruptTOD, &interruptTODFunc);
+  timerAttachInterrupt(interruptTOD, &C64Emu::interruptTODFuncWrapper);
   timerAlarm(interruptTOD, 100000, true, 0);
 
   cpu.run();
   // cpu runs forever -> no vTaskDelete(NULL);
 }
 
-void Main::setup() {
+void C64Emu::setup() {
+  instance = this;
+
+  // init board
+  configBoard.boardDriver->init();
+
   // allocate ram
   ram = new uint8_t[1 << 16];
 
@@ -188,35 +176,35 @@ void Main::setup() {
   vic.init(ram, charset_rom);
 
   // init ble keyboard
-  blekb.init(&externalCmds);
+  blekb.init(this);
 
   // init CPU
-  cpu.init(ram, charset_rom, &vic, &blekb);
+  cpu.init(ram, charset_rom, &vic, this);
 
   // init ExternalCmds (must be initialized after cpu!)
-  externalCmds.init(ram, &cpu);
+  externalCmds.init(ram, this);
 
   // start cpu task
-  xTaskCreatePinnedToCore(cpuCode,  // Function to implement the task
-                          "CPU",    // Name of the task
-                          10000,    // Stack size in words
-                          NULL,     // Task input parameter
-                          19,       // Priority of the task
-                          &cpuTask, // Task handle
-                          1);       // Core where the task should run
+  xTaskCreatePinnedToCore(cpuCodeWrapper, // Function to implement the task
+                          "CPU",          // Name of the task
+                          10000,          // Stack size in words
+                          NULL,           // Task input parameter
+                          19,             // Priority of the task
+                          &cpuTask,       // Task handle
+                          1);             // Core where the task should run
 
   // interrupt each 1000 us to get keyboard codes and throttle 6502 CPU
   interruptSystem = timerBegin(1000000);
-  timerAttachInterrupt(interruptSystem, &interruptSystemFunc);
+  timerAttachInterrupt(interruptSystem, &interruptSystemFuncWrapper);
   timerAlarm(interruptSystem, Config::INTERRUPTSYSTEMRESOLUTION, true, 0);
 
   // profiling: interrupt each second
   interruptProfiling = timerBegin(1000000);
-  timerAttachInterrupt(interruptProfiling, &interruptProfilingFunc);
+  timerAttachInterrupt(interruptProfiling, &interruptProfilingFuncWrapper);
   timerAlarm(interruptProfiling, 1000000, true, 0);
 }
 
-void Main::loop() {
+void C64Emu::loop() {
   vic.refresh(cpu.refreshframecolor);
   vTaskDelay(Config::REFRESHDELAY);
 }

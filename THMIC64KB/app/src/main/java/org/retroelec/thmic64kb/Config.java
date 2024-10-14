@@ -8,6 +8,7 @@ public class Config {
     public static final String TARGET_DEVICE_NAME = "THMIC64";
     public static final long CHECK_INTERVAL = 1000;
     public static final long SEARCH_DURATION = 10000;
+    public static final short DEFAULT_MINKEYPRESSEDDURATION = 150;
 
     public static final byte VIRTUALJOYSTICKLEFT_ACTIVATED = (byte) 0x02;
     public static final byte VIRTUALJOYSTICKLEFT_DEACTIVATED = (byte) 0x82;
@@ -19,6 +20,8 @@ public class Config {
     public static final byte VIRTUALJOYSTICKDOWN_DEACTIVATED = (byte) 0x81;
     public static final byte VIRTUALJOYSTICKFIRE_ACTIVATED = (byte) 0x04;
     public static final byte VIRTUALJOYSTICKFIRE_DEACTIVATED = (byte) 0x84;
+
+    public static final byte KEYRELEASED = (byte) 0xff;
 
     public static final byte JOYSTICKMODE1 = 1;
     public static final byte JOYSTICKMODE2 = 2;
@@ -34,8 +37,9 @@ public class Config {
     public static final byte RESET = 20;
     public static final byte GETSTATUS = 21;
     public static final byte SWITCHFRAMECOLORREFRESH = 22;
-    public static final byte SWITCHCIA2 = 23;
     public static final byte SENDRAWKEYS = 24;
     public static final byte SWITCHDEBUG = 25;
     public static final byte SWITCHPERF = 26;
+    public static final byte SWITCHDETECTRELEASEKEY = 27;
+    public static final byte POWEROFF = 30;
 }

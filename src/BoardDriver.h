@@ -14,24 +14,13 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef CONFIGDISPLAY_H
-#define CONFIGDISPLAY_H
+#ifndef BOARDDRIVER_H
+#define BOARDDRIVER_H
 
-#include "Config.h"
-#include "DisplayDriver.h"
-#if defined(USE_ST7789V)
-#include "ST7789V.h"
-#elif defined(USE_RM67162)
-#include "RM67162.h"
-#endif
-
-struct ConfigDisplay {
-  DisplayDriver *displayDriver;
-#if defined(USE_ST7789V)
-  ConfigDisplay() { displayDriver = new ST7789V(); }
-#elif defined(USE_RM67162)
-  ConfigDisplay() { displayDriver = new RM67162(); }
-#endif
+class BoardDriver {
+public:
+  virtual void init() = 0;
+  virtual ~BoardDriver() {}
 };
 
-#endif // CONFIGDISPLAY_H
+#endif // BOARDDRIVER_H

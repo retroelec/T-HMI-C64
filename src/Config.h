@@ -20,29 +20,65 @@
 #include <cstdint>
 #include <driver/adc.h>
 
+#define BOARD_T_HMI
+//#define BOARD_T_DISPLAY_S3
+
 struct Config {
+
+#if defined(BOARD_T_HMI)
+#define USE_ST7789V
+#define USE_SDCARD
+#define USE_JOYSTICK
+
+  static const uint8_t PWR_EN = 10;
+  static const uint8_t PWR_ON = 14;
+
+  // ST7789V
+  static const uint8_t BL = 38;
+  static const uint8_t CS = 6;
+  static const uint8_t DC = 7;
+  static const uint8_t WR = 8;
+  static const uint8_t D0 = 48;
+  static const uint8_t D1 = 47;
+  static const uint8_t D2 = 39;
+  static const uint8_t D3 = 40;
+  static const uint8_t D4 = 41;
+  static const uint8_t D5 = 42;
+  static const uint8_t D6 = 45;
+  static const uint8_t D7 = 46;
+
   // DisplayDriver (considering a possible rotation)
-  static const uint16_t LCDWIDTH =
-      320; // 320 for T-HMI, 536 for T.Display S3 AMOLED
+  static const uint16_t LCDWIDTH = 320;
   static const uint16_t LCDHEIGHT = 240;
-  static const uint8_t REFRESHDELAY = 1; // 1 for ST7789V, 13 for RM67162
+  static const uint8_t REFRESHDELAY = 1;
 
   // SDCard
-  static const uint8_t PWR_EN_PIN = 10;
   static const uint8_t SD_MISO_PIN = 13;
   static const uint8_t SD_MOSI_PIN = 11;
   static const uint8_t SD_SCLK_PIN = 12;
-
-  // BLEKB
-  static constexpr char *SERVICE_UUID = "695ba701-a48c-43f6-9028-3c885771f19f";
-  static constexpr char *CHARACTERISTIC_UUID =
-      "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
 
   // Joystick
   static const adc2_channel_t ADC_JOYSTICK_X = ADC2_CHANNEL_4;
   static const adc2_channel_t ADC_JOYSTICK_Y = ADC2_CHANNEL_5;
   static const uint8_t JOYSTICK_FIRE_PIN = 18;
   static const uint8_t JOYSTICK_FIRE2_PIN = 17;
+
+#elif defined(BOARD_T_DISPLAY_S3)
+#define USE_RM67162
+
+  static const uint8_t PWR_ON =
+      4; // not provided by board T_DISPLAY_S3, define an used pin
+
+  // DisplayDriver (considering a possible rotation)
+  static const uint16_t LCDWIDTH = 536;
+  static const uint16_t LCDHEIGHT = 240;
+  static const uint8_t REFRESHDELAY = 13;
+#endif
+
+  // BLEKB
+  static constexpr char *SERVICE_UUID = "695ba701-a48c-43f6-9028-3c885771f19f";
+  static constexpr char *CHARACTERISTIC_UUID =
+      "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
 
   // resolution of system timer (throttling 6502 CPU, get BLE KB codes)
   static const uint16_t INTERRUPTSYSTEMRESOLUTION = 1000;

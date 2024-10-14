@@ -15,7 +15,7 @@
  http://www.gnu.org/licenses/.
 */
 #include "CPUC64.h"
-#include "BLEKB.h"
+#include "C64Emu.h"
 #include "JoystickInitializationException.h"
 #include "roms/basic.h"
 #include "roms/kernal.h"
@@ -117,7 +117,7 @@ uint8_t CPUC64::getMem(uint16_t addr) {
           return joystick.getValue(true, cia1.ciareg[0x00], cia1.ciareg[0x02]);
         } else if (kbjoystickmode == 2) {
           // keyboard joystick
-          return blekb->getKBJoyValue(true) | (cia1.ciareg[0x00] & 0x80);
+          return c64emu->blekb.getKBJoyValue(true) | (cia1.ciareg[0x00] & 0x80);
         } else {
           return cia1.ciareg[0x00];
         }
@@ -133,7 +133,7 @@ uint8_t CPUC64::getMem(uint16_t addr) {
         }
         if (joystickmode == 1) {
           // real joystick, but still check for keyboard input
-          uint8_t pressedkey = blekb->decode(cia1.ciareg[0x00]);
+          uint8_t pressedkey = c64emu->blekb.decode(cia1.ciareg[0x00]);
           if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             return joystick.getValue(false, 0, 0);
@@ -141,15 +141,15 @@ uint8_t CPUC64::getMem(uint16_t addr) {
           return pressedkey;
         } else if (kbjoystickmode == 1) {
           // keyboard joystick, but still check for keyboard input
-          uint8_t pressedkey = blekb->decode(cia1.ciareg[0x00]);
+          uint8_t pressedkey = c64emu->blekb.decode(cia1.ciareg[0x00]);
           if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
-            return blekb->getKBJoyValue(false);
+            return c64emu->blekb.getKBJoyValue(false);
           }
           return pressedkey;
         } else {
           // keyboard
-          return blekb->decode(cia1.ciareg[0x00]);
+          return c64emu->blekb.decode(cia1.ciareg[0x00]);
         }
       } else {
         return getCommonCIAReg(cia1, ciaidx);
@@ -548,12 +548,12 @@ void CPUC64::initMemAndRegs() {
   pc = kernal_rom[addr] + (kernal_rom[addr + 1] << 8);
 }
 
-void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb) {
+void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic, C64Emu *c64emu) {
   ESP_LOGI(TAG, "CPUC64::init");
   this->ram = ram;
   this->charrom = charrom;
   this->vic = vic;
-  this->blekb = blekb;
+  this->c64emu = c64emu;
   measuredcycles.store(0, std::memory_order_release);
   adjustcycles.store(0, std::memory_order_release);
   joystickmode = 0;
@@ -623,5 +623,5 @@ void CPUC64::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
 }
 
 void CPUC64::setKeycodes(uint8_t keycode1, uint8_t keycode2) {
-  blekb->setKbcodes(keycode1, keycode2);
+  c64emu->blekb.setKbcodes(keycode1, keycode2);
 }

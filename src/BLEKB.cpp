@@ -15,6 +15,7 @@
  http://www.gnu.org/licenses/.
 */
 #include "BLEKB.h"
+#include "C64Emu.h"
 #include "Config.h"
 #include "ExternalCmds.h"
 #include "Joystick.h"
@@ -23,7 +24,7 @@
 
 static const char *TAG = "BLEKB";
 
-static const uint8_t NUMOFCYCLES_KEYPRESSEDDOWN = 4;
+static const uint8_t NUMOFCYCLES_KEYPRESSEDDOWN = 3;
 
 static const uint8_t VIRTUALJOYSTICKLEFT_ACTIVATED = 0x01;
 static const uint8_t VIRTUALJOYSTICKLEFT_DEACTIVATED = 0x81;
@@ -111,8 +112,12 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
   }
   String value = pCharacteristic->getValue();
   uint8_t len = value.length() > 255 ? 255 : value.length();
-  if (len == 1) { // virtual joystick
+  if (len == 1) { // virtual joystick or release key
     uint8_t virtjoy = (uint8_t)value[0];
+    if (virtjoy == 0xff) {
+      // key released
+      blekb.keypresseddown = false;
+    }
     bool deactivated = virtjoy & 0x80;
     uint8_t direction = virtjoy & 0x7f;
     if (deactivated) {
@@ -145,11 +150,12 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
     }
     blekb.shiftctrlcode = blekb.buffer[2];
     blekb.keypresseddowncnt = 0;
+    blekb.keypresseddown = true;
     // external command?
     if (blekb.buffer[2] & 128) {
       // execute external command
       // have to use a seperate task, because stack size of the BLE processing
-      // task is too small (and task size is not changeable uner Arduino)
+      // task is too small (and task size is not changeable under Arduino)
       ESP_LOGI(TAG, "run external command...");
       ExeExtCmdTask exeExtCmdTask(blekb, externalCmds);
       uint8_t type = exeExtCmdTask.exe();
@@ -170,28 +176,36 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
             reinterpret_cast<uint8_t *>(&(externalCmds.type3notification)),
             sizeof(BLENotificationStruct3));
         break;
+      default:
+        type = 0;
       }
-      pCharacteristic->notify();
+      if (type > 0) {
+        pCharacteristic->notify();
+      }
     }
   }
 }
 
 BLEKB::BLEKB() { buffer = nullptr; }
 
-void BLEKB::init(ExternalCmds *externalCmds) {
+void BLEKB::init(C64Emu *c64emu) {
   if (buffer != nullptr) {
     // init method must be called only once
     return;
   }
 
+  this->c64emu = c64emu;
+
   // init buffer
   buffer = new uint8_t[256];
   keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
+  keypresseddown = false;
   kbcode1 = 0xff;
   kbcode2 = 0xff;
 
   // init div
   virtjoystickvalue = 0xff;
+  detectreleasekey = false;
 
   // init BLE
   deviceConnected = false;
@@ -203,7 +217,7 @@ void BLEKB::init(ExternalCmds *externalCmds) {
       Config::CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
   pCharacteristic->setCallbacks(
-      new BLEKBCharacteristicCallback(*this, *externalCmds));
+      new BLEKBCharacteristicCallback(*this, c64emu->externalCmds));
   pCharacteristic->setValue("THMIC64");
   pService->start();
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
@@ -218,10 +232,12 @@ void BLEKB::handleKeyPress() {
     shiftctrlcode = 0;
     kbcode1 = 0xff;
     keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
+    keypresseddown = false;
     return;
   }
-  // key is "pressed down" at least for 50 ms
-  if (keypresseddowncnt < NUMOFCYCLES_KEYPRESSEDDOWN) {
+  // key is "pressed down" at least for 24 ms
+  if ((detectreleasekey && keypresseddown) ||
+      (keypresseddowncnt < NUMOFCYCLES_KEYPRESSEDDOWN)) {
     kbcode2 = buffer[0];
     kbcode1 = buffer[1];
     keypresseddowncnt++;

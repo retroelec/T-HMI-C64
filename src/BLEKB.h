@@ -23,23 +23,26 @@
 #include <cstdint>
 #include <string>
 
+class C64Emu;
 class ExternalCmds;
 
 class BLEKB {
 private:
+  C64Emu *c64emu;
   uint8_t kbcode1;
   uint8_t kbcode2;
 
 public:
-  // also used by classes BLEKBServerCallback and BLEKBCharacteristicCallback
   bool deviceConnected;
   uint8_t *buffer;
   uint8_t shiftctrlcode;
   uint8_t keypresseddowncnt;
   uint8_t virtjoystickvalue;
+  bool keypresseddown;
+  bool detectreleasekey;
 
   BLEKB();
-  void init(ExternalCmds *externalCmds);
+  void init(C64Emu *c64emu);
   void handleKeyPress();
   uint8_t decode(uint8_t dc00);
   uint8_t getKBJoyValue(bool port2);

@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
@@ -32,6 +33,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
     private Button joystick2;
     private boolean joystick1active = false;
     private boolean joystick2active = false;
+    private ImageButton powerOff;
     private final Handler handler = new Handler();
     private BluetoothGattCharacteristic oldcharacteristic;
     private BluetoothGattCharacteristic actcharacteristic = null;
@@ -140,6 +142,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
         // init notifications
         settings = new Settings();
         settings.registerSettingsObserver(this);
+        settings.setMinKeyPressedDuration(Config.DEFAULT_MINKEYPRESSEDDURATION);
         type2Notification = new Type2Notification();
         type3Notification = new Type3Notification();
         final MyApplication myApplication = (MyApplication) getApplication();
@@ -205,6 +208,13 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
                 }
                 joystick2active = !joystick2active;
                 refreshActiveJoystickButtons(joystick1active, joystick2active);
+            }
+        });
+
+        powerOff = findViewById(R.id.powerOff);
+        powerOff.setOnClickListener(view -> {
+            if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
+                bleManager.sendData(new byte[]{Config.POWEROFF, (byte) 0x00, (byte) 0x80});
             }
         });
 

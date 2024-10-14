@@ -15,32 +15,17 @@
  http://www.gnu.org/licenses/.
 */
 #include "ST7789V.h"
+#include "Config.h"
+#ifdef USE_ST7789V
 #include "HardwareInitializationException.h"
 #include <FreeRTOS.h>
 #include <driver/gpio.h>
 #include <soc/gpio_struct.h>
-#include <string>
 #include <task.h>
 
-static const uint8_t pwr_en = 10;
-static const uint8_t bl = 38;
-
-static const uint8_t cs = 6;
-static const uint8_t dc = 7;
-static const uint8_t wr = 8;
-
-static const uint16_t csval = (1 << 6);
-static const uint16_t dcval = (1 << 7);
-static const uint16_t wrval = (1 << 8);
-
-static const uint8_t d0 = 48;
-static const uint8_t d1 = 47;
-static const uint8_t d2 = 39;
-static const uint8_t d3 = 40;
-static const uint8_t d4 = 41;
-static const uint8_t d5 = 42;
-static const uint8_t d6 = 45;
-static const uint8_t d7 = 46;
+static const uint16_t CSVAL = (1 << Config::CS);
+static const uint16_t DCVAL = (1 << Config::DC);
+static const uint16_t WRVAL = (1 << Config::WR);
 
 static const uint8_t nop = 0x00;
 static const uint8_t slpin = 0x10;
@@ -63,28 +48,28 @@ void fill_lu_pinbitmask() {
   for (int c = 0; c <= 255; c++) {
     lu_pinbitmask[c] = 0;
     if (c & 1) {
-      lu_pinbitmask[c] |= (1 << (d0 - 32));
+      lu_pinbitmask[c] |= (1 << (Config::D0 - 32));
     }
     if (c & 2) {
-      lu_pinbitmask[c] |= (1 << (d1 - 32));
+      lu_pinbitmask[c] |= (1 << (Config::D1 - 32));
     }
     if (c & 4) {
-      lu_pinbitmask[c] |= (1 << (d2 - 32));
+      lu_pinbitmask[c] |= (1 << (Config::D2 - 32));
     }
     if (c & 8) {
-      lu_pinbitmask[c] |= (1 << (d3 - 32));
+      lu_pinbitmask[c] |= (1 << (Config::D3 - 32));
     }
     if (c & 16) {
-      lu_pinbitmask[c] |= (1 << (d4 - 32));
+      lu_pinbitmask[c] |= (1 << (Config::D4 - 32));
     }
     if (c & 32) {
-      lu_pinbitmask[c] |= (1 << (d5 - 32));
+      lu_pinbitmask[c] |= (1 << (Config::D5 - 32));
     }
     if (c & 64) {
-      lu_pinbitmask[c] |= (1 << (d6 - 32));
+      lu_pinbitmask[c] |= (1 << (Config::D6 - 32));
     }
     if (c & 128) {
-      lu_pinbitmask[c] |= (1 << (d7 - 32));
+      lu_pinbitmask[c] |= (1 << (Config::D7 - 32));
     }
   }
 }
@@ -96,32 +81,31 @@ esp_err_t config_lcd() {
   io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
   io_conf.pin_bit_mask =
-      (1ULL << d0) | (1ULL << d1) | (1ULL << d2) | (1ULL << d3) | (1ULL << d4) |
-      (1ULL << d5) | (1ULL << d6) | (1ULL << d7) | (1ULL << cs) | (1ULL << dc) |
-      (1ULL << wr) | (1ULL << bl) | (1ULL << pwr_en);
+      (1ULL << Config::D0) | (1ULL << Config::D1) | (1ULL << Config::D2) |
+      (1ULL << Config::D3) | (1ULL << Config::D4) | (1ULL << Config::D5) |
+      (1ULL << Config::D6) | (1ULL << Config::D7) | (1ULL << Config::CS) |
+      (1ULL << Config::DC) | (1ULL << Config::WR) | (1ULL << Config::BL);
   return gpio_config(&io_conf);
 }
 
 void ST7789V::writeCmd(uint8_t cmd) {
-  GPIO.out_w1tc = dcval;
+  GPIO.out_w1tc = DCVAL;
   GPIO.out1_w1tc.val = lu_pinbitmask[255];
-  GPIO.out_w1tc = wrval;
+  GPIO.out_w1tc = WRVAL;
   GPIO.out1_w1ts.val = lu_pinbitmask[cmd];
-  GPIO.out_w1ts = wrval;
+  GPIO.out_w1ts = WRVAL;
 }
 
 void ST7789V::writeData(uint8_t data) {
-  GPIO.out_w1ts = dcval;
+  GPIO.out_w1ts = DCVAL;
   GPIO.out1_w1tc.val = lu_pinbitmask[255];
-  GPIO.out_w1tc = wrval;
+  GPIO.out_w1tc = WRVAL;
   GPIO.out1_w1ts.val = lu_pinbitmask[data];
-  GPIO.out_w1ts = wrval;
+  GPIO.out_w1ts = WRVAL;
 }
 
 void ST7789V::init() {
   ST7789V::framecolormem = new uint16_t[320 * 20]();
-
-  GPIO.out_w1ts = (1 << pwr_en);
 
   fill_lu_pinbitmask();
   esp_err_t err = config_lcd();
@@ -130,7 +114,7 @@ void ST7789V::init() {
         std::string("init. of ST7789V failed: ") + esp_err_to_name(err));
   }
 
-  GPIO.out_w1tc = csval;
+  GPIO.out_w1tc = CSVAL;
 
   writeCmd(dispoff);
   vTaskDelay(100);
@@ -149,16 +133,16 @@ void ST7789V::init() {
 
   writeCmd(dispon); // display on
 
-  GPIO.out_w1ts = csval;
+  GPIO.out_w1ts = CSVAL;
 
-  GPIO.out1_w1ts.val = (1ULL << (bl - 32)); // backlight
+  GPIO.out1_w1ts.val = (1ULL << (Config::BL - 32)); // backlight
 }
 
 void ST7789V::copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
                        uint16_t *data) {
   uint16_t x1 = x0 + w - 1;
   uint16_t y1 = y0 + h - 1;
-  GPIO.out_w1tc = csval;
+  GPIO.out_w1tc = CSVAL;
   writeCmd(caset);
   writeData(x0 >> 8);
   writeData(x0 & 0xff);
@@ -170,34 +154,44 @@ void ST7789V::copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
   writeData(y1 >> 8);
   writeData(y1 & 0xff);
   writeCmd(ramwr);
-  GPIO.out_w1ts = dcval;
+  GPIO.out_w1ts = DCVAL;
   uint32_t clearMask = lu_pinbitmask[255];
   for (uint32_t i = 0; i < w * h; i++) {
     uint16_t actdata = *data++;
     // writeData(actdata >> 8);
     GPIO.out1_w1tc.val = clearMask;
-    GPIO.out_w1tc = wrval;
+    GPIO.out_w1tc = WRVAL;
     GPIO.out1_w1ts.val = lu_pinbitmask[actdata >> 8];
-    GPIO.out_w1ts = wrval;
+    GPIO.out_w1ts = WRVAL;
     // writeData(actdata & 0xff);
     GPIO.out1_w1tc.val = clearMask;
-    GPIO.out_w1tc = wrval;
+    GPIO.out_w1tc = WRVAL;
     GPIO.out1_w1ts.val = lu_pinbitmask[(uint8_t)actdata];
-    GPIO.out_w1ts = wrval;
+    GPIO.out_w1ts = WRVAL;
   }
   writeCmd(nop);
-  GPIO.out_w1ts = csval;
+  GPIO.out_w1ts = CSVAL;
 }
 
 void ST7789V::drawFrame(uint16_t frameColor) {
-  uint16_t cnt = 20 * 320;
+  uint16_t cnt = FRAMEMEMSIZE;
   uint16_t *frameptr = ST7789V::framecolormem;
   while (cnt--) {
     *frameptr = frameColor;
     frameptr++;
   }
-  ST7789V::copyData(0, 0, 320, 20, ST7789V::framecolormem);
-  ST7789V::copyData(0, 220, 320, 20, ST7789V::framecolormem);
+  if (BORDERHEIGHT > 0) {
+    ST7789V::copyData(BORDERWIDTH, 0, 320, BORDERHEIGHT,
+                      ST7789V::framecolormem);
+    ST7789V::copyData(BORDERWIDTH, 200 + BORDERHEIGHT, 320, BORDERHEIGHT,
+                      ST7789V::framecolormem);
+  }
+  if (BORDERWIDTH > 0) {
+    ST7789V::copyData(0, 0, BORDERWIDTH, Config::LCDHEIGHT,
+                      ST7789V::framecolormem);
+    ST7789V::copyData(BORDERWIDTH + 320, 0, BORDERWIDTH, Config::LCDHEIGHT,
+                      ST7789V::framecolormem);
+  }
 }
 
 void ST7789V::drawBitmap(uint16_t *bitmap) {
@@ -205,3 +199,4 @@ void ST7789V::drawBitmap(uint16_t *bitmap) {
 }
 
 const uint16_t *ST7789V::getC64Colors() const { return c64Colors; }
+#endif

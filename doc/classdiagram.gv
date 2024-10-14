@@ -8,12 +8,10 @@ digraph T_HMI_C64 {
     style=filled
     fillcolor=gray95
   ]
-  Main -> CPUC64
-  Main -> BLEKB
-  Main -> VIC
-  BLEKB -> ExternalCmds
-  ExternalCmds -> CPUC64
-  CPUC64 -> BLEKB
+  C64Emu -> CPUC64 [dir=both]
+  C64Emu -> BLEKB [dir=both]
+  C64Emu -> ExternalCmds [dir=both]
+  C64Emu -> VIC
   ExternalCmds -> SDCard
   CPUC64 -> CIA
   CPUC64 -> CPU6502 [arrowhead = empty]

@@ -17,18 +17,15 @@
 #ifndef ST7789V_H
 #define ST7789V_H
 
+#include "Config.h"
 #include "DisplayDriver.h"
 #include <cstdint>
 
+// no elegant/simple solution for max() at compile time in C++11
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
 class ST7789V : public DisplayDriver {
 private:
-  inline static void writeCmd(uint8_t cmd) __attribute__((always_inline));
-  inline static void writeData(uint8_t data) __attribute__((always_inline));
-  static void copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
-                       uint16_t *data);
-  static uint16_t *framecolormem;
-
-public:
   static const uint16_t c64_black = 0x0000;
   static const uint16_t c64_white = 0xffff;
   static const uint16_t c64_red = 0x8000;
@@ -52,6 +49,18 @@ public:
       c64_orange, c64_brown,      c64_lightred,  c64_grey1,
       c64_grey2,  c64_lightgreen, c64_lightblue, c64_grey3};
 
+  static const uint16_t BORDERWIDTH = (Config::LCDWIDTH - 320) / 2;
+  static const uint16_t BORDERHEIGHT = (Config::LCDHEIGHT - 200) / 2;
+  static const uint16_t FRAMEMEMSIZE =
+      MAX(320 * BORDERHEIGHT, BORDERWIDTH *Config::LCDHEIGHT);
+  static uint16_t *framecolormem;
+
+  inline static void writeCmd(uint8_t cmd) __attribute__((always_inline));
+  inline static void writeData(uint8_t data) __attribute__((always_inline));
+  static void copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
+                       uint16_t *data);
+
+public:
   void init() override;
   void drawFrame(uint16_t frameColor) override;
   void drawBitmap(uint16_t *bitmap) override;

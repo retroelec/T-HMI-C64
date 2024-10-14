@@ -24,10 +24,11 @@
 #include <cstdint>
 #include <mutex>
 
-class BLEKB;
+class C64Emu;
 
 class CPUC64 : public CPU6502 {
 private:
+  C64Emu *c64emu;
   uint8_t *ram;
   uint8_t *basicrom;
   uint8_t *kernalrom;
@@ -53,7 +54,6 @@ private:
 
 public:
   VIC *vic;
-  BLEKB *blekb;
   CIA cia1;
   CIA cia2;
 
@@ -82,14 +82,14 @@ public:
 
   bool restorenmi;
 
-  inline uint8_t getMem(uint16_t addr) __attribute__((always_inline));
-  inline void setMem(uint16_t addr, uint8_t val) __attribute__((always_inline));
+  inline uint8_t getMem(uint16_t addr);
+  inline void setMem(uint16_t addr, uint8_t val);
 
   void cmd6502halt() override;
   void run() override;
 
   void initMemAndRegs();
-  void init(uint8_t *ram, uint8_t *charrom, VIC *vic, BLEKB *blekb);
+  void init(uint8_t *ram, uint8_t *charrom, VIC *vic, C64Emu *c64emu);
   void setPC(uint16_t pc);
   void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
   void setKeycodes(uint8_t keycode1, uint8_t keycode2);
