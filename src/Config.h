@@ -66,9 +66,6 @@ struct Config {
 #elif defined(BOARD_T_DISPLAY_S3)
 #define USE_RM67162
 
-  static const uint8_t PWR_ON =
-      4; // not provided by board T_DISPLAY_S3, define an used pin
-
   // DisplayDriver (considering a possible rotation)
   static const uint16_t LCDWIDTH = 536;
   static const uint16_t LCDHEIGHT = 240;

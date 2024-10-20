@@ -89,6 +89,8 @@ void ExternalCmds::setType3Notification(uint16_t addr) {
   }
 }
 
+void ExternalCmds::setType4Notification() { type4notification.type = 4; }
+
 void ExternalCmds::setVarTab(uint16_t addr) {
   // set VARTAB
   ram[0x2d] = addr % 256;
@@ -99,6 +101,8 @@ void ExternalCmds::setVarTab(uint16_t addr) {
 
 uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   uint16_t addr;
+  uint8_t cmddetail;
+  uint8_t len;
   bool fileloaded;
   ExtCmd cmd = static_cast<ExtCmd>(buffer[0]);
   switch (cmd) {
@@ -135,17 +139,43 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     ESP_LOGI(TAG, "enter receivedata");
     c64emu->cpu.cpuhalted = true;
     // simple "protocol":
-    // - byte 4: number of bytes which were received (max 249 bytes)
-    // - byte 5-6: address the bytes must be written to
-    // - byte 7-: data bytes
-    addr = buffer[4] + (buffer[5] << 8);
-    ESP_LOGI(TAG, "address data will be transfered to: %x", addr);
-    for (uint8_t i = 0; i < buffer[3]; i++) {
-      ram[addr++] = buffer[i + 6];
+    // - byte 0: cmd (as usual)
+    // - byte 1: cmd detail: first block (1), next block (0), last block (2)
+    // - byte 2: cmd flag (as usual)
+    // - first block: byte 3 - 4: start address, 5 - 252: data
+    // - next block: byte 3 - 252: data
+    // - last block: byte 3: length of last block, byte 4 - (length+4-1): data
+    cmddetail = buffer[1];
+    if (cmddetail == 0) {
+      // next block
+      ESP_LOGI(TAG, "next block: %x", actaddrreceivecmd);
+      for (uint8_t i = 3; i < 253; i++) {
+        ram[actaddrreceivecmd + i - 3] = buffer[i];
+      }
+      actaddrreceivecmd += 250;
+    } else if (cmddetail == 1) {
+      // first block
+      addr = buffer[3] + (buffer[4] << 8);
+      actaddrreceivecmd = addr;
+      ESP_LOGI(TAG, "first block: %x", actaddrreceivecmd);
+      for (uint8_t i = 5; i < 253; i++) {
+        ram[actaddrreceivecmd + i - 5] = buffer[i];
+      }
+      actaddrreceivecmd += 253 - 5;
+    } else if (cmddetail == 2) {
+      // last block
+      len = buffer[3];
+      ESP_LOGI(TAG, "last block: %x", actaddrreceivecmd);
+      for (uint8_t i = 4; i < (len + 4); i++) {
+        ram[actaddrreceivecmd + i - 4] = buffer[i];
+      }
+      actaddrreceivecmd += len;
+      setVarTab(actaddrreceivecmd);
     }
     c64emu->cpu.cpuhalted = false;
     ESP_LOGI(TAG, "leave receivedata");
-    return 0;
+    setType4Notification();
+    return 4;
   case ExtCmd::RESTORE:
     if (buffer[1] == 1) {
       // restore + run/stop
@@ -256,10 +286,12 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     ESP_LOGI(TAG, "detectreleasekey = %x", c64emu->blekb.detectreleasekey);
     setType1Notification();
     return 1;
+#ifdef BOARD_T_HMI
   case ExtCmd::POWEROFF:
     pinMode(Config::PWR_ON, OUTPUT);
     digitalWrite(Config::PWR_ON, LOW);
     return 0;
+#endif
   }
   return 0;
 }

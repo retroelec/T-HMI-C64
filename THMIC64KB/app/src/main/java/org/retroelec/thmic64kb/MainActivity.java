@@ -28,6 +28,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
     private Settings settings;
     private Type2Notification type2Notification;
     private Type3Notification type3Notification;
+    private Type4Notification type4Notification;
     private Switch bleSwitch;
     private Button joystick1;
     private Button joystick2;
@@ -71,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
     private void scanForBLEDevice() {
         // init BLEManager
         Log.d("THMIC64", "init BLEManager");
-        bleManager = new BLEManager(this, Config.TARGET_DEVICE_NAME, settings, type2Notification, type3Notification);
+        bleManager = new BLEManager(this, Config.TARGET_DEVICE_NAME, settings, type2Notification, type3Notification, type4Notification);
         final MyApplication myApplication = (MyApplication) getApplication();
         myApplication.setBleManager(bleManager);
 
@@ -145,10 +146,12 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
         settings.setMinKeyPressedDuration(Config.DEFAULT_MINKEYPRESSEDDURATION);
         type2Notification = new Type2Notification();
         type3Notification = new Type3Notification();
+        type4Notification = new Type4Notification();
         final MyApplication myApplication = (MyApplication) getApplication();
         myApplication.setSettings(settings);
         myApplication.setType2Notification(type2Notification);
         myApplication.setType3Notification(type3Notification);
+        myApplication.setType4Notification(type4Notification);
 
         setContentView(R.layout.activity_main);
 

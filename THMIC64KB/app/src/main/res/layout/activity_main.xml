@@ -69,7 +69,7 @@
             android:src="@drawable/pow"
             android:layout_width="wrap_content"
             android:layout_height="50dp"
-            android:backgroundTint="#777777"
+            android:backgroundTint="#555555"
             android:textColor="@android:color/white" />
 
     </TableRow>

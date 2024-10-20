@@ -12,12 +12,16 @@ digraph T_HMI_C64 {
   C64Emu -> BLEKB [dir=both]
   C64Emu -> ExternalCmds [dir=both]
   C64Emu -> VIC
+  C64Emu -> BoardDriver
+  T_HMI -> BoardDriver [arrowhead=empty, style=dashed]
+  T_DISPLAY_S3 -> BoardDriver [arrowhead=empty, style=dashed]
   ExternalCmds -> SDCard
   CPUC64 -> CIA
-  CPUC64 -> CPU6502 [arrowhead = empty]
+  CPUC64 -> CPU6502 [arrowhead=empty]
   CPUC64 -> Joystick
   CPUC64 -> VIC
   VIC -> DisplayDriver
-  DisplayDriver -> ST7789V
+  ST7789V -> DisplayDriver [arrowhead=empty, style=dashed]
+  RM67162 -> DisplayDriver [arrowhead=empty, style=dashed]
 }
 

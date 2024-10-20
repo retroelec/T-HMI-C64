@@ -176,11 +176,17 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
             reinterpret_cast<uint8_t *>(&(externalCmds.type3notification)),
             sizeof(BLENotificationStruct3));
         break;
+      case 4:
+        pCharacteristic->setValue(
+            reinterpret_cast<uint8_t *>(&(externalCmds.type4notification)),
+            sizeof(BLENotificationStruct4));
+        break;
       default:
         type = 0;
       }
       if (type > 0) {
         pCharacteristic->notify();
+        ESP_LOGI(TAG, "notification sent");
       }
     }
   }

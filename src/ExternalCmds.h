@@ -63,22 +63,29 @@ struct BLENotificationStruct3 {
   uint8_t mem[BLENOTIFICATIONTYPE3NUMOFBYTES];
 };
 
+struct BLENotificationStruct4 {
+  uint8_t type;
+};
+
 class ExternalCmds {
 private:
   C64Emu *c64emu;
   uint8_t *ram;
   SDCard sdcard;
   bool sendrawkeycodes;
+  uint16_t actaddrreceivecmd;
 
   void setVarTab(uint16_t addr);
   void setType1Notification();
   void setType2Notification();
   void setType3Notification(uint16_t addr);
+  void setType4Notification();
 
 public:
   BLENotificationStruct1 type1notification;
   BLENotificationStruct2 type2notification;
   BLENotificationStruct3 type3notification;
+  BLENotificationStruct4 type4notification;
 
   void init(uint8_t *ram, C64Emu *c64emu);
   uint8_t executeExternalCmd(uint8_t *buffer);

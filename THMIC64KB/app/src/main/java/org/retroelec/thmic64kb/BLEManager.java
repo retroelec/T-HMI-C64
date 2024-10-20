@@ -18,7 +18,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 
 public class BLEManager {
-    private BluetoothGatt bluetoothGatt;
+    private BluetoothGatt bluetoothGatt = null;
     private BluetoothGattCharacteristic characteristic = null;
     private final BluetoothLeScanner bluetoothLeScanner;
     private final MainActivity mainActivity;
@@ -26,17 +26,22 @@ public class BLEManager {
     private final Settings settings;
     private final Type2Notification type2Notification;
     private final Type3Notification type3Notification;
+    private final Type4Notification type4Notification;
+
+    private boolean servicesDiscovered = false;
+    private boolean isWriteInProgress = false;
 
     public BluetoothGattCharacteristic getCharacteristic() {
         return characteristic;
     }
 
-    public BLEManager(MainActivity mainActivity, String targetDeviceName, Settings settings, Type2Notification type2Notification, Type3Notification type3Notification) {
+    public BLEManager(MainActivity mainActivity, String targetDeviceName, Settings settings, Type2Notification type2Notification, Type3Notification type3Notification, Type4Notification type4Notification) {
         this.mainActivity = mainActivity;
         this.targetDeviceName = targetDeviceName;
         this.settings = settings;
         this.type2Notification = type2Notification;
         this.type3Notification = type3Notification;
+        this.type4Notification = type4Notification;
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
         if (!bluetoothAdapter.isEnabled() || bluetoothLeScanner == null) {
@@ -49,22 +54,30 @@ public class BLEManager {
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
             if (newState == BluetoothGatt.STATE_CONNECTED) {
-                gatt.discoverServices();
+                if (!servicesDiscovered) {
+                    Log.i("THMIC64", "connected to GATT server");
+                    gatt.discoverServices();
+                    servicesDiscovered = true;
+                } else {
+                    return;
+                }
             } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
-                characteristic = null;
-                Log.d("THMIC64", "BluetoothGatt.STATE_DISCONNECTED");
+                Log.i("THMIC64", "disconnected from GATT server");
+                servicesDiscovered = false;
+                disconnect();
             }
+            characteristic = null;
         }
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
-            if (status == BluetoothGatt.GATT_SUCCESS) {
+            if ((status == BluetoothGatt.GATT_SUCCESS) && (characteristic == null)) {
                 BluetoothGattService service = gatt.getService(Config.THMIC64_SERVICE_UUID);
                 if (service != null) {
                     characteristic = service.getCharacteristic(Config.THMIC64_CHARACTERISTIC_UUID);
                     if (characteristic != null) {
-                        Log.d("THMIC64", "Characteristic found successfully.");
+                        Log.i("THMIC64", "Characteristic found successfully.");
                         gatt.setCharacteristicNotification(characteristic, true);
                     } else {
                         Log.e("THMIC64", "Characteristic not found.");
@@ -78,12 +91,20 @@ public class BLEManager {
         }
 
         @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.w("BLEManager", "Characteristic write failed with status: " + status);
+            }
+            isWriteInProgress = false;
+        }
+
+        @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             Log.d("THMIC64", "characteristic changed");
             super.onCharacteristicChanged(gatt, characteristic);
             if (characteristic.getUuid().equals(Config.THMIC64_CHARACTERISTIC_UUID)) {
                 byte[] receivedData = characteristic.getValue();
-                Log.d("THMIC64", "received notification, len = " + receivedData.length);
+                Log.i("THMIC64", "received notification, len = " + receivedData.length);
                 if (receivedData.length > 0) {
                     byte type = receivedData[0];
                     switch (type) {
@@ -128,6 +149,10 @@ public class BLEManager {
                             type3Notification.setMem(mem);
                             type3Notification.notifyObserver();
                             break;
+                        case 4:
+                            Log.i("THMIC64", "received notification: " + receivedData[0]);
+                            type4Notification.notifyObserver();
+                            break;
                     }
                 } else {
                     Log.e("THMIC64", "received notification: wrong length");
@@ -140,7 +165,11 @@ public class BLEManager {
 
     private void connectToDevice(BluetoothDevice device) {
         mainActivity.getSystemService(Context.BLUETOOTH_SERVICE);
-        bluetoothGatt = device.connectGatt(mainActivity, false, gattCallback);
+        if (bluetoothGatt == null) {
+            bluetoothGatt = device.connectGatt(mainActivity, false, gattCallback);
+        } else {
+            Log.i("THMIC64", "already connected to GATT server");
+        }
     }
 
     public void scanForDevice() {
@@ -173,6 +202,9 @@ public class BLEManager {
     }
 
     public void sendData(byte[] data) {
+        while (isWriteInProgress) {
+        }
+        isWriteInProgress = true;
         characteristic.setValue(data);
         bluetoothGatt.writeCharacteristic(characteristic);
     }
@@ -182,6 +214,7 @@ public class BLEManager {
         if (bluetoothGatt != null) {
             bluetoothGatt.disconnect();
             bluetoothGatt.close();
+            bluetoothGatt = null;
         }
     }
 }

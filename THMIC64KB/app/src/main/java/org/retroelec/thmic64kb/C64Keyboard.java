@@ -360,13 +360,15 @@ public class C64Keyboard extends LinearLayout {
                 if (visualEffect) {
                     view.setBackgroundColor(KEYBGCOLOR);
                 }
-                long endTime = System.currentTimeMillis();
-                long duration = endTime - startTime;
-                long delay = settings.getMinKeyPressedDuration() - duration;
-                if (delay > 0) {
-                    handler.postDelayed(() -> sendReleaseKey(context), delay);
-                } else {
-                    sendReleaseKey(context);
+                if (settings.isDetectReleaseKey()) {
+                    long endTime = System.currentTimeMillis();
+                    long duration = endTime - startTime;
+                    long delay = settings.getMinKeyPressedDuration() - duration;
+                    if (delay > 0) {
+                        handler.postDelayed(() -> sendReleaseKey(context), delay);
+                    } else {
+                        sendReleaseKey(context);
+                    }
                 }
                 return true;
             }
