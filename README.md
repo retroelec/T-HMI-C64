@@ -12,6 +12,7 @@ Contact: retroelec42@gmail.com
 ## News
 
 - Sending a file to the development board by BLE
+- Improved keyboard handling (optional detection of releasing a key)
 - Operating the T-HMI via battery works now
 - Expanding emulator to support development board T-Display S3 AMOLED
 - Using Arduino core V3.0 (migration of code from V2.0 to V3.0 -> breaking changes -> see also chapter "Compiling code without changing the actual version of your installed Arduino core")
@@ -68,6 +69,12 @@ you may have to adapt the following constants in src/Config.h:
 - ADC_JOYSTICK_Y
 - JOYSTICK_FIRE_PIN
 - JOYSTICK_FIRE2_PIN
+
+### Battery
+
+You can also operate your board with a battery. The T-HMI development board allows you to switch on the board by pressing
+the On/Off switch (next to the SD card slot). However, it does not appear to be possible to turn the board off with this switch.
+Therefore, the Android app allows the board to be switched off by pressing the Off switch in the top right-hand corner.
 
 ## Installation
 
@@ -213,8 +220,8 @@ If it is necessary to send the raw key code of these special keys (e.g. some pin
 set the corresponding switch in the Android app ("Send raw keycodes", DIV screen).
 
 By default, only the pressing of a key is sent to the emulator, which results in, for example, only one space being output
-even if the space key is held down. With the 'Experimental: Detect release key' option (DIV Screen), the C64 keyboard is emulated more authentically.
-However, there is currently a problem if you type too fast (the app crashes, hence “experimental”).
+even if the space key is held down. With the 'Detect release key' option (DIV Screen), the C64 keyboard is emulated more authentically
+(with the drawback that typing speed is reduced).
 
 The key combination Run/Stop + Restore has been replaced by first pressing the Commodore key and then pressing the Restore key.
 

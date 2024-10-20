@@ -63,7 +63,7 @@ public class StatusActivity extends AppCompatActivity implements NotificationObs
         type2Notification.registerObserver(this);
         BLEManager bleManager = myApplication.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-            bleManager.sendData(new byte[]{Config.SHOWREG, (byte) 0x00, (byte) 0x80});
+            bleManager.sendData(new byte[]{Config.SHOWREG, (byte) 0x00, (byte) 0x80}, false);
         }
 
         setContentView(R.layout.status);

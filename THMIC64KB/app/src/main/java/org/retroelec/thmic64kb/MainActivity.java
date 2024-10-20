@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
                     bleSwitch.setChecked(actcharacteristic != null);
                     if ((oldcharacteristic == null) && (actcharacteristic != null)) {
                         // get initial settings
-                        bleManager.sendData(new byte[]{Config.GETSTATUS, (byte) 0x00, (byte) 0x80});
+                        bleManager.sendData(new byte[]{Config.GETSTATUS, (byte) 0x00, (byte) 0x80}, false);
                     }
                     handler.postDelayed(this, Config.CHECK_INTERVAL);
                 } else {
@@ -164,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
         Button keykbjoystick1 = findViewById(R.id.keykbjoystick1);
         keykbjoystick1.setOnClickListener(view -> {
             if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-                bleManager.sendData(new byte[]{Config.KBJOYSTICKMODE1, (byte) 0x00, (byte) 0x80});
+                bleManager.sendData(new byte[]{Config.KBJOYSTICKMODE1, (byte) 0x00, (byte) 0x80}, false);
             }
             Intent i = new Intent(MainActivity.this, KBJoystickActivity.class);
             startActivity(i);
@@ -173,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
         Button keykbjoystick2 = findViewById(R.id.keykbjoystick2);
         keykbjoystick2.setOnClickListener(view -> {
             if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-                bleManager.sendData(new byte[]{Config.KBJOYSTICKMODE2, (byte) 0x00, (byte) 0x80});
+                bleManager.sendData(new byte[]{Config.KBJOYSTICKMODE2, (byte) 0x00, (byte) 0x80}, false);
             }
             Intent i = new Intent(MainActivity.this, KBJoystickActivity.class);
             i.putExtra("SHOW_FIRE2_BUTTON", true);
@@ -185,12 +185,12 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
             if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
                 if (!joystick1active) {
                     // activate joystick 1
-                    bleManager.sendData(new byte[]{Config.JOYSTICKMODE1, (byte) 0x00, (byte) 0x80});
+                    bleManager.sendData(new byte[]{Config.JOYSTICKMODE1, (byte) 0x00, (byte) 0x80}, false);
                     // deactivate joystick 2
                     joystick2active = false;
                 } else {
                     // deactivate joystick 1
-                    bleManager.sendData(new byte[]{Config.JOYSTICKMODEOFF, (byte) 0x00, (byte) 0x80});
+                    bleManager.sendData(new byte[]{Config.JOYSTICKMODEOFF, (byte) 0x00, (byte) 0x80}, false);
                 }
                 joystick1active = !joystick1active;
                 refreshActiveJoystickButtons(joystick1active, joystick2active);
@@ -202,12 +202,12 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
             if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
                 if (!joystick2active) {
                     // activate joystick 2
-                    bleManager.sendData(new byte[]{Config.JOYSTICKMODE2, (byte) 0x00, (byte) 0x80});
+                    bleManager.sendData(new byte[]{Config.JOYSTICKMODE2, (byte) 0x00, (byte) 0x80}, false);
                     // deactivate joysticks
                     joystick1active = false;
                 } else {
                     // deactivate joystick 2
-                    bleManager.sendData(new byte[]{Config.JOYSTICKMODEOFF, (byte) 0x00, (byte) 0x80});
+                    bleManager.sendData(new byte[]{Config.JOYSTICKMODEOFF, (byte) 0x00, (byte) 0x80}, false);
                 }
                 joystick2active = !joystick2active;
                 refreshActiveJoystickButtons(joystick1active, joystick2active);
@@ -217,7 +217,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
         powerOff = findViewById(R.id.powerOff);
         powerOff.setOnClickListener(view -> {
             if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-                bleManager.sendData(new byte[]{Config.POWEROFF, (byte) 0x00, (byte) 0x80});
+                bleManager.sendData(new byte[]{Config.POWEROFF, (byte) 0x00, (byte) 0x80}, false);
             }
         });
 

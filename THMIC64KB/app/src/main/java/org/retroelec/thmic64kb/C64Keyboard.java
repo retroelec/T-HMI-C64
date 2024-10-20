@@ -331,7 +331,7 @@ public class C64Keyboard extends LinearLayout {
         }
         BLEManager bleManager = myApplication.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-            bleManager.sendData(datatosend);
+            bleManager.sendData(datatosend, false);
         }
     }
 
@@ -339,7 +339,7 @@ public class C64Keyboard extends LinearLayout {
         byte[] datatosend = new byte[]{(byte) Config.KEYRELEASED};
         BLEManager bleManager = myApplication.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-            bleManager.sendData(datatosend);
+            bleManager.sendData(datatosend, false);
         }
     }
 

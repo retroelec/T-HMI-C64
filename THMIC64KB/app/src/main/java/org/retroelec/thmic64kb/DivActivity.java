@@ -42,10 +42,10 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
     private byte[] buffer = new byte[64 * 1024];
     private int bufferlen;
 
-    private void sendCmd(byte[] data) {
+    private void sendCmd(byte[] data, boolean blocking) {
         BLEManager bleManager = myApplication.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-            bleManager.sendData(data);
+            bleManager.sendData(data, blocking);
         }
     }
 
@@ -76,7 +76,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
         }
         System.arraycopy(buffer, start, block, headerlen, datalen);
         Log.i("THMIC64", "sendNextBlock, detail = " + blockdetail);
-        sendCmd(block);
+        sendCmd(block, true);
     }
 
     private void wait4Ack() {
@@ -235,19 +235,19 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
         setContentView(R.layout.div);
 
         toggleRefreshframecolorSwitch = findViewById(R.id.toggleRefreshframecolor);
-        toggleRefreshframecolorSwitch.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHFRAMECOLORREFRESH, (byte) 0x00, (byte) 0x80}));
+        toggleRefreshframecolorSwitch.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHFRAMECOLORREFRESH, (byte) 0x00, (byte) 0x80}, false));
 
         toggleSendRawKeyCodes = findViewById(R.id.toggleSendRawKeyCodes);
-        toggleSendRawKeyCodes.setOnClickListener(v -> sendCmd(new byte[]{Config.SENDRAWKEYS, (byte) 0x00, (byte) 0x80}));
+        toggleSendRawKeyCodes.setOnClickListener(v -> sendCmd(new byte[]{Config.SENDRAWKEYS, (byte) 0x00, (byte) 0x80}, false));
 
         toggleDebug = findViewById(R.id.toggleDebug);
-        toggleDebug.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHDEBUG, (byte) 0x00, (byte) 0x80}));
+        toggleDebug.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHDEBUG, (byte) 0x00, (byte) 0x80}, false));
 
         togglePerf = findViewById(R.id.togglePerf);
-        togglePerf.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHPERF, (byte) 0x00, (byte) 0x80}));
+        togglePerf.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHPERF, (byte) 0x00, (byte) 0x80}, false));
 
         toggleDetectReleaseKey = findViewById(R.id.toggleDetectReleaseKey);
-        toggleDetectReleaseKey.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHDETECTRELEASEKEY, (byte) 0x00, (byte) 0x80}));
+        toggleDetectReleaseKey.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHDETECTRELEASEKEY, (byte) 0x00, (byte) 0x80}, false));
 
         inputMinKeyPressedDuration = findViewById(R.id.inputMinKeyPressedDuration);
         inputMinKeyPressedDuration.setText(String.valueOf(settings.getMinKeyPressedDuration()));
@@ -302,7 +302,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
         });
 
         final Button resetButton = findViewById(R.id.reset);
-        resetButton.setOnClickListener(v -> sendCmd(new byte[]{Config.RESET, (byte) 0x00, (byte) 0x80}));
+        resetButton.setOnClickListener(v -> sendCmd(new byte[]{Config.RESET, (byte) 0x00, (byte) 0x80}, false));
 
         final Button closeButton = findViewById(R.id.close);
         closeButton.setOnClickListener(v -> finish());

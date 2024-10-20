@@ -201,10 +201,12 @@ public class BLEManager {
         new Handler(Looper.getMainLooper()).postDelayed(() -> bluetoothLeScanner.stopScan(scanCallback), Config.SEARCH_DURATION);
     }
 
-    public void sendData(byte[] data) {
-        while (isWriteInProgress) {
+    public void sendData(byte[] data, boolean blocking) {
+        if (blocking) {
+            while (isWriteInProgress) {
+            }
+            isWriteInProgress = true;
         }
-        isWriteInProgress = true;
         characteristic.setValue(data);
         bluetoothGatt.writeCharacteristic(characteristic);
     }

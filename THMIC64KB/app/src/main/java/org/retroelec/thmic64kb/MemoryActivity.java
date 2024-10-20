@@ -72,7 +72,7 @@ public class MemoryActivity extends AppCompatActivity implements NotificationObs
                 int val = Integer.parseInt(addr, 16);
                 BLEManager bleManager = myApplication.getBleManager();
                 if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-                    bleManager.sendData(new byte[]{Config.SHOWMEM, (byte) 0x00, (byte) 0x80, (byte) val, (byte) (val >> 8)});
+                    bleManager.sendData(new byte[]{Config.SHOWMEM, (byte) 0x00, (byte) 0x80, (byte) val, (byte) (val >> 8)}, false);
                 }
             } catch (NumberFormatException e) {
                 Toast.makeText(this, "address must be a 16 bit hex value", Toast.LENGTH_LONG).show();

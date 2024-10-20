@@ -18,7 +18,7 @@ public class KBJoystickActivity extends AppCompatActivity {
         final MyApplication myApplication = (MyApplication) getApplication();
         BLEManager bleManager = myApplication.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-            bleManager.sendData(datatosend);
+            bleManager.sendData(datatosend, false);
         }
     }
 
@@ -26,7 +26,7 @@ public class KBJoystickActivity extends AppCompatActivity {
         final MyApplication myApplication = (MyApplication) getApplication();
         BLEManager bleManager = myApplication.getBleManager();
         if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-            bleManager.sendData(data);
+            bleManager.sendData(data, false);
         }
     }
 
