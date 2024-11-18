@@ -20,11 +20,13 @@ import java.util.Map;
 public class C64Keyboard extends LinearLayout {
 
     private static final int KEYBGCOLOR = 0xff2b2121;
+    private static final int KEYBGCOLORFKEYS = 0xff777777;
     private static final int KEYSELECTEDCOLOR = 0xff777777;
+    private static final int KEYSELECTEDCOLORFKEYS = 0xff888888;
     private static final int DURATION_VIBRATION_EFFECT = 100;
     private static final int DURATION_VISUAL_EFFECT = 200;
 
-    private MyApplication myApplication;
+    private BLEUtils bleUtils;
     private Settings settings;
 
     private long startTime = 0;
@@ -55,7 +57,6 @@ public class C64Keyboard extends LinearLayout {
     private Button keyf3;
     private Button keyf5;
     private Button keyf7;
-    private Button keyload;
     private Button keyleftarrow;
     private Button keyplus;
     private Button keyminus;
@@ -102,7 +103,6 @@ public class C64Keyboard extends LinearLayout {
     private Button keyspace;
 
     void initKBHashMap() {
-        map.put("LOAD", new byte[]{Config.LOAD, (byte) 0x00, (byte) 0x80});
         map.put("RESTORE", new byte[]{Config.RESTORE, (byte) 0x00, (byte) 0x80});
         map.put("RESTORERUNSTOP", new byte[]{Config.RESTORE, (byte) 0x01, (byte) 0x80});
         map.put("del", new byte[]{(byte) 0xfe, (byte) 0xfe, (byte) 0x00});
@@ -329,18 +329,12 @@ public class C64Keyboard extends LinearLayout {
         } else if (isCommodore) {
             datatosend = new byte[]{data[0], data[1], 4};
         }
-        BLEManager bleManager = myApplication.getBleManager();
-        if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-            bleManager.sendData(datatosend, false);
-        }
+        bleUtils.send(datatosend, false);
     }
 
     private void sendReleaseKey(Context context) {
         byte[] datatosend = new byte[]{(byte) Config.KEYRELEASED};
-        BLEManager bleManager = myApplication.getBleManager();
-        if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-            bleManager.sendData(datatosend, false);
-        }
+        bleUtils.send(datatosend, false);
     }
 
     @FunctionalInterface
@@ -348,17 +342,17 @@ public class C64Keyboard extends LinearLayout {
         boolean handleActionDown(Context context, String key);
     }
 
-    private View.OnTouchListener createTouchListener(Context context, String key, ActionDownHandler actionDownHandler, boolean visualEffect) {
+    private View.OnTouchListener createTouchListener(Context context, String key, ActionDownHandler actionDownHandler, boolean visualEffect, int selcolor, int bgcolor) {
         return (view, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 if (visualEffect) {
-                    view.setBackgroundColor(KEYSELECTEDCOLOR);
+                    view.setBackgroundColor(selcolor);
                 }
                 startTime = System.currentTimeMillis();
                 return actionDownHandler.handleActionDown(context, key);
             } else if (event.getAction() == MotionEvent.ACTION_UP) {
                 if (visualEffect) {
-                    view.setBackgroundColor(KEYBGCOLOR);
+                    view.setBackgroundColor(bgcolor);
                 }
                 if (settings.isDetectReleaseKey()) {
                     long endTime = System.currentTimeMillis();
@@ -376,14 +370,26 @@ public class C64Keyboard extends LinearLayout {
         };
     }
 
-    ActionDownHandler standardActionDown = (context, key) -> {
+    private View.OnTouchListener createTouchListener(Context context, String key, ActionDownHandler actionDownHandler, boolean visualEffect) {
+        return createTouchListener(context, key, actionDownHandler, visualEffect, KEYSELECTEDCOLOR, KEYBGCOLOR);
+    }
+
+    private View.OnTouchListener createTouchListenerFKeys(Context context, String key, ActionDownHandler actionDownHandler, boolean visualEffect) {
+        return createTouchListener(context, key, actionDownHandler, visualEffect, KEYSELECTEDCOLORFKEYS, KEYBGCOLORFKEYS);
+    }
+
+    private ActionDownHandler standardActionDown = (context, key) -> {
         sendKey(context, map.get(key));
         return true;
     };
 
-    ActionDownHandler shiftLeftActionDown = (context, key) -> {
+    private ActionDownHandler shiftLeftActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
+            keyshiftleft.setBackgroundColor(KEYSELECTEDCOLOR);
+            new Handler().postDelayed(() -> keyshiftleft.setBackgroundColor(KEYBGCOLOR), DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
+        } else if (keycommodore.isSelected() && (!keyshiftleft.isSelected())) {
+            sendKey(context, new byte[]{(byte) 0xfd, (byte) 0x7f, (byte) 0x05});
         } else {
             if (keyshiftlock.isSelected()) {
                 return true;
@@ -395,9 +401,13 @@ public class C64Keyboard extends LinearLayout {
         return true;
     };
 
-    ActionDownHandler shiftRightActionDown = (context, key) -> {
+    private ActionDownHandler shiftRightActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
+            keyshiftright.setBackgroundColor(KEYSELECTEDCOLOR);
+            new Handler().postDelayed(() -> keyshiftright.setBackgroundColor(KEYBGCOLOR), DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
+        } else if (keycommodore.isSelected() && (!keyshiftright.isSelected())) {
+            sendKey(context, new byte[]{(byte) 0xbf, (byte) 0xef, (byte) 0x05});
         } else {
             if (keyshiftlock.isSelected()) {
                 return true;
@@ -411,6 +421,8 @@ public class C64Keyboard extends LinearLayout {
 
     private ActionDownHandler ctrlActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
+            keyctrl.setBackgroundColor(KEYSELECTEDCOLOR);
+            new Handler().postDelayed(() -> keyctrl.setBackgroundColor(KEYBGCOLOR), DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
         } else {
             keyctrl.setSelected(!keyctrl.isSelected());
@@ -443,6 +455,8 @@ public class C64Keyboard extends LinearLayout {
             keycommodore.setBackgroundColor(KEYSELECTEDCOLOR);
             new Handler().postDelayed(() -> keycommodore.setBackgroundColor(KEYBGCOLOR), DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
+        } else if ((keyshiftleft.isSelected() || keyshiftright.isSelected()) && (!keycommodore.isSelected())) {
+            sendKey(context, new byte[]{(byte) 0x7f, (byte) 0xdf, (byte) 0x05});
         } else {
             keycommodore.setSelected(!keycommodore.isSelected());
             Log.d("THMIC64", "commodore button clicked, selected: " + keycommodore.isSelected());
@@ -452,15 +466,15 @@ public class C64Keyboard extends LinearLayout {
     };
 
     private void init(Context context) {
-        myApplication = (MyApplication) context.getApplicationContext();
+        MyApplication myApplication = (MyApplication) context.getApplicationContext();
         settings = myApplication.getSettings();
+        bleUtils = new BLEUtils(context);
         LayoutInflater.from(context).inflate(R.layout.keyboard, this, true);
         keyshiftleft = findViewById(R.id.keyshiftleft);
         keyf1 = findViewById(R.id.keyf1);
         keyf3 = findViewById(R.id.keyf3);
         keyf5 = findViewById(R.id.keyf5);
         keyf7 = findViewById(R.id.keyf7);
-        keyload = findViewById(R.id.keyload);
         keyleftarrow = findViewById(R.id.keyleftarrow);
         key1 = findViewById(R.id.key1);
         key2 = findViewById(R.id.key2);
@@ -528,12 +542,10 @@ public class C64Keyboard extends LinearLayout {
         keycrsrright = findViewById(R.id.keycrsrright);
         keycrsrleft = findViewById(R.id.keycrsrleft);
         keyspace = findViewById(R.id.keyspace);
-
-        keyf1.setOnTouchListener(createTouchListener(context, "f1", standardActionDown, false));
-        keyf3.setOnTouchListener(createTouchListener(context, "f3", standardActionDown, false));
-        keyf5.setOnTouchListener(createTouchListener(context, "f5", standardActionDown, false));
-        keyf7.setOnTouchListener(createTouchListener(context, "f7", standardActionDown, false));
-        keyload.setOnTouchListener(createTouchListener(context, "LOAD", standardActionDown, false));
+        keyf1.setOnTouchListener(createTouchListenerFKeys(context, "f1", standardActionDown, true));
+        keyf3.setOnTouchListener(createTouchListenerFKeys(context, "f3", standardActionDown, true));
+        keyf5.setOnTouchListener(createTouchListenerFKeys(context, "f5", standardActionDown, true));
+        keyf7.setOnTouchListener(createTouchListenerFKeys(context, "f7", standardActionDown, true));
         keyleftarrow.setOnTouchListener(createTouchListener(context, "leftarrow", standardActionDown, true));
         key1.setOnTouchListener(createTouchListener(context, "1", standardActionDown, true));
         key2.setOnTouchListener(createTouchListener(context, "2", standardActionDown, true));
@@ -598,5 +610,11 @@ public class C64Keyboard extends LinearLayout {
         keycrsrright.setOnTouchListener(createTouchListener(context, "crsrright", standardActionDown, true));
         keycrsrleft.setOnTouchListener(createTouchListener(context, "crsrleft", standardActionDown, true));
         keyspace.setOnTouchListener(createTouchListener(context, "space", standardActionDown, true));
+
+        ImageButton powerOff = findViewById(R.id.powerOff);
+        powerOff.setOnClickListener(view -> bleUtils.send(new byte[]{Config.POWEROFF, (byte) 0x00, (byte) 0x80}, false));
+
+        ImageButton reset = findViewById(R.id.reset);
+        reset.setOnClickListener(view -> bleUtils.send(new byte[]{Config.RESET, (byte) 0x00, (byte) 0x80}, false));
     }
 }

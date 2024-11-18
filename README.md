@@ -1,7 +1,7 @@
-# C64 Emulator for ESP32-S3 with "Android keyboard" (BLE) for Lilygo T-HMI (and T-Display S3 AMOLED) development board(s)
+# C64 Emulator for ESP32-S3 with "Android keyboard" (BLE) for Lilygo T-HMI and T-Display S3 AMOLED
 
 C64 emulator for the development board Lilygo T-HMI equipped with an ESP32-S3 chip, a 2.8 inch touch display LCD screen (ST7789V driver) and an SD card slot.
-The emulator was later expanded to also support the board T-Display S3 AMOLED. Adjustments for other ESP32-S3 boards shouldn't be too difficult.
+The emulator was later expanded to also support the board T-Display S3 AMOLED.
 
 The keyboard for the emulator is simulated by an Android app, communication between the app and the emulator is realized using BLE (Bluetooth Low Energy).
 
@@ -14,10 +14,6 @@ Contact: retroelec42@gmail.com
 - Sending a file to the development board by BLE
 - Improved keyboard handling (optional detection of releasing a key)
 - Operating the T-HMI via battery works now
-- Expanding emulator to support development board T-Display S3 AMOLED
-- Using Arduino core V3.0 (migration of code from V2.0 to V3.0 -> breaking changes -> see also chapter "Compiling code without changing the actual version of your installed Arduino core")
-- BLE advertising improvements (patch by Heiko K.)
-- Reset Button (DIV screen) works now :)
 
 ## Lilygo T-HMI development board
 
@@ -53,14 +49,14 @@ can be used to simulate the pressing of the space bar.
 
 Connections:
 
-- connect T-HMI IO16 to Arduino Y pin (yellow cable)
-- connect T-HMI IO15 to Arduino X pin (white cable)
-- connect T-HMI VDD to Arduino V pin (red cable)
-- connect T-HMI GND to Arduino G pin (black cable)
-- connect T-HMI IO18 to Arduino D pin (for D button, yellow cable)
-- optional: connect T-HMI IO17 to Arduino B pin to simulate pressing the space bar (for B button, white cable)
+- connect T-HMI IO16 to Arduino joystick Y pin (yellow cable)
+- connect T-HMI IO15 to Arduino joystick X pin (white cable)
+- connect T-HMI VDD to Arduino joystick V pin (red cable)
+- connect T-HMI GND to Arduino joystick G pin (black cable)
+- connect T-HMI IO18 to Arduino joystick D pin (for D button, yellow cable)
+- optional: connect T-HMI IO17 to Arduino joystick B pin to simulate pressing the space bar (for B button, white cable)
 
-Switch voltage to 3.3V on the Arduino module.
+Switch voltage to 3.3V on the Arduino joystick module.
 
 If you do not use an Arduino joystick or choose to use other pins on the development board,
 you may have to adapt the following constants in src/Config.h:
@@ -178,7 +174,7 @@ If you want to install the emulator on the T-Display S3 AMOLED board, you have t
 comment line "#define BOARD_T_HMI"  
 uncomment line "//#define BOARD_T_DISPLAY_S3"  
 
-Compile and upload the code to the T-Display S3 AMOLED board (see chapter "Install C64 Emulator on Lilygo T-HMI").
+Afterwards you have to compile and upload the code to the T-Display S3 AMOLED board (see chapter "Install C64 Emulator on Lilygo T-HMI").
 
 <img src="doc/tdisps3amoled.jpg" alt="T-HMI" width="800"/>
 
@@ -196,7 +192,7 @@ You may follow these steps to install the app on your Android device (there may 
    - Go to "Settings" on your Android device.
    - Navigate to "Security and Privacy".
    - Navigate to "Additional Security Settings".
-   - Navigate to "Install Unknown Apps". A list of installed apps appears. Allow Chrome to install unknown aps.
+   - Navigate to "Install Unknown Apps". A list of installed apps appears. Allow Chrome to install unknown apps.
 2. Download the APK file to your Android device: Click [here](https://github.com/retroelec/T-HMI-C64/blob/main/THMIC64KB/thmic64kb.apk)
 3. After the app has been downloaded, a message appears which allows you to open the file.
    Click on open and follow the on-screen instructions to complete the installation.
@@ -216,7 +212,7 @@ after "hardware reseting" the development board.
 As it is not possible to press two keys together on the Android keyboard, the keys Shift, Ctrl and Commodore are special keys
 which usually are pressed first, followed by another key to simulate the corresponding key combination.
 
-If it is necessary to send the raw key code of these special keys (e.g. some pinball games use the shift key), you have to
+If it is necessary to send the raw key code of these special keys, you have to
 set the corresponding switch in the Android app ("Send raw keycodes", DIV screen).
 
 By default, only the pressing of a key is sent to the emulator, which results in, for example, only one space being output
@@ -225,32 +221,45 @@ even if the space key is held down. With the 'Detect release key' option (DIV Sc
 
 The key combination Run/Stop + Restore has been replaced by first pressing the Commodore key and then pressing the Restore key.
 
-Besides the normal C64 keys this virtual keyboard also provides red extra buttons to send "external commands".
-Actually the LOAD, DIV and several JOYSTICK buttons are available:
+Besides the normal C64 keys this virtual keyboard also provides some extra buttons:
 
 - LOAD: load a C64 program from SD card
+- RESET: reset C64
+- Off-Switch: switch off T-HMI development board
 - DIV: opens an extra screen with some settings / extra functionality
 - JOYSTICK 1: connected joystick can be used as a joystick in port 1
 - JOYSTICK 2: connected joystick can be used as a joystick in port 2
-- KBJOYSTICK 1: "virtual joystick" can be used as a joystick in port 1
-- KBJOYSTICK 2: "virtual joystick" can be used as a joystick in port 2
+- KBINP: opens an extra screen with further input options ("virtual joysticks" and "pinball flippers")
+
+#### DIV screen
 
 <img src="doc/THMIC64KB_Div.png" alt="DIV Screen" width="800"/>
 
 Extra functionality and some settings are available in the DIV screen.
+
+#### Virtual Joystick
 
 <img src="doc/THMIC64KB_VirtJoystick.png" alt="Virtual Joystick" width="800"/>
 
 The virtual joystick has some drawbacks in terms of responsiveness.
 To play games, a hardware joystick is recommended.
 
-### Load and start a game
+#### Pinball flippers
+
+<img src="doc/THMIC64KB_Pinball.png" alt="Pinball Flippers" width="800"/>
+
+Because it is difficult to keep an eye on the screen and press the right keys on the virtual keyboard at the same time for pinball games,
+the flippers of “David's Midnight Magic” have been outsourced to a separate screen.
+When you open this screen, the options "Send raw keycodes" and "Detect key release" are automatically enabled.
+When you close this screen again, both options are reset to the previous value. 
+
+### Load a program from SD card
 
 You first have to copy C64 games in prg format (only supported format!) to an SD card
 (game names must be in lower case letters, max. 16 characters, no spaces in file names allowed, extension must be ".prg", e.g. dkong.prg).
 You have to insert the SD card before you power on the T-HMI development board.
 
-As there is no C64 tape/disk drive emulation available up to now, the file must be loaded
+As there is no C64 tape/disk drive emulation available, the file must be loaded
 into memory using an "external command".
 To do this, you first type in the name of the game (without extension ".prg"!) so it shows up on the C64 text screen (e.g. dkong).
 You then press the LOAD button on your Android phone (cursor must be on the same line and behind the game title).
@@ -260,6 +269,10 @@ Afterwards, as usual, you can start the game by typing "RUN" followed by pressin
 <img src="doc/loadprg.gif" alt="class diagram" width="800"/>
 
 Hint: You can use [D64 Editor](https://www.d64editor.com/) to extract prg files from d64 files (also works unter linux using wine).
+
+### Send a program by BLE
+
+You can also send a programm from your Android device to the emulator (DIV screen, SENDPRG Button).
 
 ## Software
 
@@ -293,7 +306,7 @@ All hardware ports not explicitly mentioned including their corresponding regist
 - "illegal instructions" test suite fails
 - rarly CPU is blocked after loading a game
 - some games have graphic errors
-- some games are not working at all
+- some games are not working at all (probably mostly due to the timing issues mentioned above)
 
 ### Games
 
@@ -358,6 +371,7 @@ Games that are playable:
 - Zaxxon
 - Rambo
 - Rick Dangerous
+- David's Midnight Magic (hint: use Android screen KBINP/PINBALL1) 
 
 Games not working:
 

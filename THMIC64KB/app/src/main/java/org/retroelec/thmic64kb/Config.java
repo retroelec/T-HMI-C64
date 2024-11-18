@@ -8,7 +8,7 @@ public class Config {
     public static final String TARGET_DEVICE_NAME = "THMIC64";
     public static final long CHECK_INTERVAL = 1000;
     public static final long SEARCH_DURATION = 10000;
-    public static final short DEFAULT_MINKEYPRESSEDDURATION = 150;
+    public static final short DEFAULT_MINKEYPRESSEDDURATION = 130;
 
     public static final byte VIRTUALJOYSTICKLEFT_ACTIVATED = (byte) 0x02;
     public static final byte VIRTUALJOYSTICKLEFT_DEACTIVATED = (byte) 0x82;

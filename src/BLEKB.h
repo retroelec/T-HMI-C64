@@ -29,8 +29,8 @@ class ExternalCmds;
 class BLEKB {
 private:
   C64Emu *c64emu;
-  uint8_t kbcode1;
-  uint8_t kbcode2;
+  uint8_t sentdc01;
+  uint8_t sentdc00;
 
 public:
   bool deviceConnected;
@@ -44,9 +44,9 @@ public:
   BLEKB();
   void init(C64Emu *c64emu);
   void handleKeyPress();
-  uint8_t decode(uint8_t dc00);
+  uint8_t getdc01(uint8_t dc00);
   uint8_t getKBJoyValue(bool port2);
-  void setKbcodes(uint8_t kbcode1, uint8_t kbcode2);
+  void setKbcodes(uint8_t sentdc01, uint8_t sentdc00);
 };
 
 class BLEKBServerCallback : public BLEServerCallbacks {

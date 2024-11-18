@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
@@ -34,7 +33,6 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
     private Button joystick2;
     private boolean joystick1active = false;
     private boolean joystick2active = false;
-    private ImageButton powerOff;
     private final Handler handler = new Handler();
     private BluetoothGattCharacteristic oldcharacteristic;
     private BluetoothGattCharacteristic actcharacteristic = null;
@@ -140,7 +138,6 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // init notifications
         settings = new Settings();
         settings.registerSettingsObserver(this);
         settings.setMinKeyPressedDuration(Config.DEFAULT_MINKEYPRESSEDDURATION);
@@ -152,6 +149,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
         myApplication.setType2Notification(type2Notification);
         myApplication.setType3Notification(type3Notification);
         myApplication.setType4Notification(type4Notification);
+        BLEUtils bleUtils = new BLEUtils(this);
 
         setContentView(R.layout.activity_main);
 
@@ -161,65 +159,44 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
             startActivity(i);
         });
 
-        Button keykbjoystick1 = findViewById(R.id.keykbjoystick1);
-        keykbjoystick1.setOnClickListener(view -> {
-            if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-                bleManager.sendData(new byte[]{Config.KBJOYSTICKMODE1, (byte) 0x00, (byte) 0x80}, false);
-            }
-            Intent i = new Intent(MainActivity.this, KBJoystickActivity.class);
-            startActivity(i);
-        });
-
-        Button keykbjoystick2 = findViewById(R.id.keykbjoystick2);
-        keykbjoystick2.setOnClickListener(view -> {
-            if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-                bleManager.sendData(new byte[]{Config.KBJOYSTICKMODE2, (byte) 0x00, (byte) 0x80}, false);
-            }
-            Intent i = new Intent(MainActivity.this, KBJoystickActivity.class);
-            i.putExtra("SHOW_FIRE2_BUTTON", true);
+        Button keykbinp = findViewById(R.id.keykbinp);
+        keykbinp.setOnClickListener(view -> {
+            Intent i = new Intent(MainActivity.this, KBInpActivity.class);
             startActivity(i);
         });
 
         joystick1 = findViewById(R.id.joystick1);
         joystick1.setOnClickListener(view -> {
-            if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-                if (!joystick1active) {
-                    // activate joystick 1
-                    bleManager.sendData(new byte[]{Config.JOYSTICKMODE1, (byte) 0x00, (byte) 0x80}, false);
-                    // deactivate joystick 2
-                    joystick2active = false;
-                } else {
-                    // deactivate joystick 1
-                    bleManager.sendData(new byte[]{Config.JOYSTICKMODEOFF, (byte) 0x00, (byte) 0x80}, false);
-                }
-                joystick1active = !joystick1active;
-                refreshActiveJoystickButtons(joystick1active, joystick2active);
+            if (!joystick1active) {
+                // activate joystick 1
+                bleUtils.send(new byte[]{Config.JOYSTICKMODE1, (byte) 0x00, (byte) 0x80}, false);
+                // deactivate joystick 2
+                joystick2active = false;
+            } else {
+                // deactivate joystick 1
+                bleUtils.send(new byte[]{Config.JOYSTICKMODEOFF, (byte) 0x00, (byte) 0x80}, false);
             }
+            joystick1active = !joystick1active;
+            refreshActiveJoystickButtons(joystick1active, joystick2active);
         });
 
         joystick2 = findViewById(R.id.joystick2);
         joystick2.setOnClickListener(view -> {
-            if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-                if (!joystick2active) {
-                    // activate joystick 2
-                    bleManager.sendData(new byte[]{Config.JOYSTICKMODE2, (byte) 0x00, (byte) 0x80}, false);
-                    // deactivate joysticks
-                    joystick1active = false;
-                } else {
-                    // deactivate joystick 2
-                    bleManager.sendData(new byte[]{Config.JOYSTICKMODEOFF, (byte) 0x00, (byte) 0x80}, false);
-                }
-                joystick2active = !joystick2active;
-                refreshActiveJoystickButtons(joystick1active, joystick2active);
+            if (!joystick2active) {
+                // activate joystick 2
+                bleUtils.send(new byte[]{Config.JOYSTICKMODE2, (byte) 0x00, (byte) 0x80}, false);
+                // deactivate joysticks
+                joystick1active = false;
+            } else {
+                // deactivate joystick 2
+                bleUtils.send(new byte[]{Config.JOYSTICKMODEOFF, (byte) 0x00, (byte) 0x80}, false);
             }
+            joystick2active = !joystick2active;
+            refreshActiveJoystickButtons(joystick1active, joystick2active);
         });
 
-        powerOff = findViewById(R.id.powerOff);
-        powerOff.setOnClickListener(view -> {
-            if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-                bleManager.sendData(new byte[]{Config.POWEROFF, (byte) 0x00, (byte) 0x80}, false);
-            }
-        });
+        Button keyload = findViewById(R.id.keyload);
+        keyload.setOnClickListener(view -> bleUtils.send(new byte[]{Config.LOAD, (byte) 0x00, (byte) 0x80}, false));
 
         bleSwitch = findViewById(R.id.bleSwitch);
         bleSwitch.setChecked(false);

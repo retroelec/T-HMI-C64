@@ -140,8 +140,9 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
       }
     }
   } else if (len >= 3) { // keyboard codes or external commands
-    // BLE client sends 3 codes for each key: dc00, dc01, "shiftctrlcode"
-    // shiftctrlcode: bit 0 -> left shift
+    // BLE client sends 3 codes for each key press: dc00, dc01, "shiftctrlcode"
+    // BLE client sends 3 codes for each external command: extCmd, detail, 128
+    // shiftctrlcode: bit 0 -> shift
     //                bit 1 -> ctrl
     //                bit 2 -> commodore
     //                bit 7 -> external command (cmd, x, 128)
@@ -152,7 +153,7 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
     blekb.keypresseddowncnt = 0;
     blekb.keypresseddown = true;
     // external command?
-    if (blekb.buffer[2] & 128) {
+    if (blekb.shiftctrlcode & 128) {
       // execute external command
       // have to use a seperate task, because stack size of the BLE processing
       // task is too small (and task size is not changeable under Arduino)
@@ -206,8 +207,8 @@ void BLEKB::init(C64Emu *c64emu) {
   buffer = new uint8_t[256];
   keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
   keypresseddown = false;
-  kbcode1 = 0xff;
-  kbcode2 = 0xff;
+  sentdc01 = 0xff;
+  sentdc00 = 0xff;
 
   // init div
   virtjoystickvalue = 0xff;
@@ -236,7 +237,7 @@ void BLEKB::handleKeyPress() {
   if ((shiftctrlcode & 128) != 0) {
     // "external" commands are handled in BLEKBCharacteristicCallback::onWrite
     shiftctrlcode = 0;
-    kbcode1 = 0xff;
+    sentdc01 = 0xff;
     keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
     keypresseddown = false;
     return;
@@ -244,47 +245,63 @@ void BLEKB::handleKeyPress() {
   // key is "pressed down" at least for 24 ms
   if ((detectreleasekey && keypresseddown) ||
       (keypresseddowncnt < NUMOFCYCLES_KEYPRESSEDDOWN)) {
-    kbcode2 = buffer[0];
-    kbcode1 = buffer[1];
+    sentdc00 = buffer[0];
+    sentdc01 = buffer[1];
     keypresseddowncnt++;
   } else {
-    kbcode1 = 0xff;
-    kbcode2 = 0xff;
+    sentdc01 = 0xff;
+    sentdc00 = 0xff;
   }
   return;
 }
 
-uint8_t BLEKB::decode(uint8_t dc00) {
-  if (dc00 == 0) {
-    return kbcode1;
+uint8_t BLEKB::getdc01(uint8_t querydc00) {
+  if (querydc00 == 0) {
+    return sentdc01;
   }
-  if ((~dc00 & 2) && (shiftctrlcode & 1)) {
-    // left shift pressed
-    if (kbcode2 == 0xfd) {
+  // special case "shift" + "commodore"
+  if ((shiftctrlcode & 5) == 5) {
+    if (querydc00 == sentdc00) {
+      return sentdc01;
+    } else {
+      return 0xff;
+    }
+  }
+  // key combined with a "special key" (shift, ctrl, commodore)?
+  if ((~querydc00 & 2) && (shiftctrlcode & 1)) { // *query* left shift key?
+    if (sentdc00 == 0xfd) {
       // handle scan of key codes in the same "row"
-      return kbcode1 & 0x7f;
+      return sentdc01 & 0x7f;
     } else {
       return 0x7f;
     }
-  } else if ((~dc00 & 0x80) && (shiftctrlcode & 2)) {
-    // ctrl pressed
-    if (kbcode2 == 0x7f) {
+  } else if ((~querydc00 & 0x40) &&
+             (shiftctrlcode & 1)) { // *query* right shift key?
+    if (sentdc00 == 0xbf) {
       // handle scan of key codes in the same "row"
-      return kbcode1 & 0xfb;
+      return sentdc01 & 0xef;
+    } else {
+      return 0xef;
+    }
+  } else if ((~querydc00 & 0x80) && (shiftctrlcode & 2)) { // *query* ctrl key?
+    if (sentdc00 == 0x7f) {
+      // handle scan of key codes in the same "row"
+      return sentdc01 & 0xfb;
     } else {
       return 0xfb;
     }
-  } else if ((~dc00 & 0x80) && (shiftctrlcode & 4)) {
-    // commodore pressed
-    if (kbcode2 == 0x7f) {
+  } else if ((~querydc00 & 0x80) &&
+             (shiftctrlcode & 4)) { // *query* commodore key?
+    if (sentdc00 == 0x7f) {
       // handle scan of key codes in the same "row"
-      return kbcode1 & 0xdf;
+      return sentdc01 & 0xdf;
     } else {
       return 0xdf;
     }
   }
-  if (dc00 == kbcode2) {
-    return kbcode1;
+  // query "main" key press
+  if (querydc00 == sentdc00) {
+    return sentdc01;
   } else {
     return 0xff;
   }
@@ -292,7 +309,7 @@ uint8_t BLEKB::decode(uint8_t dc00) {
 
 uint8_t BLEKB::getKBJoyValue(bool port2) { return virtjoystickvalue; }
 
-void BLEKB::setKbcodes(uint8_t kbcode1, uint8_t kbcode2) {
-  this->kbcode1 = kbcode1;
-  this->kbcode2 = kbcode2;
+void BLEKB::setKbcodes(uint8_t sentdc01, uint8_t sentdc00) {
+  this->sentdc01 = sentdc01;
+  this->sentdc00 = sentdc00;
 }

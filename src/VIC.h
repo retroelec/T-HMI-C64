@@ -27,7 +27,6 @@ private:
   uint8_t spritespritecoll[320];
   bool spritedatacoll[320];
   uint8_t startbyte;
-  bool only38cols;
   ConfigDisplay configDisplay;
 
   inline void drawByteStdData(uint8_t data, uint16_t &idx, uint16_t &xp,

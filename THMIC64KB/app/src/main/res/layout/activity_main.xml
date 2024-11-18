@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#b8a894"
@@ -18,11 +19,11 @@
             android:id="@+id/bleSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
             android:checked="false"
             android:text="BLE Connection"
             android:textColor="@android:color/black"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            tools:ignore="UseSwitchCompatOrMaterialXml" />
 
         <Button
             android:id="@+id/keydiv"
@@ -33,19 +34,11 @@
             android:textColor="@android:color/white" />
 
         <Button
-            android:id="@+id/keykbjoystick1"
+            android:id="@+id/keykbinp"
             android:layout_width="wrap_content"
             android:layout_height="50dp"
             android:backgroundTint="#cc7777"
-            android:text="KBJOY1"
-            android:textColor="@android:color/white" />
-
-        <Button
-            android:id="@+id/keykbjoystick2"
-            android:layout_width="wrap_content"
-            android:layout_height="50dp"
-            android:backgroundTint="#cc7777"
-            android:text="KBJOY2"
+            android:text="KBINP"
             android:textColor="@android:color/white" />
 
         <Button
@@ -64,12 +57,12 @@
             android:text="JOY2"
             android:textColor="@android:color/white" />
 
-        <ImageButton
-            android:id="@+id/powerOff"
-            android:src="@drawable/pow"
+        <Button
+            android:id="@+id/keyload"
             android:layout_width="wrap_content"
             android:layout_height="50dp"
-            android:backgroundTint="#555555"
+            android:backgroundTint="#cc7777"
+            android:text="LOAD"
             android:textColor="@android:color/white" />
 
     </TableRow>
@@ -78,7 +71,6 @@
         android:id="@+id/keyboard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
         android:orientation="vertical" />
 
 </TableLayout>

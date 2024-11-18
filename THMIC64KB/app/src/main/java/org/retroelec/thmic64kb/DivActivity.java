@@ -32,6 +32,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
     private Switch togglePerf;
     private Switch toggleDetectReleaseKey;
     private EditText inputMinKeyPressedDuration;
+    private BLEUtils bleUtils;
     private Settings settings;
     private MyApplication myApplication;
     private Type4Notification type4Notification;
@@ -41,13 +42,6 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
     private ActivityResultLauncher<Intent> filePickerLauncher;
     private byte[] buffer = new byte[64 * 1024];
     private int bufferlen;
-
-    private void sendCmd(byte[] data, boolean blocking) {
-        BLEManager bleManager = myApplication.getBleManager();
-        if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-            bleManager.sendData(data, blocking);
-        }
-    }
 
     private void openFilePicker() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -76,7 +70,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
         }
         System.arraycopy(buffer, start, block, headerlen, datalen);
         Log.i("THMIC64", "sendNextBlock, detail = " + blockdetail);
-        sendCmd(block, true);
+        bleUtils.send(block, true);
     }
 
     private void wait4Ack() {
@@ -225,6 +219,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        bleUtils = new BLEUtils(this);
 
         myApplication = (MyApplication) getApplication();
         settings = myApplication.getSettings();
@@ -235,19 +230,19 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
         setContentView(R.layout.div);
 
         toggleRefreshframecolorSwitch = findViewById(R.id.toggleRefreshframecolor);
-        toggleRefreshframecolorSwitch.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHFRAMECOLORREFRESH, (byte) 0x00, (byte) 0x80}, false));
+        toggleRefreshframecolorSwitch.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHFRAMECOLORREFRESH, (byte) 0x00, (byte) 0x80}, false));
 
         toggleSendRawKeyCodes = findViewById(R.id.toggleSendRawKeyCodes);
-        toggleSendRawKeyCodes.setOnClickListener(v -> sendCmd(new byte[]{Config.SENDRAWKEYS, (byte) 0x00, (byte) 0x80}, false));
+        toggleSendRawKeyCodes.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SENDRAWKEYS, (byte) 0x00, (byte) 0x80}, false));
 
         toggleDebug = findViewById(R.id.toggleDebug);
-        toggleDebug.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHDEBUG, (byte) 0x00, (byte) 0x80}, false));
+        toggleDebug.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHDEBUG, (byte) 0x00, (byte) 0x80}, false));
 
         togglePerf = findViewById(R.id.togglePerf);
-        togglePerf.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHPERF, (byte) 0x00, (byte) 0x80}, false));
+        togglePerf.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHPERF, (byte) 0x00, (byte) 0x80}, false));
 
         toggleDetectReleaseKey = findViewById(R.id.toggleDetectReleaseKey);
-        toggleDetectReleaseKey.setOnClickListener(v -> sendCmd(new byte[]{Config.SWITCHDETECTRELEASEKEY, (byte) 0x00, (byte) 0x80}, false));
+        toggleDetectReleaseKey.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHDETECTRELEASEKEY, (byte) 0x00, (byte) 0x80}, false));
 
         inputMinKeyPressedDuration = findViewById(R.id.inputMinKeyPressedDuration);
         inputMinKeyPressedDuration.setText(String.valueOf(settings.getMinKeyPressedDuration()));
@@ -256,10 +251,10 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
                 String input = inputMinKeyPressedDuration.getText().toString();
                 try {
                     int value = Integer.parseInt(input);
-                    if (value < 120) {
-                        inputMinKeyPressedDuration.setText("120");
-                    } else if (value > 300) {
-                        inputMinKeyPressedDuration.setText("300");
+                    if (value < 100) {
+                        inputMinKeyPressedDuration.setText("100");
+                    } else if (value > 200) {
+                        inputMinKeyPressedDuration.setText("200");
                     }
                 } catch (NumberFormatException e) {
                     inputMinKeyPressedDuration.setText(String.valueOf(Config.DEFAULT_MINKEYPRESSEDDURATION));
@@ -300,9 +295,6 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
             Intent i = new Intent(this, MemoryActivity.class);
             startActivity(i);
         });
-
-        final Button resetButton = findViewById(R.id.reset);
-        resetButton.setOnClickListener(v -> sendCmd(new byte[]{Config.RESET, (byte) 0x00, (byte) 0x80}, false));
 
         final Button closeButton = findViewById(R.id.close);
         closeButton.setOnClickListener(v -> finish());

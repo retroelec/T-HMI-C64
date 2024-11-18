@@ -44,13 +44,21 @@
             android:text="f 7"
             android:textColor="@android:color/white" />
 
-        <Button
-            android:id="@+id/keyload"
+        <ImageButton
+            android:id="@+id/reset"
+            android:src="@drawable/reset"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
             android:layout_weight="2"
-            android:backgroundTint="#cc7777"
-            android:text="LOAD"
+            android:backgroundTint="#ffffff"
+            android:textColor="@android:color/white" />
+
+        <ImageButton
+            android:id="@+id/powerOff"
+            android:src="@drawable/pow"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:backgroundTint="#555555"
             android:textColor="@android:color/white" />
 
     </TableRow>

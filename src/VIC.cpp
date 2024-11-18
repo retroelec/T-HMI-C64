@@ -73,6 +73,7 @@ void VIC::shiftDy(uint8_t line, int8_t dy, uint16_t bgcol) {
   }
   if ((line < dy) || (dy <= line - 200)) {
     uint16_t framecol = tftColorFromC64ColorArr[vicreg[0x20] & 15];
+    bool only38cols = !(vicreg[0x16] & 8);
     if (only38cols) {
       for (uint8_t xp = 0; xp < 8; xp++) {
         bitmap[idx++] = framecol;
@@ -99,6 +100,7 @@ void VIC::shiftDx(uint8_t dx, uint16_t bgcol, uint16_t &idx) {
 }
 
 void VIC::drawOnly38ColsFrame(uint16_t tmpidx) {
+  bool only38cols = !(vicreg[0x16] & 8);
   if (only38cols) {
     uint16_t framecol = tftColorFromC64ColorArr[vicreg[0x20] & 15];
     for (uint8_t xp = 0; xp < 8; xp++) {
@@ -601,8 +603,7 @@ void VIC::init(uint8_t *ram, uint8_t *charrom) {
   this->chrom = charrom;
 
   // allocate bitmap memory to be transfered to LCD
-  // (consider xscroll offset)
-  bitmap = new uint16_t[320 * 200 + 7]();
+  bitmap = new uint16_t[320 * 200]();
 
   // div init
   colormap = new uint8_t[40 * 25]();
@@ -662,7 +663,6 @@ void VIC::drawRasterline() {
       drawblankline(dline);
       return;
     }
-    only38cols = !(vicreg[0x16] & 8);
     uint8_t d011 = vicreg[0x11];
     uint8_t deltay = d011 & 7;
     memset(spritedatacoll, false, sizeof(bool) * sizeof(spritedatacoll));

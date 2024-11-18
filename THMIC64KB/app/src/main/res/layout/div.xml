@@ -48,7 +48,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Detect release key"
+        android:text="Detect key release"
         android:autoSizeTextType="uniform"
         app:layout_constraintStart_toStartOf="@id/toggleSendRawKeyCodes"
         app:layout_constraintTop_toBottomOf="@id/toggleSendRawKeyCodes" />
@@ -67,7 +67,7 @@
         android:id="@+id/inputMinKeyPressedDuration"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:hint="Min: 120, Max: 300"
+        android:hint="Min: 100, Max: 200"
         android:inputType="number"
         android:ems="3"
         android:maxLength="3"
@@ -89,48 +89,44 @@
             android:id="@+id/send"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginStart="10dp"
             android:text="SENDPRG"
             android:theme="@style/ButtonTheme"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/keystatus"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent="0.3" />
 
         <Button
             android:id="@+id/keystatus"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginStart="10dp"
             android:text="STATUS"
             android:theme="@style/ButtonTheme"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/keymemory"
             app:layout_constraintStart_toEndOf="@id/send"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent="0.3" />
 
         <Button
             android:id="@+id/keymemory"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginStart="10dp"
             android:text="MEMORY"
             android:theme="@style/ButtonTheme"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/reset"
-            app:layout_constraintStart_toEndOf="@id/keystatus"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <Button
-            android:id="@+id/reset"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="RESET"
-            android:theme="@style/ButtonTheme"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/keymemory"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintStart_toEndOf="@id/keystatus"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent="0.3" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <Button

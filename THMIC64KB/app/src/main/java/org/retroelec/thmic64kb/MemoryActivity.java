@@ -10,7 +10,6 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MemoryActivity extends AppCompatActivity implements NotificationObserver {
-    private Settings settings;
     private Type3Notification type3Notification;
     private EditText address;
     private TextView val1, val2, val3, val4, val5, val6, val7, val8, val9, val10, val11, val12, val13, val14, val15, val16;
@@ -41,9 +40,9 @@ public class MemoryActivity extends AppCompatActivity implements NotificationObs
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        BLEUtils bleUtils = new BLEUtils(this);
 
         final MyApplication myApplication = (MyApplication) getApplication();
-        settings = myApplication.getSettings();
         type3Notification = myApplication.getType3Notification();
         type3Notification.registerObserver(this);
 
@@ -70,10 +69,7 @@ public class MemoryActivity extends AppCompatActivity implements NotificationObs
             }
             try {
                 int val = Integer.parseInt(addr, 16);
-                BLEManager bleManager = myApplication.getBleManager();
-                if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
-                    bleManager.sendData(new byte[]{Config.SHOWMEM, (byte) 0x00, (byte) 0x80, (byte) val, (byte) (val >> 8)}, false);
-                }
+                bleUtils.send(new byte[]{Config.SHOWMEM, (byte) 0x00, (byte) 0x80, (byte) val, (byte) (val >> 8)}, false);
             } catch (NumberFormatException e) {
                 Toast.makeText(this, "address must be a 16 bit hex value", Toast.LENGTH_LONG).show();
             }

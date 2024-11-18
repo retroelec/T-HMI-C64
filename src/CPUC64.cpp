@@ -133,7 +133,7 @@ uint8_t CPUC64::getMem(uint16_t addr) {
         }
         if (joystickmode == 1) {
           // real joystick, but still check for keyboard input
-          uint8_t pressedkey = c64emu->blekb.decode(cia1.ciareg[0x00]);
+          uint8_t pressedkey = c64emu->blekb.getdc01(cia1.ciareg[0x00]);
           if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             return joystick.getValue(false, 0, 0);
@@ -141,7 +141,7 @@ uint8_t CPUC64::getMem(uint16_t addr) {
           return pressedkey;
         } else if (kbjoystickmode == 1) {
           // keyboard joystick, but still check for keyboard input
-          uint8_t pressedkey = c64emu->blekb.decode(cia1.ciareg[0x00]);
+          uint8_t pressedkey = c64emu->blekb.getdc01(cia1.ciareg[0x00]);
           if (pressedkey == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
             return c64emu->blekb.getKBJoyValue(false);
@@ -149,7 +149,7 @@ uint8_t CPUC64::getMem(uint16_t addr) {
           return pressedkey;
         } else {
           // keyboard
-          return c64emu->blekb.decode(cia1.ciareg[0x00]);
+          return c64emu->blekb.getdc01(cia1.ciareg[0x00]);
         }
       } else {
         return getCommonCIAReg(cia1, ciaidx);
