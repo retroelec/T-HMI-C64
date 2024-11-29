@@ -8,6 +8,7 @@ public class MyApplication extends Application {
     private Type2Notification type2Notification;
     private Type3Notification type3Notification;
     private Type4Notification type4Notification;
+    private Type5Notification type5Notification;
 
     public BLEManager getBleManager() {
         return bleManager;
@@ -47,5 +48,13 @@ public class MyApplication extends Application {
 
     public void setType4Notification(Type4Notification type4Notification) {
         this.type4Notification = type4Notification;
+    }
+
+    public Type5Notification getType5Notification() {
+        return type5Notification;
+    }
+
+    public void setType5Notification(Type5Notification type5Notification) {
+        this.type5Notification = type5Notification;
     }
 }

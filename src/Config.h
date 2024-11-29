@@ -32,6 +32,7 @@ struct Config {
 
   static const uint8_t PWR_EN = 10;
   static const uint8_t PWR_ON = 14;
+  static const adc1_channel_t BAT_ADC = ADC1_CHANNEL_4; // GPIO5
 
   // ST7789V
   static const uint8_t BL = 38;
@@ -65,6 +66,8 @@ struct Config {
 
 #elif defined(BOARD_T_DISPLAY_S3)
 #define USE_RM67162
+
+  static const adc1_channel_t BAT_ADC = ADC1_CHANNEL_3; // GPIO4
 
   // DisplayDriver (considering a possible rotation)
   static const uint16_t LCDWIDTH = 536;

@@ -67,6 +67,12 @@ struct BLENotificationStruct4 {
   uint8_t type;
 };
 
+struct BLENotificationStruct5 {
+  uint8_t type;
+  uint8_t batteryVolLow;
+  uint8_t batteryVolHi;
+};
+
 class ExternalCmds {
 private:
   C64Emu *c64emu;
@@ -80,12 +86,14 @@ private:
   void setType2Notification();
   void setType3Notification(uint16_t addr);
   void setType4Notification();
+  void setType5Notification(uint8_t batteryVolLow, uint8_t batteryVolHi);
 
 public:
   BLENotificationStruct1 type1notification;
   BLENotificationStruct2 type2notification;
   BLENotificationStruct3 type3notification;
   BLENotificationStruct4 type4notification;
+  BLENotificationStruct5 type5notification;
 
   void init(uint8_t *ram, C64Emu *c64emu);
   uint8_t executeExternalCmd(uint8_t *buffer);

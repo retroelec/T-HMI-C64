@@ -35,9 +35,9 @@ private:
       instance->interruptSystemFunc();
     }
   }
-  static void interruptProfilingFuncWrapper() {
+  static void interruptProfilingBatteryCheckFuncWrapper() {
     if (instance != nullptr) {
-      instance->interruptProfilingFunc();
+      instance->interruptProfilingBatteryCheckFunc();
     }
   }
   static void cpuCodeWrapper(void *parameter) {
@@ -54,14 +54,16 @@ private:
   uint8_t throttlingCnt = 0;
   uint32_t numofburnedcyclespersecond = 0;
 
-  hw_timer_t *interruptProfiling = NULL;
+  uint16_t cntSecondsForBatteryCheck;
+
+  hw_timer_t *interruptProfilingBatteryCheck = NULL;
   hw_timer_t *interruptTOD = NULL;
   hw_timer_t *interruptSystem = NULL;
   TaskHandle_t cpuTask;
 
   void IRAM_ATTR interruptTODFunc();
   void IRAM_ATTR interruptSystemFunc();
-  void IRAM_ATTR interruptProfilingFunc();
+  void IRAM_ATTR interruptProfilingBatteryCheckFunc();
   void cpuCode(void *parameter);
   bool updateTOD(CIA &cia);
 
@@ -69,7 +71,10 @@ public:
   CPUC64 cpu;
   BLEKB blekb;
   ExternalCmds externalCmds;
+  bool perf = false;
+  uint32_t batteryVoltage = 0;
 
+  void powerOff();
   void setup();
   void loop();
 };

@@ -20,20 +20,42 @@
 #include "VIC.h"
 #include "roms/charset.h"
 #include <cstdint>
+#include <driver/gpio.h>
+#include <esp_adc_cal.h>
 #include <esp_log.h>
 
 static const char *TAG = "C64Emu";
 
 C64Emu *C64Emu::instance = nullptr;
 
-void IRAM_ATTR C64Emu::interruptProfilingFunc() {
-  if (!cpu.perf) {
+void IRAM_ATTR C64Emu::interruptProfilingBatteryCheckFunc() {
+  // battery check
+  cntSecondsForBatteryCheck++;
+  if (cntSecondsForBatteryCheck >= 300) { // each 5 minutes
+    // get battery voltage
+    esp_adc_cal_characteristics_t adc_chars;
+    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(
+        ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
+    int raw_value = adc1_get_raw(Config::BAT_ADC);
+    batteryVoltage = esp_adc_cal_raw_to_voltage(raw_value, &adc_chars) * 2;
+    // if battery voltage is too low, then power off device
+    if (batteryVoltage < 3550) {
+      powerOff();
+    }
+    // reset "timer"
+    cntSecondsForBatteryCheck = 0;
+  }
+
+  // profiling (if activated)
+  if (!perf) {
     return;
   }
+  // frames per second
   if (vic.cntRefreshs != 0) {
     ESP_LOGI(TAG, "fps: %d", vic.cntRefreshs);
   }
   vic.cntRefreshs = 0;
+  // number of cycles per second
   ESP_LOGI(TAG, "noc: %d, nbc: %d", cpu.numofcyclespersecond,
            numofburnedcyclespersecond);
   cpu.numofcyclespersecond = 0;
@@ -163,11 +185,30 @@ void C64Emu::cpuCode(void *parameter) {
   // cpu runs forever -> no vTaskDelete(NULL);
 }
 
+void C64Emu::powerOff() {
+#ifdef BOARD_T_HMI
+  gpio_config_t io_conf;
+  io_conf.intr_type = GPIO_INTR_DISABLE;
+  io_conf.mode = GPIO_MODE_OUTPUT;
+  io_conf.pin_bit_mask = (1ULL << Config::PWR_ON);
+  io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+  gpio_config(&io_conf);
+  gpio_set_level((gpio_num_t)Config::PWR_ON, 0);
+#endif
+}
+
 void C64Emu::setup() {
   instance = this;
 
   // init board
   configBoard.boardDriver->init();
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(Config::BAT_ADC, ADC_ATTEN_DB_11);
+
+  // init. instance variables
+  cntSecondsForBatteryCheck =
+      295; // wait 5 seconds for first battery measurement
 
   // allocate ram
   ram = new uint8_t[1 << 16];
@@ -198,10 +239,11 @@ void C64Emu::setup() {
   timerAttachInterrupt(interruptSystem, &interruptSystemFuncWrapper);
   timerAlarm(interruptSystem, Config::INTERRUPTSYSTEMRESOLUTION, true, 0);
 
-  // profiling: interrupt each second
-  interruptProfiling = timerBegin(1000000);
-  timerAttachInterrupt(interruptProfiling, &interruptProfilingFuncWrapper);
-  timerAlarm(interruptProfiling, 1000000, true, 0);
+  // profiling + battery check: interrupt each second
+  interruptProfilingBatteryCheck = timerBegin(1000000);
+  timerAttachInterrupt(interruptProfilingBatteryCheck,
+                       &interruptProfilingBatteryCheckFuncWrapper);
+  timerAlarm(interruptProfilingBatteryCheck, 1000000, true, 0);
 }
 
 void C64Emu::loop() {

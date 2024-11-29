@@ -1847,11 +1847,12 @@ void CPU6502::cmd6502tas() {
 
 void CPU6502::cmd6502arr() {
   uint8_t r = getMem(pc++);
+  bool oricflag = cflag;
   a &= r;
   cflag = a & 128;
   vflag = ((a & 128) >> 1) ^ (a & 64);
   uint16_t r1 = a;
-  if (cflag) {
+  if (oricflag) {
     r1 |= 0x100;
   }
   r1 >>= 1;

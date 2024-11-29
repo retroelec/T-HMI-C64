@@ -7,8 +7,12 @@ public class Config {
     public static final UUID THMIC64_SERVICE_UUID = UUID.fromString("695ba701-a48c-43f6-9028-3c885771f19f");
     public static final String TARGET_DEVICE_NAME = "THMIC64";
     public static final long CHECK_INTERVAL = 1000;
+    public static final long BATTERY_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    public static final long BATTERY_CHECK_FORFIRSTTIME = 10 * 1000; // 10 seconds
     public static final long SEARCH_DURATION = 10000;
     public static final short DEFAULT_MINKEYPRESSEDDURATION = 130;
+    public static final int DURATION_VIBRATION_EFFECT = 100;
+    public static final int DURATION_VISUAL_EFFECT = 200;
 
     public static final byte VIRTUALJOYSTICKLEFT_ACTIVATED = (byte) 0x02;
     public static final byte VIRTUALJOYSTICKLEFT_DEACTIVATED = (byte) 0x82;
@@ -41,5 +45,6 @@ public class Config {
     public static final byte SWITCHDEBUG = 25;
     public static final byte SWITCHPERF = 26;
     public static final byte SWITCHDETECTRELEASEKEY = 27;
+    public static final byte GETBATTERYVOLTAGE = 29;
     public static final byte POWEROFF = 30;
 }

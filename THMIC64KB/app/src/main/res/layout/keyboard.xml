@@ -44,21 +44,22 @@
             android:text="f 7"
             android:textColor="@android:color/white" />
 
-        <ImageButton
+        <Button
             android:id="@+id/reset"
-            android:src="@drawable/reset"
             android:layout_width="0dp"
-            android:layout_height="50dp"
+            android:layout_height="wrap_content"
             android:layout_weight="2"
-            android:backgroundTint="#ffffff"
+            android:backgroundTint="#888888"
+            android:text="RESET"
             android:textColor="@android:color/white" />
 
-        <ImageButton
+        <Button
             android:id="@+id/powerOff"
-            android:src="@drawable/pow"
-            android:layout_width="wrap_content"
-            android:layout_height="50dp"
-            android:backgroundTint="#555555"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:backgroundTint="#888888"
+            android:text="OFF"
             android:textColor="@android:color/white" />
 
     </TableRow>

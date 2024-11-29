@@ -41,6 +41,7 @@ enum class ExtCmd {
   SWITCHDEBUG = 25,
   SWITCHPERF = 26,
   SWITCHDETECTRELEASEKEY = 27,
+  GETBATTERYVOLTAGE = 29,
   POWEROFF = 30
 };
 
@@ -56,7 +57,7 @@ void ExternalCmds::setType1Notification() {
   type1notification.refreshframecolor = c64emu->cpu.refreshframecolor;
   type1notification.sendrawkeycodes = sendrawkeycodes;
   type1notification.switchdebug = c64emu->cpu.debug;
-  type1notification.switchperf = c64emu->cpu.perf;
+  type1notification.switchperf = c64emu->perf;
   type1notification.switchdetectreleasekey = c64emu->blekb.detectreleasekey;
 }
 
@@ -91,6 +92,13 @@ void ExternalCmds::setType3Notification(uint16_t addr) {
 
 void ExternalCmds::setType4Notification() { type4notification.type = 4; }
 
+void ExternalCmds::setType5Notification(uint8_t batteryVolLow,
+                                        uint8_t batteryVolHi) {
+  type5notification.type = 5;
+  type5notification.batteryVolLow = batteryVolLow;
+  type5notification.batteryVolHi = batteryVolHi;
+}
+
 void ExternalCmds::setVarTab(uint16_t addr) {
   // set VARTAB
   ram[0x2d] = addr % 256;
@@ -100,18 +108,15 @@ void ExternalCmds::setVarTab(uint16_t addr) {
 }
 
 uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
-  uint16_t addr;
-  uint8_t cmddetail;
-  uint8_t len;
-  bool fileloaded;
   ExtCmd cmd = static_cast<ExtCmd>(buffer[0]);
   switch (cmd) {
   case ExtCmd::NOEXTCMD:
     return 0;
-  case ExtCmd::LOAD:
+  case ExtCmd::LOAD: {
     ESP_LOGI(TAG, "load from sdcard...");
     c64emu->cpu.cpuhalted = true;
-    fileloaded = false;
+    bool fileloaded = false;
+    uint16_t addr;
     if (sdcard.init()) {
       uint8_t cury = ram[0xd6];
       uint8_t curx = ram[0xd3];
@@ -128,14 +133,14 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     addr = src_loadactions_prg[0] + (src_loadactions_prg[1] << 8);
     memcpy(ram + addr, src_loadactions_prg + 2, src_loadactions_prg_len - 2);
     if (fileloaded) {
-      fileloaded = false;
       c64emu->cpu.exeSubroutine(addr, 1, 0, 0);
     } else {
       c64emu->cpu.exeSubroutine(addr, 0, 0, 0);
     }
     c64emu->cpu.cpuhalted = false;
     return 0;
-  case ExtCmd::RECEIVEDATA:
+  }
+  case ExtCmd::RECEIVEDATA: {
     ESP_LOGI(TAG, "enter receivedata");
     c64emu->cpu.cpuhalted = true;
     // simple "protocol":
@@ -145,7 +150,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     // - first block: byte 3 - 4: start address, 5 - 252: data
     // - next block: byte 3 - 252: data
     // - last block: byte 3: length of last block, byte 4 - (length+4-1): data
-    cmddetail = buffer[1];
+    uint8_t cmddetail = buffer[1];
     if (cmddetail == 0) {
       // next block
       ESP_LOGI(TAG, "next block: %x", actaddrreceivecmd);
@@ -155,7 +160,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       actaddrreceivecmd += 250;
     } else if (cmddetail == 1) {
       // first block
-      addr = buffer[3] + (buffer[4] << 8);
+      uint16_t addr = buffer[3] + (buffer[4] << 8);
       actaddrreceivecmd = addr;
       ESP_LOGI(TAG, "first block: %x", actaddrreceivecmd);
       for (uint8_t i = 5; i < 253; i++) {
@@ -164,7 +169,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       actaddrreceivecmd += 253 - 5;
     } else if (cmddetail == 2) {
       // last block
-      len = buffer[3];
+      uint8_t len = buffer[3];
       ESP_LOGI(TAG, "last block: %x", actaddrreceivecmd);
       for (uint8_t i = 4; i < (len + 4); i++) {
         ram[actaddrreceivecmd + i - 4] = buffer[i];
@@ -176,6 +181,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     ESP_LOGI(TAG, "leave receivedata");
     setType4Notification();
     return 4;
+  }
   case ExtCmd::RESTORE:
     if (buffer[1] == 1) {
       // restore + run/stop
@@ -201,8 +207,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     ESP_LOGI(TAG, "dd0d = %x, dd0e = %x, dd0f = %x", type2notification.dd0d,
              type2notification.dd0e, type2notification.dd0f);
     return 2;
-  case ExtCmd::SHOWMEM:
-    addr = buffer[3] + (buffer[4] << 8);
+  case ExtCmd::SHOWMEM: {
+    uint16_t addr = buffer[3] + (buffer[4] << 8);
     // use addr also as debugging start address
     c64emu->cpu.debugstartaddr = addr;
     ESP_LOGI(TAG, "addr: %x", addr);
@@ -216,6 +222,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
                type3notification.mem[j + 6], type3notification.mem[j + 7]);
     }
     return 3;
+  }
   case ExtCmd::RESET:
     c64emu->cpu.cpuhalted = true;
     c64emu->cpu.initMemAndRegs();
@@ -277,8 +284,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHPERF:
-    c64emu->cpu.perf = !c64emu->cpu.perf;
-    ESP_LOGI(TAG, "perf = %x", c64emu->cpu.perf);
+    c64emu->perf = !c64emu->perf;
+    ESP_LOGI(TAG, "perf = %x", c64emu->perf);
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHDETECTRELEASEKEY:
@@ -286,10 +293,14 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     ESP_LOGI(TAG, "detectreleasekey = %x", c64emu->blekb.detectreleasekey);
     setType1Notification();
     return 1;
+  case ExtCmd::GETBATTERYVOLTAGE: {
+    uint32_t voltage = c64emu->batteryVoltage;
+    setType5Notification(voltage & 0xff, (voltage >> 8) & 0xff);
+    return 5;
+  }
 #ifdef BOARD_T_HMI
   case ExtCmd::POWEROFF:
-    pinMode(Config::PWR_ON, OUTPUT);
-    digitalWrite(Config::PWR_ON, LOW);
+    c64emu->powerOff();
     return 0;
 #endif
   }

@@ -78,7 +78,6 @@ public:
   bool debug;
   uint16_t debugstartaddr;
   bool debuggingstarted;
-  bool perf;
 
   bool restorenmi;
 

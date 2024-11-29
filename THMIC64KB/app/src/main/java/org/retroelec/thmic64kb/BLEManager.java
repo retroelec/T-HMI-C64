@@ -27,6 +27,7 @@ public class BLEManager {
     private final Type2Notification type2Notification;
     private final Type3Notification type3Notification;
     private final Type4Notification type4Notification;
+    private final Type5Notification type5Notification;
 
     private boolean servicesDiscovered = false;
     private boolean isWriteInProgress = false;
@@ -35,13 +36,14 @@ public class BLEManager {
         return characteristic;
     }
 
-    public BLEManager(MainActivity mainActivity, String targetDeviceName, Settings settings, Type2Notification type2Notification, Type3Notification type3Notification, Type4Notification type4Notification) {
+    public BLEManager(MainActivity mainActivity, String targetDeviceName, Settings settings, Type2Notification type2Notification, Type3Notification type3Notification, Type4Notification type4Notification, Type5Notification type5Notification) {
         this.mainActivity = mainActivity;
         this.targetDeviceName = targetDeviceName;
         this.settings = settings;
         this.type2Notification = type2Notification;
         this.type3Notification = type3Notification;
         this.type4Notification = type4Notification;
+        this.type5Notification = type5Notification;
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
         if (!bluetoothAdapter.isEnabled() || bluetoothLeScanner == null) {
@@ -149,9 +151,22 @@ public class BLEManager {
                             type3Notification.setMem(mem);
                             type3Notification.notifyObserver();
                             break;
+                        // used to send data from android to esp
                         case 4:
-                            Log.i("THMIC64", "received notification: " + receivedData[0]);
                             type4Notification.notifyObserver();
+                            break;
+                        // battery voltage
+                        case 5:
+                            int batvoll = receivedData[1] & 0xff;
+                            int batvolh = receivedData[2] & 0xff;
+                            Log.i("THMIC64", "battery voltage = " + Integer.toString(batvoll | (batvolh << 8)));
+                            type5Notification.setBatteryVoltage(batvoll | (batvolh << 8));
+                            mainActivity.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    type5Notification.notifyObserver();
+                                }
+                            });
                             break;
                     }
                 } else {

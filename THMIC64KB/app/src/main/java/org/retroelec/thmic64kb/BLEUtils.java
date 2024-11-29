@@ -3,10 +3,13 @@ package org.retroelec.thmic64kb;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Handler;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.MotionEvent;
 import android.view.View;
 
 public class BLEUtils {
+    private final Context context;
     private final MyApplication myApplication;
     private final Settings settings;
 
@@ -14,8 +17,9 @@ public class BLEUtils {
     private final Handler handler = new Handler();
 
     public BLEUtils(Context context) {
-        myApplication = (MyApplication) context.getApplicationContext();
-        settings = myApplication.getSettings();
+        this.context = context;
+        this.myApplication = (MyApplication) context.getApplicationContext();
+        this.settings = myApplication.getSettings();
     }
 
     public void send(byte[] data, boolean blocking) {
@@ -26,7 +30,7 @@ public class BLEUtils {
     }
 
     public void send(byte[] data) {
-        send( data, false);
+        send(data, false);
     }
 
     public void send(byte data) {
@@ -34,14 +38,20 @@ public class BLEUtils {
         send(datatosend);
     }
 
-    public View.OnTouchListener createButtonTouchListener(View button, byte[] data) {
+    public View.OnTouchListener createButtonTouchListener(View button, byte[] data, int selcolor, int bgcolor, boolean vibration) {
         return (arg0, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                button.setBackgroundColor(Color.GREEN);
+                if (vibration) {
+                    Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+                    if (vibrator != null && vibrator.hasVibrator()) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(Config.DURATION_VIBRATION_EFFECT, VibrationEffect.DEFAULT_AMPLITUDE));
+                    }
+                }
+                button.setBackgroundColor(selcolor);
                 send(data);
                 startTime = System.currentTimeMillis();
             } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                button.setBackgroundColor(Color.TRANSPARENT);
+                button.setBackgroundColor(bgcolor);
                 long endTime = System.currentTimeMillis();
                 long duration = endTime - startTime;
                 long delay = settings.getMinKeyPressedDuration() - duration;
@@ -53,6 +63,10 @@ public class BLEUtils {
             }
             return true;
         };
+    }
+
+    public View.OnTouchListener createButtonTouchListener(View button, byte[] data) {
+        return createButtonTouchListener(button, data, Color.GREEN, Color.TRANSPARENT, false);
     }
 
     public View.OnTouchListener createButtonTouchListener(View button, byte constActivated, byte constDeactivated) {
@@ -73,6 +87,34 @@ public class BLEUtils {
                 }
             }
             return true;
+        };
+    }
+
+    public View.OnTouchListener createButtonTouchListener(String key, C64Keyboard.ActionDownHandler actionDownHandler, boolean visualEffect, int selcolor, int bgcolor) {
+        return (view, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                if (visualEffect) {
+                    view.setBackgroundColor(selcolor);
+                }
+                startTime = System.currentTimeMillis();
+                return actionDownHandler.handleActionDown(context, key);
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (visualEffect) {
+                    view.setBackgroundColor(bgcolor);
+                }
+                if (settings.isDetectReleaseKey()) {
+                    long endTime = System.currentTimeMillis();
+                    long duration = endTime - startTime;
+                    long delay = settings.getMinKeyPressedDuration() - duration;
+                    if (delay > 0) {
+                        handler.postDelayed(() -> send(Config.KEYRELEASED), delay);
+                    } else {
+                        send(Config.KEYRELEASED);
+                    }
+                }
+                return true;
+            }
+            return false;
         };
     }
 }

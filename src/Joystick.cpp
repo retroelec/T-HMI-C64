@@ -41,7 +41,7 @@ void Joystick::init() {
 #endif
 }
 
-uint8_t Joystick::getValue(bool port2, uint8_t dc00, uint8_t dc02) {
+uint8_t Joystick::getValue() {
   // assume return value of adc2_get_raw is ESP_OK
   int valueX;
   int valueY;
@@ -58,9 +58,6 @@ uint8_t Joystick::getValue(bool port2, uint8_t dc00, uint8_t dc02) {
 #endif
   // C64 register value
   uint8_t value = 0xff;
-  if (port2 && ((dc02 & 0x7f) == 0x7f)) {
-    value = 0x7f;
-  }
   if (valueX < LEFT_THRESHOLD) {
     value &= ~(1 << C64JOYLEFT);
   } else if (valueX > RIGHT_THRESHOLD) {
@@ -74,7 +71,7 @@ uint8_t Joystick::getValue(bool port2, uint8_t dc00, uint8_t dc02) {
   if (valueFire == 0) {
     value &= ~(1 << C64JOYFIRE);
   }
-  return value | (dc00 & 0x80);
+  return value;
 }
 
 bool Joystick::getFire2() {

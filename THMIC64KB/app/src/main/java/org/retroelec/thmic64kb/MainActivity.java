@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -20,7 +21,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class MainActivity extends AppCompatActivity implements SettingsObserver {
+public class MainActivity extends AppCompatActivity implements SettingsObserver, NotificationObserver {
+
+    private static final int KEYSELECTEDCOLORACTION = 0xffdd7777;
+    private static final int KEYBGDCOLORACTION = 0xffcc7777;
 
     private static final int PERMISSION_REQUEST_CODE = 1234;
     private BLEManager bleManager = null;
@@ -28,14 +32,32 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
     private Type2Notification type2Notification;
     private Type3Notification type3Notification;
     private Type4Notification type4Notification;
+    private Type5Notification type5Notification;
     private Switch bleSwitch;
+    private TextView batteryvoltage;
     private Button joystick1;
     private Button joystick2;
     private boolean joystick1active = false;
     private boolean joystick2active = false;
     private final Handler handler = new Handler();
+    private final Handler handlerBatteryCheck = new Handler();
     private BluetoothGattCharacteristic oldcharacteristic;
     private BluetoothGattCharacteristic actcharacteristic = null;
+
+    // get battery voltage
+    private void startPeriodicBatteryCheck() {
+        Runnable runnableBatteryCheck = new Runnable() {
+            @Override
+            public void run() {
+                if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
+                    Log.i("THMIC64", "get battery voltage");
+                    bleManager.sendData(new byte[]{Config.GETBATTERYVOLTAGE, (byte) 0x00, (byte) 0x80}, false);
+                }
+                handlerBatteryCheck.postDelayed(this, Config.BATTERY_CHECK_INTERVAL);
+            }
+        };
+        handlerBatteryCheck.postDelayed(runnableBatteryCheck, Config.BATTERY_CHECK_FORFIRSTTIME);
+    }
 
     // check BLE connection
     private void startPeriodicCheck() {
@@ -70,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
     private void scanForBLEDevice() {
         // init BLEManager
         Log.d("THMIC64", "init BLEManager");
-        bleManager = new BLEManager(this, Config.TARGET_DEVICE_NAME, settings, type2Notification, type3Notification, type4Notification);
+        bleManager = new BLEManager(this, Config.TARGET_DEVICE_NAME, settings, type2Notification, type3Notification, type4Notification, type5Notification);
         final MyApplication myApplication = (MyApplication) getApplication();
         myApplication.setBleManager(bleManager);
 
@@ -117,6 +139,13 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
     }
 
     @Override
+    public void update() {
+        int voltage = type5Notification.getBatteryVoltage();
+        int percentage = Math.max(0, Math.min(100, ((voltage - 3600) / 6)));
+        batteryvoltage.setText("BATT: " + Integer.toString(percentage) + "%");
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (settings != null) {
@@ -144,11 +173,14 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
         type2Notification = new Type2Notification();
         type3Notification = new Type3Notification();
         type4Notification = new Type4Notification();
+        type5Notification = new Type5Notification();
+        type5Notification.registerObserver(this);
         final MyApplication myApplication = (MyApplication) getApplication();
         myApplication.setSettings(settings);
         myApplication.setType2Notification(type2Notification);
         myApplication.setType3Notification(type3Notification);
         myApplication.setType4Notification(type4Notification);
+        myApplication.setType5Notification(type5Notification);
         BLEUtils bleUtils = new BLEUtils(this);
 
         setContentView(R.layout.activity_main);
@@ -196,7 +228,10 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver 
         });
 
         Button keyload = findViewById(R.id.keyload);
-        keyload.setOnClickListener(view -> bleUtils.send(new byte[]{Config.LOAD, (byte) 0x00, (byte) 0x80}, false));
+        keyload.setOnTouchListener(bleUtils.createButtonTouchListener(keyload, new byte[]{Config.LOAD, (byte) 0x00, (byte) 0x80}, KEYSELECTEDCOLORACTION, KEYBGDCOLORACTION, true));
+
+        batteryvoltage = findViewById(R.id.batteryvoltage);
+        startPeriodicBatteryCheck();
 
         bleSwitch = findViewById(R.id.bleSwitch);
         bleSwitch.setChecked(false);

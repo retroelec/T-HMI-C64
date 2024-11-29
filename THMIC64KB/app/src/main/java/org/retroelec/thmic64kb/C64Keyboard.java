@@ -8,7 +8,6 @@ import android.os.Vibrator;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -19,18 +18,15 @@ import java.util.Map;
 
 public class C64Keyboard extends LinearLayout {
 
-    private static final int KEYBGCOLOR = 0xff2b2121;
-    private static final int KEYBGCOLORFKEYS = 0xff777777;
     private static final int KEYSELECTEDCOLOR = 0xff777777;
+    private static final int KEYBGCOLOR = 0xff2b2121;
     private static final int KEYSELECTEDCOLORFKEYS = 0xff888888;
-    private static final int DURATION_VIBRATION_EFFECT = 100;
-    private static final int DURATION_VISUAL_EFFECT = 200;
+    private static final int KEYBGCOLORFKEYS = 0xff777777;
+    private static final int KEYSELECTEDCOLORFRESETOFF = 0xff999999;
+    private static final int KEYBGCOLORFRESETOFF = 0xff888888;
 
     private BLEUtils bleUtils;
     private Settings settings;
-
-    private long startTime = 0;
-    private final Handler handler = new Handler();
 
     private final Map<String, byte[]> map = new HashMap<>();
     private Button keyshiftleft;
@@ -300,7 +296,7 @@ public class C64Keyboard extends LinearLayout {
     private void sendKey(Context context, byte[] data) {
         Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
         if (vibrator != null && vibrator.hasVibrator()) {
-            vibrator.vibrate(VibrationEffect.createOneShot(DURATION_VIBRATION_EFFECT, VibrationEffect.DEFAULT_AMPLITUDE));
+            vibrator.vibrate(VibrationEffect.createOneShot(Config.DURATION_VIBRATION_EFFECT, VibrationEffect.DEFAULT_AMPLITUDE));
         }
         boolean isShifted = keyshiftleft.isSelected() || keyshiftright.isSelected();
         boolean isCtrl = keyctrl.isSelected();
@@ -332,61 +328,29 @@ public class C64Keyboard extends LinearLayout {
         bleUtils.send(datatosend, false);
     }
 
-    private void sendReleaseKey(Context context) {
-        byte[] datatosend = new byte[]{(byte) Config.KEYRELEASED};
-        bleUtils.send(datatosend, false);
-    }
-
     @FunctionalInterface
     interface ActionDownHandler {
         boolean handleActionDown(Context context, String key);
     }
 
-    private View.OnTouchListener createTouchListener(Context context, String key, ActionDownHandler actionDownHandler, boolean visualEffect, int selcolor, int bgcolor) {
-        return (view, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                if (visualEffect) {
-                    view.setBackgroundColor(selcolor);
-                }
-                startTime = System.currentTimeMillis();
-                return actionDownHandler.handleActionDown(context, key);
-            } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (visualEffect) {
-                    view.setBackgroundColor(bgcolor);
-                }
-                if (settings.isDetectReleaseKey()) {
-                    long endTime = System.currentTimeMillis();
-                    long duration = endTime - startTime;
-                    long delay = settings.getMinKeyPressedDuration() - duration;
-                    if (delay > 0) {
-                        handler.postDelayed(() -> sendReleaseKey(context), delay);
-                    } else {
-                        sendReleaseKey(context);
-                    }
-                }
-                return true;
-            }
-            return false;
-        };
+
+    private View.OnTouchListener createButtonTouchListener(String key, ActionDownHandler actionDownHandler, boolean visualEffect) {
+        return bleUtils.createButtonTouchListener(key, actionDownHandler, visualEffect, KEYSELECTEDCOLOR, KEYBGCOLOR);
     }
 
-    private View.OnTouchListener createTouchListener(Context context, String key, ActionDownHandler actionDownHandler, boolean visualEffect) {
-        return createTouchListener(context, key, actionDownHandler, visualEffect, KEYSELECTEDCOLOR, KEYBGCOLOR);
+    private View.OnTouchListener createTouchListenerFKeys(String key, ActionDownHandler actionDownHandler, boolean visualEffect) {
+        return bleUtils.createButtonTouchListener(key, actionDownHandler, visualEffect, KEYSELECTEDCOLORFKEYS, KEYBGCOLORFKEYS);
     }
 
-    private View.OnTouchListener createTouchListenerFKeys(Context context, String key, ActionDownHandler actionDownHandler, boolean visualEffect) {
-        return createTouchListener(context, key, actionDownHandler, visualEffect, KEYSELECTEDCOLORFKEYS, KEYBGCOLORFKEYS);
-    }
-
-    private ActionDownHandler standardActionDown = (context, key) -> {
+    private final ActionDownHandler standardActionDown = (context, key) -> {
         sendKey(context, map.get(key));
         return true;
     };
 
-    private ActionDownHandler shiftLeftActionDown = (context, key) -> {
+    private final ActionDownHandler shiftLeftActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
             keyshiftleft.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keyshiftleft.setBackgroundColor(KEYBGCOLOR), DURATION_VISUAL_EFFECT);
+            new Handler().postDelayed(() -> keyshiftleft.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
         } else if (keycommodore.isSelected() && (!keyshiftleft.isSelected())) {
             sendKey(context, new byte[]{(byte) 0xfd, (byte) 0x7f, (byte) 0x05});
@@ -401,10 +365,10 @@ public class C64Keyboard extends LinearLayout {
         return true;
     };
 
-    private ActionDownHandler shiftRightActionDown = (context, key) -> {
+    private final ActionDownHandler shiftRightActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
             keyshiftright.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keyshiftright.setBackgroundColor(KEYBGCOLOR), DURATION_VISUAL_EFFECT);
+            new Handler().postDelayed(() -> keyshiftright.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
         } else if (keycommodore.isSelected() && (!keyshiftright.isSelected())) {
             sendKey(context, new byte[]{(byte) 0xbf, (byte) 0xef, (byte) 0x05});
@@ -419,10 +383,10 @@ public class C64Keyboard extends LinearLayout {
         return true;
     };
 
-    private ActionDownHandler ctrlActionDown = (context, key) -> {
+    private final ActionDownHandler ctrlActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
             keyctrl.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keyctrl.setBackgroundColor(KEYBGCOLOR), DURATION_VISUAL_EFFECT);
+            new Handler().postDelayed(() -> keyctrl.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
         } else {
             keyctrl.setSelected(!keyctrl.isSelected());
@@ -453,7 +417,7 @@ public class C64Keyboard extends LinearLayout {
     private final ActionDownHandler commodoreActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
             keycommodore.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keycommodore.setBackgroundColor(KEYBGCOLOR), DURATION_VISUAL_EFFECT);
+            new Handler().postDelayed(() -> keycommodore.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
         } else if ((keyshiftleft.isSelected() || keyshiftright.isSelected()) && (!keycommodore.isSelected())) {
             sendKey(context, new byte[]{(byte) 0x7f, (byte) 0xdf, (byte) 0x05});
@@ -542,79 +506,79 @@ public class C64Keyboard extends LinearLayout {
         keycrsrright = findViewById(R.id.keycrsrright);
         keycrsrleft = findViewById(R.id.keycrsrleft);
         keyspace = findViewById(R.id.keyspace);
-        keyf1.setOnTouchListener(createTouchListenerFKeys(context, "f1", standardActionDown, true));
-        keyf3.setOnTouchListener(createTouchListenerFKeys(context, "f3", standardActionDown, true));
-        keyf5.setOnTouchListener(createTouchListenerFKeys(context, "f5", standardActionDown, true));
-        keyf7.setOnTouchListener(createTouchListenerFKeys(context, "f7", standardActionDown, true));
-        keyleftarrow.setOnTouchListener(createTouchListener(context, "leftarrow", standardActionDown, true));
-        key1.setOnTouchListener(createTouchListener(context, "1", standardActionDown, true));
-        key2.setOnTouchListener(createTouchListener(context, "2", standardActionDown, true));
-        key3.setOnTouchListener(createTouchListener(context, "3", standardActionDown, true));
-        key4.setOnTouchListener(createTouchListener(context, "4", standardActionDown, true));
-        key5.setOnTouchListener(createTouchListener(context, "5", standardActionDown, true));
-        key6.setOnTouchListener(createTouchListener(context, "6", standardActionDown, true));
-        key7.setOnTouchListener(createTouchListener(context, "7", standardActionDown, true));
-        key8.setOnTouchListener(createTouchListener(context, "8", standardActionDown, true));
-        key9.setOnTouchListener(createTouchListener(context, "9", standardActionDown, true));
-        key0.setOnTouchListener(createTouchListener(context, "0", standardActionDown, true));
-        keyplus.setOnTouchListener(createTouchListener(context, "+", standardActionDown, true));
-        keyminus.setOnTouchListener(createTouchListener(context, "-", standardActionDown, true));
-        keypound.setOnTouchListener(createTouchListener(context, "£", standardActionDown, true));
-        keyhome.setOnTouchListener(createTouchListener(context, "home", standardActionDown, true));
-        keydel.setOnTouchListener(createTouchListener(context, "del", standardActionDown, true));
-        keyctrl.setOnTouchListener(createTouchListener(context, "ctrl", ctrlActionDown, false));
-        keyq.setOnTouchListener(createTouchListener(context, "Q", standardActionDown, true));
-        keyw.setOnTouchListener(createTouchListener(context, "W", standardActionDown, true));
-        keye.setOnTouchListener(createTouchListener(context, "E", standardActionDown, true));
-        keyr.setOnTouchListener(createTouchListener(context, "R", standardActionDown, true));
-        keyt.setOnTouchListener(createTouchListener(context, "T", standardActionDown, true));
-        keyy.setOnTouchListener(createTouchListener(context, "Y", standardActionDown, true));
-        keyu.setOnTouchListener(createTouchListener(context, "U", standardActionDown, true));
-        keyi.setOnTouchListener(createTouchListener(context, "I", standardActionDown, true));
-        keyo.setOnTouchListener(createTouchListener(context, "O", standardActionDown, true));
-        keyp.setOnTouchListener(createTouchListener(context, "P", standardActionDown, true));
-        keyat.setOnTouchListener(createTouchListener(context, "@", standardActionDown, true));
-        keymul.setOnTouchListener(createTouchListener(context, "*", standardActionDown, true));
-        keyarrowup.setOnTouchListener(createTouchListener(context, "uparrow", standardActionDown, true));
-        keyrestore.setOnTouchListener(createTouchListener(context, "RESTORE", restoreActionDownHandler, true));
-        keyrunstop.setOnTouchListener(createTouchListener(context, "runstop", standardActionDown, true));
-        keyshiftlock.setOnTouchListener(createTouchListener(context, "shiftlock", shiftlockActionDown, false));
-        keycommodore.setOnTouchListener(createTouchListener(context, "commodore", commodoreActionDown, false));
-        keya.setOnTouchListener(createTouchListener(context, "A", standardActionDown, true));
-        keys.setOnTouchListener(createTouchListener(context, "S", standardActionDown, true));
-        keyd.setOnTouchListener(createTouchListener(context, "D", standardActionDown, true));
-        keyf.setOnTouchListener(createTouchListener(context, "F", standardActionDown, true));
-        keyg.setOnTouchListener(createTouchListener(context, "G", standardActionDown, true));
-        keyh.setOnTouchListener(createTouchListener(context, "H", standardActionDown, true));
-        keyj.setOnTouchListener(createTouchListener(context, "J", standardActionDown, true));
-        keyk.setOnTouchListener(createTouchListener(context, "K", standardActionDown, true));
-        keyl.setOnTouchListener(createTouchListener(context, "L", standardActionDown, true));
-        keycolon.setOnTouchListener(createTouchListener(context, ":", standardActionDown, true));
-        keysemicolon.setOnTouchListener(createTouchListener(context, ";", standardActionDown, true));
-        keyequal.setOnTouchListener(createTouchListener(context, "=", standardActionDown, true));
-        keyreturn.setOnTouchListener(createTouchListener(context, "return", standardActionDown, true));
-        keyz.setOnTouchListener(createTouchListener(context, "Z", standardActionDown, true));
-        keyx.setOnTouchListener(createTouchListener(context, "X", standardActionDown, true));
-        keyc.setOnTouchListener(createTouchListener(context, "C", standardActionDown, true));
-        keyv.setOnTouchListener(createTouchListener(context, "V", standardActionDown, true));
-        keyb.setOnTouchListener(createTouchListener(context, "B", standardActionDown, true));
-        keyn.setOnTouchListener(createTouchListener(context, "N", standardActionDown, true));
-        keym.setOnTouchListener(createTouchListener(context, "M", standardActionDown, true));
-        keycomma.setOnTouchListener(createTouchListener(context, ",", standardActionDown, true));
-        keyperiod.setOnTouchListener(createTouchListener(context, ".", standardActionDown, true));
-        keyslash.setOnTouchListener(createTouchListener(context, "/", standardActionDown, true));
-        keyshiftleft.setOnTouchListener(createTouchListener(context, "shiftleft", shiftLeftActionDown, false));
-        keyshiftright.setOnTouchListener(createTouchListener(context, "shiftright", shiftRightActionDown, false));
-        keycrsrdown.setOnTouchListener(createTouchListener(context, "crsrdown", standardActionDown, true));
-        keycrsrup.setOnTouchListener(createTouchListener(context, "crsrup", standardActionDown, true));
-        keycrsrright.setOnTouchListener(createTouchListener(context, "crsrright", standardActionDown, true));
-        keycrsrleft.setOnTouchListener(createTouchListener(context, "crsrleft", standardActionDown, true));
-        keyspace.setOnTouchListener(createTouchListener(context, "space", standardActionDown, true));
+        keyf1.setOnTouchListener(createTouchListenerFKeys("f1", standardActionDown, true));
+        keyf3.setOnTouchListener(createTouchListenerFKeys("f3", standardActionDown, true));
+        keyf5.setOnTouchListener(createTouchListenerFKeys("f5", standardActionDown, true));
+        keyf7.setOnTouchListener(createTouchListenerFKeys("f7", standardActionDown, true));
+        keyleftarrow.setOnTouchListener(createButtonTouchListener("leftarrow", standardActionDown, true));
+        key1.setOnTouchListener(createButtonTouchListener("1", standardActionDown, true));
+        key2.setOnTouchListener(createButtonTouchListener("2", standardActionDown, true));
+        key3.setOnTouchListener(createButtonTouchListener("3", standardActionDown, true));
+        key4.setOnTouchListener(createButtonTouchListener("4", standardActionDown, true));
+        key5.setOnTouchListener(createButtonTouchListener("5", standardActionDown, true));
+        key6.setOnTouchListener(createButtonTouchListener("6", standardActionDown, true));
+        key7.setOnTouchListener(createButtonTouchListener("7", standardActionDown, true));
+        key8.setOnTouchListener(createButtonTouchListener("8", standardActionDown, true));
+        key9.setOnTouchListener(createButtonTouchListener("9", standardActionDown, true));
+        key0.setOnTouchListener(createButtonTouchListener("0", standardActionDown, true));
+        keyplus.setOnTouchListener(createButtonTouchListener("+", standardActionDown, true));
+        keyminus.setOnTouchListener(createButtonTouchListener("-", standardActionDown, true));
+        keypound.setOnTouchListener(createButtonTouchListener("£", standardActionDown, true));
+        keyhome.setOnTouchListener(createButtonTouchListener("home", standardActionDown, true));
+        keydel.setOnTouchListener(createButtonTouchListener("del", standardActionDown, true));
+        keyctrl.setOnTouchListener(createButtonTouchListener("ctrl", ctrlActionDown, false));
+        keyq.setOnTouchListener(createButtonTouchListener("Q", standardActionDown, true));
+        keyw.setOnTouchListener(createButtonTouchListener("W", standardActionDown, true));
+        keye.setOnTouchListener(createButtonTouchListener("E", standardActionDown, true));
+        keyr.setOnTouchListener(createButtonTouchListener("R", standardActionDown, true));
+        keyt.setOnTouchListener(createButtonTouchListener("T", standardActionDown, true));
+        keyy.setOnTouchListener(createButtonTouchListener("Y", standardActionDown, true));
+        keyu.setOnTouchListener(createButtonTouchListener("U", standardActionDown, true));
+        keyi.setOnTouchListener(createButtonTouchListener("I", standardActionDown, true));
+        keyo.setOnTouchListener(createButtonTouchListener("O", standardActionDown, true));
+        keyp.setOnTouchListener(createButtonTouchListener("P", standardActionDown, true));
+        keyat.setOnTouchListener(createButtonTouchListener("@", standardActionDown, true));
+        keymul.setOnTouchListener(createButtonTouchListener("*", standardActionDown, true));
+        keyarrowup.setOnTouchListener(createButtonTouchListener("uparrow", standardActionDown, true));
+        keyrestore.setOnTouchListener(createButtonTouchListener("RESTORE", restoreActionDownHandler, true));
+        keyrunstop.setOnTouchListener(createButtonTouchListener("runstop", standardActionDown, true));
+        keyshiftlock.setOnTouchListener(createButtonTouchListener("shiftlock", shiftlockActionDown, false));
+        keycommodore.setOnTouchListener(createButtonTouchListener("commodore", commodoreActionDown, false));
+        keya.setOnTouchListener(createButtonTouchListener("A", standardActionDown, true));
+        keys.setOnTouchListener(createButtonTouchListener("S", standardActionDown, true));
+        keyd.setOnTouchListener(createButtonTouchListener("D", standardActionDown, true));
+        keyf.setOnTouchListener(createButtonTouchListener("F", standardActionDown, true));
+        keyg.setOnTouchListener(createButtonTouchListener("G", standardActionDown, true));
+        keyh.setOnTouchListener(createButtonTouchListener("H", standardActionDown, true));
+        keyj.setOnTouchListener(createButtonTouchListener("J", standardActionDown, true));
+        keyk.setOnTouchListener(createButtonTouchListener("K", standardActionDown, true));
+        keyl.setOnTouchListener(createButtonTouchListener("L", standardActionDown, true));
+        keycolon.setOnTouchListener(createButtonTouchListener(":", standardActionDown, true));
+        keysemicolon.setOnTouchListener(createButtonTouchListener(";", standardActionDown, true));
+        keyequal.setOnTouchListener(createButtonTouchListener("=", standardActionDown, true));
+        keyreturn.setOnTouchListener(createButtonTouchListener("return", standardActionDown, true));
+        keyz.setOnTouchListener(createButtonTouchListener("Z", standardActionDown, true));
+        keyx.setOnTouchListener(createButtonTouchListener("X", standardActionDown, true));
+        keyc.setOnTouchListener(createButtonTouchListener("C", standardActionDown, true));
+        keyv.setOnTouchListener(createButtonTouchListener("V", standardActionDown, true));
+        keyb.setOnTouchListener(createButtonTouchListener("B", standardActionDown, true));
+        keyn.setOnTouchListener(createButtonTouchListener("N", standardActionDown, true));
+        keym.setOnTouchListener(createButtonTouchListener("M", standardActionDown, true));
+        keycomma.setOnTouchListener(createButtonTouchListener(",", standardActionDown, true));
+        keyperiod.setOnTouchListener(createButtonTouchListener(".", standardActionDown, true));
+        keyslash.setOnTouchListener(createButtonTouchListener("/", standardActionDown, true));
+        keyshiftleft.setOnTouchListener(createButtonTouchListener("shiftleft", shiftLeftActionDown, false));
+        keyshiftright.setOnTouchListener(createButtonTouchListener("shiftright", shiftRightActionDown, false));
+        keycrsrdown.setOnTouchListener(createButtonTouchListener("crsrdown", standardActionDown, true));
+        keycrsrup.setOnTouchListener(createButtonTouchListener("crsrup", standardActionDown, true));
+        keycrsrright.setOnTouchListener(createButtonTouchListener("crsrright", standardActionDown, true));
+        keycrsrleft.setOnTouchListener(createButtonTouchListener("crsrleft", standardActionDown, true));
+        keyspace.setOnTouchListener(createButtonTouchListener("space", standardActionDown, true));
 
-        ImageButton powerOff = findViewById(R.id.powerOff);
-        powerOff.setOnClickListener(view -> bleUtils.send(new byte[]{Config.POWEROFF, (byte) 0x00, (byte) 0x80}, false));
+        Button powerOff = findViewById(R.id.powerOff);
+        powerOff.setOnTouchListener(bleUtils.createButtonTouchListener(powerOff, new byte[]{Config.POWEROFF, (byte) 0x00, (byte) 0x80}, KEYSELECTEDCOLORFRESETOFF, KEYBGCOLORFRESETOFF, true));
 
-        ImageButton reset = findViewById(R.id.reset);
-        reset.setOnClickListener(view -> bleUtils.send(new byte[]{Config.RESET, (byte) 0x00, (byte) 0x80}, false));
+        Button reset = findViewById(R.id.reset);
+        reset.setOnTouchListener(bleUtils.createButtonTouchListener(reset, new byte[]{Config.RESET, (byte) 0x00, (byte) 0x80}, KEYSELECTEDCOLORFRESETOFF, KEYBGCOLORFRESETOFF, true));
     }
 }

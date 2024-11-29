@@ -56,7 +56,7 @@ uint16_t SDCard::load(fs::FS &fs, uint8_t *cursorpos, uint8_t *ram) {
   path[0] = '/';
   uint8_t i = 1;
   uint8_t p;
-  while (((p = *cursorpos++) != 32) && (p != 160) && (i < 16)) {
+  while (((p = *cursorpos++) != 32) && (p != 160) && (i < 17)) {
     if ((p >= 1) && (p <= 26)) {
       path[i] = p + 96;
     } else if ((p >= 33) && (p <= 63)) {

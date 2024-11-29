@@ -112,14 +112,35 @@ uint8_t CPUC64::getMem(uint16_t addr) {
     else if (addr <= 0xdcff) {
       uint8_t ciaidx = (addr - 0xdc00) % 0x10;
       if (ciaidx == 0x00) {
-        if (joystickmode == 2) {
-          // real joystick
-          return joystick.getValue(true, cia1.ciareg[0x00], cia1.ciareg[0x02]);
-        } else if (kbjoystickmode == 2) {
-          // keyboard joystick
-          return c64emu->blekb.getKBJoyValue(true) | (cia1.ciareg[0x00] & 0x80);
+        uint8_t mask = (cia1.ciareg[0x00] & 0xc0) | 0x3f;
+        if (cia1.ciareg[0x02] & 0xc0) {
+          mask = (cia1.ciareg[0x00] & 0xc0) | 0x3f;
         } else {
-          return cia1.ciareg[0x00];
+          mask = 0xff;
+        }
+        if (joystickmode == 2) {
+          // real joystick, but still check for keyboard input
+          uint8_t ret = c64emu->blekb.getdc01(
+              cia1.ciareg[0x01] & cia1.ciareg[0x03], true);
+          if (ret == 0xff) {
+            // no key pressed -> return joystick value (of real joystick)
+            ret = joystick.getValue();
+          }
+          return ret & mask;
+        } else if (kbjoystickmode == 2) {
+          // keyboard joystick, but still check for keyboard input
+          uint8_t ret = c64emu->blekb.getdc01(
+              cia1.ciareg[0x01] & cia1.ciareg[0x03], true);
+          if (ret == 0xff) {
+            // no key pressed -> return joystick value (of keyboard joystick)
+            ret = c64emu->blekb.getKBJoyValue(true);
+          }
+          return ret & mask;
+        } else {
+          // keyboard
+          return c64emu->blekb.getdc01(cia1.ciareg[0x01] & cia1.ciareg[0x03],
+                                       true) &
+                 mask;
         }
       } else if (ciaidx == 0x01) {
         if (joystickmode == 2) {
@@ -127,29 +148,29 @@ uint8_t CPUC64::getMem(uint16_t addr) {
           if ((cia1.ciareg[0x00] == 0x7f) && joystick.getFire2()) {
             return 0xef;
           }
-        } else if (kbjoystickmode == 2) {
-          // special case: handle fire2 button -> space key
-          // todo
         }
         if (joystickmode == 1) {
           // real joystick, but still check for keyboard input
-          uint8_t pressedkey = c64emu->blekb.getdc01(cia1.ciareg[0x00]);
-          if (pressedkey == 0xff) {
+          uint8_t ret = c64emu->blekb.getdc01(
+              cia1.ciareg[0x00] & cia1.ciareg[0x02], false);
+          if (ret == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
-            return joystick.getValue(false, 0, 0);
+            ret = joystick.getValue();
           }
-          return pressedkey;
+          return ret;
         } else if (kbjoystickmode == 1) {
           // keyboard joystick, but still check for keyboard input
-          uint8_t pressedkey = c64emu->blekb.getdc01(cia1.ciareg[0x00]);
-          if (pressedkey == 0xff) {
+          uint8_t ret = c64emu->blekb.getdc01(
+              cia1.ciareg[0x00] & cia1.ciareg[0x02], false);
+          if (ret == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
-            return c64emu->blekb.getKBJoyValue(false);
+            ret = c64emu->blekb.getKBJoyValue(false);
           }
-          return pressedkey;
+          return ret;
         } else {
           // keyboard
-          return c64emu->blekb.getdc01(cia1.ciareg[0x00]);
+          return c64emu->blekb.getdc01(cia1.ciareg[0x00] & cia1.ciareg[0x02],
+                                       false);
         }
       } else {
         return getCommonCIAReg(cia1, ciaidx);
@@ -361,9 +382,7 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
     else if (addr <= 0xdcff) {
       uint8_t ciaidx = (addr - 0xdc00) % 0x10;
       if (ciaidx == 0x00) {
-        cia1.ciareg[ciaidx] = val & cia1.ciareg[0x02];
-      } else if (ciaidx == 0x01) {
-        cia1.ciareg[ciaidx] = val & cia1.ciareg[0x03];
+        cia1.ciareg[ciaidx] = val;
       } else {
         setCommonCIAReg(cia1, ciaidx, val);
       }
@@ -482,7 +501,6 @@ void CPUC64::run() {
   debug = false;
   debugstartaddr = 0;
   debuggingstarted = false;
-  perf = false;
   numofcycles = 0;
   uint8_t badlinecycles = 0;
   while (true) {
@@ -590,7 +608,6 @@ void CPUC64::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
   uint8_t tsp = sp;
   uint8_t tsr = sr;
   uint16_t tpc = pc;
-  iflag = true;
   dflag = false;
   bflag = false;
   a = rega;

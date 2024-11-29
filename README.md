@@ -176,6 +176,10 @@ uncomment line "//#define BOARD_T_DISPLAY_S3"
 
 Afterwards you have to compile and upload the code to the T-Display S3 AMOLED board (see chapter "Install C64 Emulator on Lilygo T-HMI").
 
+Note: Files rm67162.cpp, rm67162.h and pins_config.h were copied from https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED/tree/main/examples/factory.
+
+As the board has no SD card you can send a programm from your Android device to the emulator (see below).
+
 <img src="doc/tdisps3amoled.jpg" alt="T-HMI" width="800"/>
 
 ### Install Android App
@@ -251,7 +255,7 @@ To play games, a hardware joystick is recommended.
 Because it is difficult to keep an eye on the screen and press the right keys on the virtual keyboard at the same time for pinball games,
 the flippers of “David's Midnight Magic” have been outsourced to a separate screen.
 When you open this screen, the options "Send raw keycodes" and "Detect key release" are automatically enabled.
-When you close this screen again, both options are reset to the previous value. 
+When you close this screen again, both options are reset to the previous values.
 
 ### Load a program from SD card
 
@@ -276,7 +280,7 @@ You can also send a programm from your Android device to the emulator (DIV scree
 
 ## Software
 
-### Class diagram
+### Class diagram of the emulator
 
 <img src="doc/classdiagram.png" alt="class diagram" width="600"/>
 
@@ -306,7 +310,7 @@ All hardware ports not explicitly mentioned including their corresponding regist
 - "illegal instructions" test suite fails
 - rarly CPU is blocked after loading a game
 - some games have graphic errors
-- some games are not working at all (probably mostly due to the timing issues mentioned above)
+- some games are not working at all
 
 ### Games
 

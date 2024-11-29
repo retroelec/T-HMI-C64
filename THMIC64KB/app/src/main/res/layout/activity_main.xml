@@ -65,6 +65,15 @@
             android:text="LOAD"
             android:textColor="@android:color/white" />
 
+        <TextView
+            android:id="@+id/batteryvoltage"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:layout_marginLeft="16dp"
+            android:text="BATT: ???"
+            android:textSize="18dp"
+            android:textColor="@android:color/white" />
     </TableRow>
 
     <org.retroelec.thmic64kb.C64Keyboard
