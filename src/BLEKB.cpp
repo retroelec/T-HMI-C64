@@ -224,6 +224,7 @@ void BLEKB::init(C64Emu *c64emu) {
   BLEDevice::init("THMIC64");
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new BLEKBServerCallback(*this));
+
   BLEService *pService = pServer->createService(Config::SERVICE_UUID);
   BLECharacteristic *pCharacteristic = pService->createCharacteristic(
       Config::CHARACTERISTIC_UUID,
@@ -232,10 +233,21 @@ void BLEKB::init(C64Emu *c64emu) {
       new BLEKBCharacteristicCallback(*this, c64emu->externalCmds));
   pCharacteristic->setValue("THMIC64");
   pService->start();
+
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(Config::SERVICE_UUID);
   pAdvertising->setMinPreferred(0x12);
-  BLEDevice::startAdvertising();
+  pAdvertising->setMinInterval(0x30); // min advertising interval (30ms)
+  pAdvertising->setMaxInterval(0x60); // max advertising interval (60ms)
+  pAdvertising->start();
+
+  esp_ble_conn_update_params_t conn_params = {
+      .min_int = 0x30, // min connection interval (0x30 x 1.25ms = 60ms)
+      .max_int = 0x50, // max connection interval (0x50 x 1.25ms = 100ms)
+      .latency = 0,    // slave latency
+      .timeout = 400   // connection supervision timeout (400 x 10ms = 4s)
+  };
+  esp_ble_gap_update_conn_params(&conn_params);
 }
 
 void BLEKB::handleKeyPress() {
@@ -260,62 +272,53 @@ void BLEKB::handleKeyPress() {
   return;
 }
 
-uint8_t BLEKB::getdc01(uint8_t querydc00, bool xchgports) {
-  uint8_t kbcode1;
-  uint8_t kbcode2;
-  if (xchgports) {
-    kbcode1 = sentdc01;
-    kbcode2 = sentdc00;
-  } else {
-    kbcode1 = sentdc00;
-    kbcode2 = sentdc01;
-  }
+uint8_t BLEKB::getdc01(uint8_t querydc00) {
   if (querydc00 == 0) {
-    return kbcode2;
+    return sentdc01;
   }
   // special case "shift" + "commodore"
   if ((shiftctrlcode & 5) == 5) {
-    if (querydc00 == kbcode1) {
-      return kbcode2;
+    if (querydc00 == sentdc00) {
+      return sentdc01;
     } else {
       return 0xff;
     }
   }
   // key combined with a "special key" (shift, ctrl, commodore)?
   if ((~querydc00 & 2) && (shiftctrlcode & 1)) { // *query* left shift key?
-    if (kbcode1 == 0xfd) {
+    if (sentdc00 == 0xfd) {
       // handle scan of key codes in the same "row"
-      return kbcode2 & 0x7f;
+      return sentdc01 & 0x7f;
     } else {
       return 0x7f;
     }
   } else if ((~querydc00 & 0x40) &&
              (shiftctrlcode & 1)) { // *query* right shift key?
-    if (kbcode1 == 0xbf) {
+    if (sentdc00 == 0xbf) {
       // handle scan of key codes in the same "row"
-      return kbcode2 & 0xef;
+      return sentdc01 & 0xef;
     } else {
       return 0xef;
     }
   } else if ((~querydc00 & 0x80) && (shiftctrlcode & 2)) { // *query* ctrl key?
-    if (kbcode1 == 0x7f) {
+    if (sentdc00 == 0x7f) {
       // handle scan of key codes in the same "row"
-      return kbcode2 & 0xfb;
+      return sentdc01 & 0xfb;
     } else {
       return 0xfb;
     }
   } else if ((~querydc00 & 0x80) &&
              (shiftctrlcode & 4)) { // *query* commodore key?
-    if (kbcode1 == 0x7f) {
+    if (sentdc00 == 0x7f) {
       // handle scan of key codes in the same "row"
-      return kbcode2 & 0xdf;
+      return sentdc01 & 0xdf;
     } else {
       return 0xdf;
     }
   }
   // query "main" key press
-  if (querydc00 == kbcode1) {
-    return kbcode2;
+  if (querydc00 == sentdc00) {
+    return sentdc01;
   } else {
     return 0xff;
   }

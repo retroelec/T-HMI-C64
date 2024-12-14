@@ -53,10 +53,16 @@ private:
   static const uint16_t BORDERHEIGHT = (Config::LCDHEIGHT - 200) / 2;
   static const uint16_t FRAMEMEMSIZE =
       MAX(320 * BORDERHEIGHT, BORDERWIDTH *Config::LCDHEIGHT);
-  static uint16_t *framecolormem;
 
   inline static void writeCmd(uint8_t cmd) __attribute__((always_inline));
   inline static void writeData(uint8_t data) __attribute__((always_inline));
+  inline static void copyinit(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h)
+      __attribute__((always_inline));
+  inline static void copycopy(uint16_t data, uint32_t clearMask)
+      __attribute__((always_inline));
+  inline static void copyend() __attribute__((always_inline));
+  static void copyColor(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
+                        uint16_t data);
   static void copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
                        uint16_t *data);
 

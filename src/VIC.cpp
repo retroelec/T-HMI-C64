@@ -603,10 +603,10 @@ void VIC::init(uint8_t *ram, uint8_t *charrom) {
   this->chrom = charrom;
 
   // allocate bitmap memory to be transfered to LCD
-  bitmap = new uint16_t[320 * 200]();
+  bitmap = new uint16_t[320 * (200 + 8)]();
 
   // div init
-  colormap = new uint8_t[40 * 25]();
+  colormap = new uint8_t[1024]();
   tftColorFromC64ColorArr = configDisplay.displayDriver->getC64Colors();
   initVarsAndRegs();
 }

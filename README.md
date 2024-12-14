@@ -220,20 +220,20 @@ If it is necessary to send the raw key code of these special keys, you have to
 set the corresponding switch in the Android app ("Send raw keycodes", DIV screen).
 
 By default, only the pressing of a key is sent to the emulator, which results in, for example, only one space being output
-even if the space key is held down. With the 'Detect release key' option (DIV Screen), the C64 keyboard is emulated more authentically
+even if the space key is held down. With the 'Detect release key' option (DIV screen), the C64 keyboard is emulated more authentically
 (with the drawback that typing speed is reduced).
 
 The key combination Run/Stop + Restore has been replaced by first pressing the Commodore key and then pressing the Restore key.
 
 Besides the normal C64 keys this virtual keyboard also provides some extra buttons:
 
+- DIV: opens an extra screen with some settings / extra functionality
+- KBINP: opens an extra screen with further input options ("virtual joysticks" and "pinball flippers")
+- JOY1: connected joystick can be used as a joystick in port 1
+- JOY2: connected joystick can be used as a joystick in port 2
 - LOAD: load a C64 program from SD card
 - RESET: reset C64
-- Off-Switch: switch off T-HMI development board
-- DIV: opens an extra screen with some settings / extra functionality
-- JOYSTICK 1: connected joystick can be used as a joystick in port 1
-- JOYSTICK 2: connected joystick can be used as a joystick in port 2
-- KBINP: opens an extra screen with further input options ("virtual joysticks" and "pinball flippers")
+- OFF: switch off T-HMI development board
 
 #### DIV screen
 
@@ -307,6 +307,7 @@ All hardware ports not explicitly mentioned including their corresponding regist
 - no SID emulation (no sound support of development board)
 - no tape/disk drive emulation (and no plans to do this)
 - timing issues (probably not resolvable because of too low performance)
+- NMI interrupts are not working properly, therefore CIA2 is deactivated by default (can be activated on DIV screen)
 - "illegal instructions" test suite fails
 - rarly CPU is blocked after loading a game
 - some games have graphic errors
@@ -315,7 +316,8 @@ All hardware ports not explicitly mentioned including their corresponding regist
 ### Games
 
 As there is no disk drive emulation, only "onefiled games" can be played.
-Up to now I tested the following games.
+Up to now I tested the following games.  
+Note: I do not test all games after every patch - it is therefore possible that some games only work with an earlier patch.
 
 Games that are playable:
 
@@ -335,7 +337,7 @@ Games that are playable:
 - International Soccer
 - Choplifter
 - Pole Position
-- Pole Position 2
+- Pole Position 2 (deactivate CIA2 on DIV screen)
 - Pacman
 - Boulder Dash
 - Ghost and Gobblins (graphic errors at top and bottom)
@@ -379,11 +381,11 @@ Games that are playable:
 
 Games not working:
 
-- Terra Cresta (weird graphics after start)
+- Terra Cresta (endless loop)
 - Burger Time (crashing)
 - Arkanoid (endless loop)
 - Westbank (endless loop)
-- 1942 (playable, but no proper scrolling)
-- Lemmings (playable, but incomplete graphics)
+- 1942 (no proper scrolling)
+- Lemmings (incomplete graphics)
 - Buggy Boy (endless loop)
 

@@ -54,8 +54,8 @@ public:
 
   CIA(bool isCIA1);
   void init(bool isCIA1);
-  bool checkAlarm();
-  bool checkTimerA(uint8_t deltaT);
-  bool checkTimerB(uint8_t deltaT);
+  void checkAlarm();
+  void checkTimerA(uint8_t deltaT);
+  void checkTimerB(uint8_t deltaT);
 };
 #endif // CIA_H

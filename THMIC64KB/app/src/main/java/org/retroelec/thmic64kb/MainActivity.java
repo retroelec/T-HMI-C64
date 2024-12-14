@@ -49,7 +49,8 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
         Runnable runnableBatteryCheck = new Runnable() {
             @Override
             public void run() {
-                if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
+                final MyApplication myApplication = (MyApplication) getApplication();
+                if ((bleManager != null) && (bleManager.getCharacteristic() != null) && (!myApplication.isBleTransferActive())) {
                     Log.i("THMIC64", "get battery voltage");
                     bleManager.sendData(new byte[]{Config.GETBATTERYVOLTAGE, (byte) 0x00, (byte) 0x80}, false);
                 }

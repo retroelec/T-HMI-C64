@@ -74,7 +74,7 @@ public:
   // set by class ExternalCmds
   uint8_t joystickmode;
   uint8_t kbjoystickmode;
-  bool refreshframecolor;
+  bool deactivateCIA2;
   bool debug;
   uint16_t debugstartaddr;
   bool debuggingstarted;

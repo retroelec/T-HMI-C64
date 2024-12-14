@@ -54,7 +54,7 @@ void ExternalCmds::init(uint8_t *ram, C64Emu *c64emu) {
 void ExternalCmds::setType1Notification() {
   type1notification.type = 1;
   type1notification.joymode = c64emu->cpu.joystickmode;
-  type1notification.refreshframecolor = c64emu->cpu.refreshframecolor;
+  type1notification.deactivateCIA2 = c64emu->cpu.deactivateCIA2;
   type1notification.sendrawkeycodes = sendrawkeycodes;
   type1notification.switchdebug = c64emu->cpu.debug;
   type1notification.switchperf = c64emu->perf;
@@ -268,8 +268,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHFRAMECOLORREFRESH:
-    c64emu->cpu.refreshframecolor = !c64emu->cpu.refreshframecolor;
-    ESP_LOGI(TAG, "refreshframecolor = %x", c64emu->cpu.refreshframecolor);
+    c64emu->cpu.deactivateCIA2 = !c64emu->cpu.deactivateCIA2;
+    ESP_LOGI(TAG, "deactivateCIA2 = %x", c64emu->cpu.deactivateCIA2);
     setType1Notification();
     return 1;
   case ExtCmd::SENDRAWKEYS:

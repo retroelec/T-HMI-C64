@@ -247,6 +247,6 @@ void C64Emu::setup() {
 }
 
 void C64Emu::loop() {
-  vic.refresh(cpu.refreshframecolor);
+  vic.refresh(true);
   vTaskDelay(Config::REFRESHDELAY);
 }

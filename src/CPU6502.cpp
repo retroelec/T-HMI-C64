@@ -280,7 +280,7 @@ void CPU6502::cmd6502halt() { cpuhalted = true; }
 
 void CPU6502::cmd6502brk() {
   pc++;
-  setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), true);
+  setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), true, true);
   numofcycles += 7;
 }
 
@@ -1870,7 +1870,7 @@ void CPU6502::cmd6502shy() {
 
 void CPU6502::execute(uint8_t idx) { (this->*cmdarr6502[idx])(); }
 
-void CPU6502::setPCToIntVec(uint16_t intvect, bool intfrombrk) {
+void CPU6502::setPCToIntVec(uint16_t intvect, bool intfrombrk, bool isirq) {
   // push actual address to 6502 stack
   uint8_t pcl = pc & 0xFF;
   uint8_t pch = (pc >> 8);
@@ -1881,8 +1881,10 @@ void CPU6502::setPCToIntVec(uint16_t intvect, bool intfrombrk) {
   php();
   // clear d-flag
   dflag = false;
-  // set interrupt disable flag
-  iflag = true;
+  if (isirq) {
+    // set interrupt disable flag
+    iflag = true;
+  }
   // set pc
   pc = intvect;
 }

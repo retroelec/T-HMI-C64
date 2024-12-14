@@ -3,7 +3,7 @@ package org.retroelec.thmic64kb;
 public class Settings {
     private SettingsObserver observer = null;
     byte joymode;
-    boolean refreshframecolor;
+    boolean deactivateCIA2;
     boolean sendRawKeyCodes;
     boolean debug;
     boolean perf;
@@ -33,12 +33,12 @@ public class Settings {
         this.joymode = joymode;
     }
 
-    public boolean isRefreshframecolor() {
-        return refreshframecolor;
+    public boolean isDeactivateCIA2() {
+        return deactivateCIA2;
     }
 
-    public void setRefreshframecolor(boolean refreshframecolor) {
-        this.refreshframecolor = refreshframecolor;
+    public void setDeactivateCIA2(boolean deactivateCIA2) {
+        this.deactivateCIA2 = deactivateCIA2;
     }
 
     public boolean isSendRawKeyCodes() {

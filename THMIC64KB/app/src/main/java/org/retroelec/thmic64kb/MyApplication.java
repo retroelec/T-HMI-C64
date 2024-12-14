@@ -9,6 +9,7 @@ public class MyApplication extends Application {
     private Type3Notification type3Notification;
     private Type4Notification type4Notification;
     private Type5Notification type5Notification;
+    private boolean bleTransferActive;
 
     public BLEManager getBleManager() {
         return bleManager;
@@ -56,5 +57,13 @@ public class MyApplication extends Application {
 
     public void setType5Notification(Type5Notification type5Notification) {
         this.type5Notification = type5Notification;
+    }
+
+    public boolean isBleTransferActive() {
+        return bleTransferActive;
+    }
+
+    public void setBleTransferActive(boolean bleTransferActive) {
+        this.bleTransferActive = bleTransferActive;
     }
 }

@@ -14,10 +14,10 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#include "ST7789V.h"
 #include "Config.h"
 #ifdef USE_ST7789V
 #include "HardwareInitializationException.h"
+#include "ST7789V.h"
 #include <FreeRTOS.h>
 #include <driver/gpio.h>
 #include <soc/gpio_struct.h>
@@ -41,8 +41,6 @@ static const uint8_t colmod = 0x3a;
 static const uint8_t ramctrl = 0xb0;
 
 static uint32_t lu_pinbitmask[256];
-
-uint16_t *ST7789V::framecolormem;
 
 void fill_lu_pinbitmask() {
   for (int c = 0; c <= 255; c++) {
@@ -105,8 +103,6 @@ void ST7789V::writeData(uint8_t data) {
 }
 
 void ST7789V::init() {
-  ST7789V::framecolormem = new uint16_t[320 * 20]();
-
   fill_lu_pinbitmask();
   esp_err_t err = config_lcd();
   if (err != ESP_OK) {
@@ -138,8 +134,7 @@ void ST7789V::init() {
   GPIO.out1_w1ts.val = (1ULL << (Config::BL - 32)); // backlight
 }
 
-void ST7789V::copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
-                       uint16_t *data) {
+void ST7789V::copyinit(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h) {
   uint16_t x1 = x0 + w - 1;
   uint16_t y1 = y0 + h - 1;
   GPIO.out_w1tc = CSVAL;
@@ -155,47 +150,61 @@ void ST7789V::copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
   writeData(y1 & 0xff);
   writeCmd(ramwr);
   GPIO.out_w1ts = DCVAL;
-  uint32_t clearMask = lu_pinbitmask[255];
-  for (uint32_t i = 0; i < w * h; i++) {
-    uint16_t actdata = *data++;
-    // writeData(actdata >> 8);
-    GPIO.out1_w1tc.val = clearMask;
-    GPIO.out_w1tc = WRVAL;
-    GPIO.out1_w1ts.val = lu_pinbitmask[actdata >> 8];
-    GPIO.out_w1ts = WRVAL;
-    // writeData(actdata & 0xff);
-    GPIO.out1_w1tc.val = clearMask;
-    GPIO.out_w1tc = WRVAL;
-    GPIO.out1_w1ts.val = lu_pinbitmask[(uint8_t)actdata];
-    GPIO.out_w1ts = WRVAL;
-  }
+}
+
+void ST7789V::copycopy(uint16_t data, uint32_t clearMask) {
+  // writeData(data >> 8);
+  GPIO.out1_w1tc.val = clearMask;
+  GPIO.out_w1tc = WRVAL;
+  GPIO.out1_w1ts.val = lu_pinbitmask[data >> 8];
+  GPIO.out_w1ts = WRVAL;
+  // writeData(data & 0xff);
+  GPIO.out1_w1tc.val = clearMask;
+  GPIO.out_w1tc = WRVAL;
+  GPIO.out1_w1ts.val = lu_pinbitmask[(uint8_t)data];
+  GPIO.out_w1ts = WRVAL;
+}
+
+void ST7789V::copyend() {
   writeCmd(nop);
   GPIO.out_w1ts = CSVAL;
 }
 
-void ST7789V::drawFrame(uint16_t frameColor) {
-  uint16_t cnt = FRAMEMEMSIZE;
-  uint16_t *frameptr = ST7789V::framecolormem;
-  while (cnt--) {
-    *frameptr = frameColor;
-    frameptr++;
+void ST7789V::copyColor(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
+                        uint16_t data) {
+  copyinit(x0, y0, w, h);
+  uint32_t clearMask = lu_pinbitmask[255];
+  for (uint32_t i = 0; i < w * h; i++) {
+    copycopy(data, clearMask);
   }
+  copyend();
+}
+
+void ST7789V::copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
+                       uint16_t *data) {
+  copyinit(x0, y0, w, h);
+  uint32_t clearMask = lu_pinbitmask[255];
+  for (uint32_t i = 0; i < w * h; i++) {
+    copycopy(*data++, clearMask);
+  }
+  copyend();
+}
+
+void ST7789V::drawFrame(uint16_t frameColor) {
   if (BORDERHEIGHT > 0) {
-    ST7789V::copyData(BORDERWIDTH, 0, 320, BORDERHEIGHT,
-                      ST7789V::framecolormem);
-    ST7789V::copyData(BORDERWIDTH, 200 + BORDERHEIGHT, 320, BORDERHEIGHT,
-                      ST7789V::framecolormem);
+    ST7789V::copyColor(BORDERWIDTH, 0, 320, BORDERHEIGHT, frameColor);
+    ST7789V::copyColor(BORDERWIDTH, 200 + BORDERHEIGHT, 320, BORDERHEIGHT,
+                       frameColor);
   }
   if (BORDERWIDTH > 0) {
-    ST7789V::copyData(0, 0, BORDERWIDTH, Config::LCDHEIGHT,
-                      ST7789V::framecolormem);
-    ST7789V::copyData(BORDERWIDTH + 320, 0, BORDERWIDTH, Config::LCDHEIGHT,
-                      ST7789V::framecolormem);
+    ST7789V::copyColor(0, 0, BORDERWIDTH, Config::LCDHEIGHT, frameColor);
+    ST7789V::copyColor(BORDERWIDTH + 320, 0, BORDERWIDTH, Config::LCDHEIGHT,
+                       frameColor);
   }
 }
 
 void ST7789V::drawBitmap(uint16_t *bitmap) {
-  ST7789V::copyData(0, 20, 320, 200, bitmap);
+  ST7789V::copyData(BORDERWIDTH, BORDERHEIGHT, 320, 200, bitmap);
 }
 
 const uint16_t *ST7789V::getC64Colors() const { return c64Colors; }

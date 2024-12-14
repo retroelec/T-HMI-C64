@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class DivActivity extends AppCompatActivity implements SettingsObserver, NotificationObserver {
-    private Switch toggleRefreshframecolorSwitch;
+    private Switch toggleDeactivateCIA2Switch;
     private Switch toggleSendRawKeyCodes;
     private Switch toggleDebug;
     private Switch togglePerf;
@@ -156,6 +156,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
             }
             Log.i("THMIC64", "size of file = " + bufferlen + ", num of blocks = " + numOfBlocks);
             showProgressDialog();
+            myApplication.setBleTransferActive(true);
             int finalNumOfBlocks = numOfBlocks;
             new Thread(new Runnable() {
                 @Override
@@ -181,6 +182,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
                     runOnUiThread(() -> {
                         dismissProgressDialog();
                         Toast.makeText(DivActivity.this, "transfer finished", Toast.LENGTH_SHORT).show();
+                        myApplication.setBleTransferActive(false);
                     });
                 }
             }).start();
@@ -195,7 +197,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
     @Override
     public void updateSettings() {
         runOnUiThread(() -> {
-            toggleRefreshframecolorSwitch.setChecked(settings.isRefreshframecolor());
+            toggleDeactivateCIA2Switch.setChecked(settings.isDeactivateCIA2());
             toggleSendRawKeyCodes.setChecked(settings.isSendRawKeyCodes());
             toggleDebug.setChecked(settings.isDebug());
             togglePerf.setChecked(settings.isPerf());
@@ -229,8 +231,8 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
 
         setContentView(R.layout.div);
 
-        toggleRefreshframecolorSwitch = findViewById(R.id.toggleRefreshframecolor);
-        toggleRefreshframecolorSwitch.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHFRAMECOLORREFRESH, (byte) 0x00, (byte) 0x80}, false));
+        toggleDeactivateCIA2Switch = findViewById(R.id.toggleDeactivateCIA2);
+        toggleDeactivateCIA2Switch.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHFRAMECOLORREFRESH, (byte) 0x00, (byte) 0x80}, false));
 
         toggleSendRawKeyCodes = findViewById(R.id.toggleSendRawKeyCodes);
         toggleSendRawKeyCodes.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SENDRAWKEYS, (byte) 0x00, (byte) 0x80}, false));
