@@ -23,9 +23,6 @@ import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity implements SettingsObserver, NotificationObserver {
 
-    private static final int KEYSELECTEDCOLORACTION = 0xffdd7777;
-    private static final int KEYBGDCOLORACTION = 0xffcc7777;
-
     private static final int PERMISSION_REQUEST_CODE = 1234;
     private BLEManager bleManager = null;
     private Settings settings;
@@ -228,8 +225,8 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
             refreshActiveJoystickButtons(joystick1active, joystick2active);
         });
 
-        Button keyload = findViewById(R.id.keyload);
-        keyload.setOnTouchListener(bleUtils.createButtonTouchListener(keyload, new byte[]{Config.LOAD, (byte) 0x00, (byte) 0x80}, KEYSELECTEDCOLORACTION, KEYBGDCOLORACTION, true));
+        final Button keyload = findViewById(R.id.keyload);
+        keyload.setOnTouchListener(bleUtils.createButtonTouchListener(keyload, new byte[]{Config.LOAD, (byte) 0x00, (byte) 0x80}, Config.KEYSELECTEDCOLORACTION, Config.KEYBGDCOLORACTION, true));
 
         batteryvoltage = findViewById(R.id.batteryvoltage);
         startPeriodicBatteryCheck();

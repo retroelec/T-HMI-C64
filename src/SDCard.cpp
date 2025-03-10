@@ -40,10 +40,10 @@ bool SDCard::init() {
 #endif
 }
 
-uint16_t SDCard::load(fs::FS &fs, uint8_t *cursorpos, uint8_t *ram) {
-  if (!initalized) {
-    return 0;
-  }
+void getPath(char *path, uint8_t *ram) {
+  uint8_t cury = ram[0xd6];
+  uint8_t curx = ram[0xd3];
+  uint8_t *cursorpos = ram + 0x0400 + cury * 40 + curx;
   cursorpos--; // char may be 160
   while (*cursorpos == 32) {
     cursorpos--;
@@ -52,7 +52,6 @@ uint16_t SDCard::load(fs::FS &fs, uint8_t *cursorpos, uint8_t *ram) {
     cursorpos--;
   }
   cursorpos++;
-  char path[22];
   path[0] = '/';
   uint8_t i = 1;
   uint8_t p;
@@ -69,29 +68,95 @@ uint16_t SDCard::load(fs::FS &fs, uint8_t *cursorpos, uint8_t *ram) {
   path[i++] = 'r';
   path[i++] = 'g';
   path[i] = '\0';
+}
+
+uint16_t SDCard::load(fs::FS &fs, uint8_t *ram) {
+  if (!initalized) {
+    return 0;
+  }
+  char path[22];
+  getPath(path, ram);
   ESP_LOGI(TAG, "load file %s", path);
   File file = fs.open(path);
   if (!file) {
     return 0;
   }
-  uint16_t chksum = 0;
   uint16_t addr = 0;
   uint8_t byte = 0;
   if (file.available()) {
     byte = (uint8_t)file.read();
     addr = byte;
-    chksum += byte;
   }
   if (file.available()) {
     byte = (uint8_t)file.read();
     addr += byte << 8;
-    chksum += byte;
   }
   while (file.available()) {
     byte = (uint8_t)file.read();
     ram[addr++] = byte;
-    chksum += byte;
   }
-  ESP_LOGI(TAG, "chksum = %d", chksum);
+  file.close();
   return addr;
+}
+
+bool SDCard::save(fs::FS &fs, uint8_t *ram) {
+  if (!initalized) {
+    return false;
+  }
+  char path[22];
+  getPath(path, ram);
+  uint16_t startaddr = ram[43] + ram[44] * 256;
+  uint16_t endaddr = ram[45] + ram[46] * 256;
+  ESP_LOGI(TAG, "save file %s", path);
+  File file = fs.open(path, FILE_WRITE);
+  if (!file) {
+    return false;
+  }
+  file.write(ram[43]);
+  file.write(ram[44]);
+  for (uint16_t i = startaddr; i < endaddr; i++) {
+    file.write(ram[i]);
+  }
+  file.close();
+  return true;
+}
+
+bool SDCard::listnextentry(fs::FS &fs, uint8_t *nextentry, bool start) {
+  if (!initalized) {
+    return false;
+  }
+  File file;
+  if (start) {
+    if (root) {
+      root.close();
+    }
+    root = fs.open("/");
+    if (!root || !root.isDirectory()) {
+      ESP_LOGI(TAG, "cannot open root dir");
+      return false;
+    }
+    file = root.openNextFile();
+  } else {
+    file = root.openNextFile();
+  }
+  if (!file) {
+    root.close();
+    nextentry[0] = '\0';
+    return true;
+  }
+  String filename = file.name();
+  if (filename.endsWith(".prg")) {
+    filename = filename.substring(0, filename.length() - 4);
+  }
+  const char *fname = filename.c_str();
+  for (uint8_t i = 0; i < 16; i++) {
+    uint8_t p = fname[i];
+    if ((p >= 96 + 1) && (p <= 96 + 26)) {
+      nextentry[i] = p - 32;
+    } else {
+      nextentry[i] = p;
+    }
+  }
+  nextentry[16] = '\0';
+  return true;
 }

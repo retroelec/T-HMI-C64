@@ -51,6 +51,8 @@ void CIA::checkTimerA(uint8_t deltaT) {
     latchdc0d |= 0x01;
     if (!(reg0e & 8)) {
       timerA = (latchdc05 << 8) + latchdc04;
+    } else {
+      ciareg[0x0e] &= 0xfe;
     }
     if (ciareg[0x0d] & 1) {
       latchdc0d |= 0x80;
@@ -99,6 +101,8 @@ void CIA::checkTimerB(uint8_t deltaT) {
     latchdc0d |= 0x02;
     if (!(reg0f & 8)) {
       timerB = (latchdc07 << 8) + latchdc06;
+    } else {
+      ciareg[0x0f] &= 0xfe;
     }
     if (ciareg[0x0d] & 2) {
       latchdc0d |= 0x80;
@@ -146,3 +150,124 @@ void CIA::init(bool isCIA1) {
 }
 
 CIA::CIA(bool isCIA1) { init(isCIA1); }
+
+uint8_t CIA::getCommonCIAReg(uint8_t ciaidx) {
+  if (ciaidx == 0x04) {
+    return timerA & 0xff;
+  } else if (ciaidx == 0x05) {
+    return (timerA >> 8) & 0xff;
+  } else if (ciaidx == 0x06) {
+    return timerB & 0xff;
+  } else if (ciaidx == 0x07) {
+    return (timerB >> 8) & 0xff;
+  } else if (ciaidx == 0x08) {
+    uint8_t val;
+    if (isTODFreezed) {
+      val = ciareg[ciaidx];
+    } else {
+      val = latchrundc08.load(std::memory_order_acquire);
+    }
+    isTODFreezed = false;
+    return val;
+  } else if (ciaidx == 0x09) {
+    if (isTODFreezed) {
+      return ciareg[ciaidx];
+    } else {
+      return latchrundc09.load(std::memory_order_acquire);
+    }
+  } else if (ciaidx == 0x0a) {
+    if (isTODFreezed) {
+      return ciareg[ciaidx];
+    } else {
+      return latchrundc0a.load(std::memory_order_acquire);
+    }
+  } else if (ciaidx == 0x0b) {
+    isTODFreezed = true;
+    ciareg[0x08] = latchrundc08.load(std::memory_order_acquire);
+    ciareg[0x09] = latchrundc09.load(std::memory_order_acquire);
+    ciareg[0x0a] = latchrundc0a.load(std::memory_order_acquire);
+    ciareg[0x0b] = latchrundc0b.load(std::memory_order_acquire);
+    return ciareg[ciaidx];
+  } else if (ciaidx == 0x0d) {
+    uint8_t val = latchdc0d;
+    latchdc0d = 0;
+    return val;
+  } else {
+    return ciareg[ciaidx];
+  }
+}
+
+void CIA::setCommonCIAReg(uint8_t ciaidx, uint8_t val) {
+  if (ciaidx == 0x04) {
+    latchdc04 = val;
+  } else if (ciaidx == 0x05) {
+    latchdc05 = val;
+    // timerA stopped? if yes, write timerA
+    if (!(ciareg[0x0e] & 1)) {
+      timerA = (latchdc05 << 8) + latchdc04;
+    }
+  } else if (ciaidx == 0x06) {
+    latchdc06 = val;
+  } else if (ciaidx == 0x07) {
+    latchdc07 = val;
+    // timerB stopped? if yes, write timerB
+    if (!(ciareg[0x0f] & 1)) {
+      timerB = (latchdc07 << 8) + latchdc06;
+    }
+  } else if (ciaidx == 0x08) {
+    if (ciareg[0x0f] & 128) {
+      latchalarmdc08.store(val, std::memory_order_release);
+    } else {
+      ciareg[0x08] = val;
+      latchrundc08.store(val, std::memory_order_release);
+      latchrundc09.store(ciareg[0x09], std::memory_order_release);
+      latchrundc0a.store(ciareg[0x0a], std::memory_order_release);
+      latchrundc0b.store(ciareg[0x0b], std::memory_order_release);
+    }
+    isTODRunning.store(true, std::memory_order_release);
+  } else if (ciaidx == 0x09) {
+    if (ciareg[0x0f] & 128) {
+      latchalarmdc09.store(val, std::memory_order_release);
+    } else {
+      ciareg[0x09] = val;
+    }
+  } else if (ciaidx == 0x0a) {
+    if (ciareg[0x0f] & 128) {
+      latchalarmdc0a.store(val, std::memory_order_release);
+    } else {
+      ciareg[0x0a] = val;
+    }
+  } else if (ciaidx == 0x0b) {
+    isTODRunning.store(false, std::memory_order_release);
+    if (ciareg[0x0f] & 128) {
+      latchalarmdc0b.store(val, std::memory_order_release);
+    } else {
+      ciareg[0x0b] = val;
+    }
+  } else if (ciaidx == 0x0c) {
+    if (serbitnr == 0) {
+      serbitnr = 8;
+    } else {
+      serbitnrnext = 8;
+    }
+    ciareg[ciaidx] = val;
+  } else if (ciaidx == 0x0d) {
+    if (val & 0x80) {
+      ciareg[ciaidx] |= val;
+    } else {
+      ciareg[ciaidx] &= ~(val | 0x80);
+    }
+  } else if (ciaidx == 0x0e) {
+    ciareg[ciaidx] = val;
+    if (val & 0x10) {
+      timerA = (latchdc05 << 8) + latchdc04;
+    }
+  } else if (ciaidx == 0x0f) {
+    ciareg[ciaidx] = val;
+    if (val & 0x10) {
+      timerB = (latchdc07 << 8) + latchdc06;
+    }
+  } else {
+    ciareg[ciaidx] = val;
+  }
+}

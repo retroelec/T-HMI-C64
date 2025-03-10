@@ -242,6 +242,7 @@ void BLEKB::init(C64Emu *c64emu) {
   pAdvertising->start();
 
   esp_ble_conn_update_params_t conn_params = {
+      .bda = {},
       .min_int = 0x30, // min connection interval (0x30 x 1.25ms = 60ms)
       .max_int = 0x50, // max connection interval (0x50 x 1.25ms = 100ms)
       .latency = 0,    // slave latency
@@ -272,53 +273,62 @@ void BLEKB::handleKeyPress() {
   return;
 }
 
-uint8_t BLEKB::getdc01(uint8_t querydc00) {
+uint8_t BLEKB::getdc01(uint8_t querydc00, bool xchgports) {
+  uint8_t kbcode1;
+  uint8_t kbcode2;
+  if (xchgports) {
+    kbcode1 = sentdc01;
+    kbcode2 = sentdc00;
+  } else {
+    kbcode1 = sentdc00;
+    kbcode2 = sentdc01;
+  }
   if (querydc00 == 0) {
-    return sentdc01;
+    return kbcode2;
   }
   // special case "shift" + "commodore"
   if ((shiftctrlcode & 5) == 5) {
-    if (querydc00 == sentdc00) {
-      return sentdc01;
+    if (querydc00 == kbcode1) {
+      return kbcode2;
     } else {
       return 0xff;
     }
   }
   // key combined with a "special key" (shift, ctrl, commodore)?
   if ((~querydc00 & 2) && (shiftctrlcode & 1)) { // *query* left shift key?
-    if (sentdc00 == 0xfd) {
+    if (kbcode1 == 0xfd) {
       // handle scan of key codes in the same "row"
-      return sentdc01 & 0x7f;
+      return kbcode2 & 0x7f;
     } else {
       return 0x7f;
     }
   } else if ((~querydc00 & 0x40) &&
              (shiftctrlcode & 1)) { // *query* right shift key?
-    if (sentdc00 == 0xbf) {
+    if (kbcode1 == 0xbf) {
       // handle scan of key codes in the same "row"
-      return sentdc01 & 0xef;
+      return kbcode2 & 0xef;
     } else {
       return 0xef;
     }
   } else if ((~querydc00 & 0x80) && (shiftctrlcode & 2)) { // *query* ctrl key?
-    if (sentdc00 == 0x7f) {
+    if (kbcode1 == 0x7f) {
       // handle scan of key codes in the same "row"
-      return sentdc01 & 0xfb;
+      return kbcode2 & 0xfb;
     } else {
       return 0xfb;
     }
   } else if ((~querydc00 & 0x80) &&
              (shiftctrlcode & 4)) { // *query* commodore key?
-    if (sentdc00 == 0x7f) {
+    if (kbcode1 == 0x7f) {
       // handle scan of key codes in the same "row"
-      return sentdc01 & 0xdf;
+      return kbcode2 & 0xdf;
     } else {
       return 0xdf;
     }
   }
   // query "main" key press
-  if (querydc00 == sentdc00) {
-    return sentdc01;
+  if (querydc00 == kbcode1) {
+    return kbcode2;
   } else {
     return 0xff;
   }

@@ -16,7 +16,9 @@
 */
 #include "ExternalCmds.h"
 #include "C64Emu.h"
+#include "listactions.h"
 #include "loadactions.h"
+#include "saveactions.h"
 #include <esp_log.h>
 
 static const char *TAG = "ExternalCmds";
@@ -42,13 +44,16 @@ enum class ExtCmd {
   SWITCHPERF = 26,
   SWITCHDETECTRELEASEKEY = 27,
   GETBATTERYVOLTAGE = 29,
-  POWEROFF = 30
+  POWEROFF = 30,
+  SAVE = 31,
+  LIST = 32
 };
 
 void ExternalCmds::init(uint8_t *ram, C64Emu *c64emu) {
   this->ram = ram;
   this->c64emu = c64emu;
   sendrawkeycodes = false;
+  liststartflag = true;
 }
 
 void ExternalCmds::setType1Notification() {
@@ -116,26 +121,88 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     ESP_LOGI(TAG, "load from sdcard...");
     c64emu->cpu.cpuhalted = true;
     bool fileloaded = false;
+    bool error = false;
     uint16_t addr;
     if (sdcard.init()) {
-      uint8_t cury = ram[0xd6];
-      uint8_t curx = ram[0xd3];
-      addr = sdcard.load(SD_MMC, ram + 0x0400 + cury * 40 + curx, ram);
+      addr = sdcard.load(SD_MMC, ram);
       if (addr == 0) {
-        ESP_LOGI(TAG, "error loading file");
+        ESP_LOGI(TAG, "file not found");
       } else {
         setVarTab(addr);
         fileloaded = true;
       }
     } else {
+      error = true;
       ESP_LOGI(TAG, "error init sdcard");
     }
     addr = src_loadactions_prg[0] + (src_loadactions_prg[1] << 8);
     memcpy(ram + addr, src_loadactions_prg + 2, src_loadactions_prg_len - 2);
     if (fileloaded) {
       c64emu->cpu.exeSubroutine(addr, 1, 0, 0);
+    } else if (error) {
+      c64emu->cpu.exeSubroutine(addr, 0, 1, 0);
     } else {
       c64emu->cpu.exeSubroutine(addr, 0, 0, 0);
+    }
+    c64emu->cpu.cpuhalted = false;
+    return 0;
+  }
+  case ExtCmd::SAVE: {
+    ESP_LOGI(TAG, "save to sdcard...");
+    c64emu->cpu.cpuhalted = true;
+    bool filesaved = false;
+    if (sdcard.init()) {
+      filesaved = sdcard.save(SD_MMC, ram);
+      if (!filesaved) {
+        ESP_LOGI(TAG, "error saving file");
+      }
+    } else {
+      ESP_LOGI(TAG, "error init sdcard");
+    }
+    uint16_t addr = src_saveactions_prg[0] + (src_saveactions_prg[1] << 8);
+    memcpy(ram + addr, src_saveactions_prg + 2, src_saveactions_prg_len - 2);
+    if (filesaved) {
+      c64emu->cpu.exeSubroutine(addr, 1, 0, 0);
+    } else {
+      c64emu->cpu.exeSubroutine(addr, 0, 0, 0);
+    }
+    c64emu->cpu.cpuhalted = false;
+    return 0;
+  }
+  case ExtCmd::LIST: {
+    ESP_LOGI(TAG, "list sdcard...");
+    c64emu->cpu.cpuhalted = true;
+    if (sdcard.init()) {
+      uint16_t addr = src_listactions_prg[0] + (src_listactions_prg[1] << 8);
+      memcpy(ram + addr, src_listactions_prg + 2, src_listactions_prg_len - 2);
+      if (liststartflag) {
+        c64emu->cpu.exeSubroutine(addr, 0, 1, 0);
+      } else {
+        c64emu->cpu.exeSubroutine(addr, 0, 2, 0);
+      }
+      uint8_t filename[17];
+      int cnt = 0;
+      while (cnt < 23) {
+        bool success = sdcard.listnextentry(SD_MMC, filename, liststartflag);
+        liststartflag = false;
+        if (success && (filename[0] != '\0')) {
+          // copy filename to c64 ram (0x0342)
+          for (uint8_t i = 0; i < 17; i++) {
+            ram[0x342 + i] = filename[i];
+          }
+          // print it
+          c64emu->cpu.exeSubroutine(addr, 0, 0, 0);
+        } else {
+          if (!success) {
+            ESP_LOGI(TAG, "error reading entry");
+          }
+          liststartflag = true;
+          break;
+        }
+        cnt++;
+      }
+    } else {
+      ESP_LOGI(TAG, "error init sdcard");
     }
     c64emu->cpu.cpuhalted = false;
     return 0;

@@ -24,11 +24,14 @@
 class SDCard {
 private:
   bool initalized;
+  File root;
 
 public:
   SDCard();
   bool init();
-  uint16_t load(fs::FS &fs, uint8_t *petsciipath, uint8_t *ram);
+  uint16_t load(fs::FS &fs, uint8_t *ram);
+  bool save(fs::FS &fs, uint8_t *ram);
+  bool listnextentry(fs::FS &fs, uint8_t *nextentry, bool start);
 };
 
 #endif // SDCARD_H

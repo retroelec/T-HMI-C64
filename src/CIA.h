@@ -57,5 +57,7 @@ public:
   void checkAlarm();
   void checkTimerA(uint8_t deltaT);
   void checkTimerB(uint8_t deltaT);
+  uint8_t getCommonCIAReg(uint8_t ciaidx);
+  void setCommonCIAReg(uint8_t ciaidx, uint8_t val);
 };
 #endif // CIA_H

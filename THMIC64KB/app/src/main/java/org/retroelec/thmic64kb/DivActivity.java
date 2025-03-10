@@ -298,6 +298,12 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
             startActivity(i);
         });
 
+        final Button keysave = findViewById(R.id.keysave);
+        keysave.setOnTouchListener(bleUtils.createButtonTouchListener(keysave, new byte[]{Config.SAVE, (byte) 0x00, (byte) 0x80}, Config.KEYSELECTEDCOLORACTION, Config.KEYBGDCOLORACTION, true));
+
+        final Button keylist = findViewById(R.id.keylist);
+        keylist.setOnTouchListener(bleUtils.createButtonTouchListener(keylist, new byte[]{Config.LIST, (byte) 0x00, (byte) 0x80}, Config.KEYSELECTEDCOLORACTION, Config.KEYBGDCOLORACTION, true));
+
         final Button closeButton = findViewById(R.id.close);
         closeButton.setOnClickListener(v -> finish());
 

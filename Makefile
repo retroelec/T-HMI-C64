@@ -2,18 +2,26 @@ PORT := /dev/ttyACM0
 FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,LoopCore=0,DebugLevel=info
 SOURCEFILES=$(wildcard src/*.cpp src/rm67162/*.cpp)
 
-default:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h
-	arduino-cli compile --fqbn $(FQBN) --build-path build T-HMI-C64.ino
+default:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h src/saveactions.h src/listactions.h
+	arduino-cli compile --warnings all --fqbn $(FQBN) --build-path build T-HMI-C64.ino
 
 src/loadactions.h:	src/loadactions.asm
 	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/loadactions.asm -o src/loadactions.prg
 	xxd -i src/loadactions.prg > src/loadactions.h
 
+src/saveactions.h:	src/saveactions.asm
+	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/saveactions.asm -o src/saveactions.prg
+	xxd -i src/saveactions.prg > src/saveactions.h
+
+src/listactions.h:	src/listactions.asm
+	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/listactions.asm -o src/listactions.prg
+	xxd -i src/listactions.prg > src/listactions.h
+
 compile:	default
 
 # first you have to get the docker image:
 # podman pull docker.io/retroelec42/arduino-cli:latest
-podcompile:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h
+podcompile:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h src/saveactions.h src/listactions.h
 	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli compile --fqbn $(FQBN) --build-path build T-HMI-C64.ino
 
 upload:

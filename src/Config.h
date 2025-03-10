@@ -18,7 +18,7 @@
 #define CONFIG_H
 
 #include <cstdint>
-#include <driver/adc.h>
+#include <esp_adc/adc_oneshot.h>
 
 #define BOARD_T_HMI
 //#define BOARD_T_DISPLAY_S3
@@ -32,7 +32,7 @@ struct Config {
 
   static const uint8_t PWR_EN = 10;
   static const uint8_t PWR_ON = 14;
-  static const adc1_channel_t BAT_ADC = ADC1_CHANNEL_4; // GPIO5
+  static const adc_channel_t BAT_ADC = ADC_CHANNEL_4; // GPIO5
 
   // ST7789V
   static const uint8_t BL = 38;
@@ -59,15 +59,15 @@ struct Config {
   static const uint8_t SD_SCLK_PIN = 12;
 
   // Joystick
-  static const adc2_channel_t ADC_JOYSTICK_X = ADC2_CHANNEL_4;
-  static const adc2_channel_t ADC_JOYSTICK_Y = ADC2_CHANNEL_5;
+  static const adc_channel_t ADC_JOYSTICK_X = ADC_CHANNEL_4;
+  static const adc_channel_t ADC_JOYSTICK_Y = ADC_CHANNEL_5;
   static const uint8_t JOYSTICK_FIRE_PIN = 18;
   static const uint8_t JOYSTICK_FIRE2_PIN = 17;
 
 #elif defined(BOARD_T_DISPLAY_S3)
 #define USE_RM67162
 
-  static const adc1_channel_t BAT_ADC = ADC1_CHANNEL_3; // GPIO4
+  static const adc_channel_t BAT_ADC = ADC_CHANNEL_3; // GPIO4
 
   // DisplayDriver (considering a possible rotation)
   static const uint16_t LCDWIDTH = 536;
@@ -76,8 +76,9 @@ struct Config {
 #endif
 
   // BLEKB
-  static constexpr char *SERVICE_UUID = "695ba701-a48c-43f6-9028-3c885771f19f";
-  static constexpr char *CHARACTERISTIC_UUID =
+  static constexpr const char *SERVICE_UUID =
+      "695ba701-a48c-43f6-9028-3c885771f19f";
+  static constexpr const char *CHARACTERISTIC_UUID =
       "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
 
   // resolution of system timer (throttling 6502 CPU, get BLE KB codes)

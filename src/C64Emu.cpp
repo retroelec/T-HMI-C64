@@ -21,7 +21,9 @@
 #include "roms/charset.h"
 #include <cstdint>
 #include <driver/gpio.h>
-#include <esp_adc_cal.h>
+#include <esp_adc/adc_cali.h>
+#include <esp_adc/adc_cali_scheme.h>
+#include <esp_adc/adc_oneshot.h>
 #include <esp_log.h>
 
 static const char *TAG = "C64Emu";
@@ -33,11 +35,19 @@ void IRAM_ATTR C64Emu::interruptProfilingBatteryCheckFunc() {
   cntSecondsForBatteryCheck++;
   if (cntSecondsForBatteryCheck >= 300) { // each 5 minutes
     // get battery voltage
-    esp_adc_cal_characteristics_t adc_chars;
-    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(
-        ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
-    int raw_value = adc1_get_raw(Config::BAT_ADC);
-    batteryVoltage = esp_adc_cal_raw_to_voltage(raw_value, &adc_chars) * 2;
+    int raw_value = 0;
+    adc_oneshot_read(adc1_handle, Config::BAT_ADC, &raw_value);
+    int voltage = 0;
+    if (adc_cali_handle) {
+      adc_cali_raw_to_voltage(adc_cali_handle, raw_value, &voltage);
+      voltage *= 2;
+    } else {
+      // fallback if calibration was not successful
+      voltage = raw_value * 2;
+    }
+    batteryVoltage = voltage;
+    ESP_LOGI(TAG, "adc raw: %d", raw_value);
+    ESP_LOGI(TAG, "battery voltage: %d mV", batteryVoltage);
     // if battery voltage is too low, then power off device
     if (batteryVoltage < 3550) {
       powerOff();
@@ -203,8 +213,24 @@ void C64Emu::setup() {
 
   // init board
   configBoard.boardDriver->init();
-  adc1_config_width(ADC_WIDTH_BIT_12);
-  adc1_config_channel_atten(Config::BAT_ADC, ADC_ATTEN_DB_11);
+  adc_oneshot_unit_init_cfg_t init_config = {.unit_id = ADC_UNIT_1,
+                                             .clk_src = ADC_RTC_CLK_SRC_DEFAULT,
+                                             .ulp_mode = ADC_ULP_MODE_DISABLE};
+  adc_oneshot_new_unit(&init_config, &adc1_handle);
+  adc_oneshot_chan_cfg_t config = {.atten = ADC_ATTEN_DB_12,
+                                   .bitwidth = ADC_BITWIDTH_DEFAULT};
+  adc_oneshot_config_channel(adc1_handle, Config::BAT_ADC, &config);
+  adc_cali_curve_fitting_config_t cali_config = {
+      .unit_id = ADC_UNIT_1,
+      .chan = Config::BAT_ADC,
+      .atten = ADC_ATTEN_DB_12,
+      .bitwidth = ADC_BITWIDTH_DEFAULT,
+  };
+  esp_err_t ret =
+      adc_cali_create_scheme_curve_fitting(&cali_config, &adc_cali_handle);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "adc calibration failed");
+  }
 
   // init. instance variables
   cntSecondsForBatteryCheck =

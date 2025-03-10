@@ -302,12 +302,10 @@ First of all: This is a hobby project :)
 
 All hardware ports not explicitly mentioned including their corresponding registers are not emulated (e.g. user port and serial port).
 
-"Software stuff" not emulated resp. known bugs (list probably not conclusive):
+"Software stuff" not emulated resp. known bugs:
 
 - no SID emulation (no sound support of development board)
 - no tape/disk drive emulation (and no plans to do this)
-- timing issues (probably not resolvable because of too low performance)
-- NMI interrupts are not working properly, therefore CIA2 is deactivated by default (can be activated on DIV screen)
 - "illegal instructions" test suite fails
 - rarly CPU is blocked after loading a game
 - some games have graphic errors
@@ -337,10 +335,10 @@ Games that are playable:
 - International Soccer
 - Choplifter
 - Pole Position
-- Pole Position 2 (deactivate CIA2 on DIV screen)
+- Pole Position 2
 - Pacman
 - Boulder Dash
-- Ghost and Gobblins (graphic errors at top and bottom)
+- Ghost and Gobblins (graphic errors at bottom)
 - Great Gianas Sister
 - Hyper Sports
 - Blue Max
@@ -349,7 +347,7 @@ Games that are playable:
 - Hero
 - Burger Time 97
 - Burger Time 2023
-- Outrun (small graphic errors in the middle of screen)
+- Outrun (deactivate CIA2 on DIV screen)
 - Q*bert
 - Space Taxi
 - Jupiter Lander
@@ -378,12 +376,12 @@ Games that are playable:
 - Rambo
 - Rick Dangerous
 - David's Midnight Magic (hint: use Android screen KBINP/PINBALL1) 
+- Terra Cresta (playable, but game is too slow)
+- Arkanoid
 
 Games not working:
 
-- Terra Cresta (endless loop)
 - Burger Time (crashing)
-- Arkanoid (endless loop)
 - Westbank (endless loop)
 - 1942 (no proper scrolling)
 - Lemmings (incomplete graphics)

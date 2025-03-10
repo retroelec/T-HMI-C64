@@ -14,6 +14,9 @@ public class Config {
     public static final int DURATION_VIBRATION_EFFECT = 100;
     public static final int DURATION_VISUAL_EFFECT = 200;
 
+    public static final int KEYSELECTEDCOLORACTION = 0xffdd7777;
+    public static final int KEYBGDCOLORACTION = 0xffcc7777;
+
     public static final byte VIRTUALJOYSTICKLEFT_ACTIVATED = (byte) 0x02;
     public static final byte VIRTUALJOYSTICKLEFT_DEACTIVATED = (byte) 0x82;
     public static final byte VIRTUALJOYSTICKRIGHT_ACTIVATED = (byte) 0x03;
@@ -47,4 +50,6 @@ public class Config {
     public static final byte SWITCHDETECTRELEASEKEY = 27;
     public static final byte GETBATTERYVOLTAGE = 29;
     public static final byte POWEROFF = 30;
+    public static final byte SAVE = 31;
+    public static final byte LIST = 32;
 }

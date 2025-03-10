@@ -61,11 +61,14 @@ private:
   hw_timer_t *interruptSystem = NULL;
   TaskHandle_t cpuTask;
 
-  void IRAM_ATTR interruptTODFunc();
-  void IRAM_ATTR interruptSystemFunc();
-  void IRAM_ATTR interruptProfilingBatteryCheckFunc();
+  void interruptTODFunc();
+  void interruptSystemFunc();
+  void interruptProfilingBatteryCheckFunc();
   void cpuCode(void *parameter);
   bool updateTOD(CIA &cia);
+
+  adc_oneshot_unit_handle_t adc1_handle;
+  adc_cali_handle_t adc_cali_handle;
 
 public:
   CPUC64 cpu;

@@ -535,7 +535,7 @@ protected:
   uint16_t pc;
 
   void execute(uint8_t idx);
-  void setPCToIntVec(uint16_t intvect, bool intfrombrk, bool isirq);
+  void setPCToIntVec(uint16_t intvect, bool intfrombrk);
 
 public:
   // number of cycles since last adjustment

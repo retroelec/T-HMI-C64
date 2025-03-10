@@ -89,6 +89,8 @@ private:
   void setType5Notification(uint8_t batteryVolLow, uint8_t batteryVolHi);
 
 public:
+  bool liststartflag;
+
   BLENotificationStruct1 type1notification;
   BLENotificationStruct2 type2notification;
   BLENotificationStruct3 type3notification;

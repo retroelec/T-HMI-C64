@@ -93,7 +93,7 @@
             android:layout_marginStart="10dp"
             android:text="SENDPRG"
             android:theme="@style/ButtonTheme"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/keysave"
             app:layout_constraintEnd_toStartOf="@id/keystatus"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -107,7 +107,7 @@
             android:layout_marginStart="10dp"
             android:text="STATUS"
             android:theme="@style/ButtonTheme"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/keylist"
             app:layout_constraintEnd_toStartOf="@id/keymemory"
             app:layout_constraintStart_toEndOf="@id/send"
             app:layout_constraintTop_toTopOf="parent"
@@ -121,10 +121,38 @@
             android:layout_marginStart="10dp"
             android:text="MEMORY"
             android:theme="@style/ButtonTheme"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/keylist"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/keystatus"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent="0.3" />
+
+        <Button
+            android:id="@+id/keysave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginStart="10dp"
+            android:text="SAVE"
+            android:backgroundTint="#cc7777"
+            app:layout_constraintTop_toBottomOf="@id/send"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/keylist"
+            app:layout_constraintWidth_percent="0.3" />
+
+        <Button
+            android:id="@+id/keylist"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginStart="10dp"
+            android:text="LIST"
+            android:backgroundTint="#cc7777"
+            app:layout_constraintTop_toBottomOf="@id/keystatus"
+            app:layout_constraintStart_toEndOf="@id/keysave"
+            app:layout_constraintEnd_toEndOf="@id/keymemory"
             app:layout_constraintWidth_percent="0.3" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

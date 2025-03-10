@@ -68,9 +68,10 @@ private:
   void drawMCBitmapMode(uint8_t *multicolorBitmap, uint8_t *colorMap1,
                         uint8_t backgroundColor, uint8_t line, int8_t dy,
                         uint8_t dx);
-  void drawStdBitmapModeInt(uint8_t *hiresBitmap, uint8_t *colorMap,
-                            uint16_t hiidx, uint16_t &colidx, uint8_t row,
-                            uint8_t dx, uint16_t &xp, uint16_t &idx)
+  inline void drawStdBitmapModeInt(uint8_t *hiresBitmap, uint8_t *colorMap,
+                                   uint16_t hiidx, uint16_t &colidx,
+                                   uint8_t row, uint8_t dx, uint16_t &xp,
+                                   uint16_t &idx)
       __attribute__((always_inline));
   void drawStdBitmapMode(uint8_t *hiresBitmap, uint8_t *colorMap, uint8_t line,
                          int8_t dy, uint8_t dx);

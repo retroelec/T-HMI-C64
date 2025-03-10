@@ -18,6 +18,7 @@
 #define JOYSTICK_H
 
 #include <cstdint>
+#include <esp_adc/adc_oneshot.h>
 
 class Joystick {
 private:
@@ -25,6 +26,8 @@ private:
   static const uint16_t DOWN_THRESHOLD = 3500;
   static const uint16_t LEFT_THRESHOLD = 500;
   static const uint16_t RIGHT_THRESHOLD = 3500;
+
+  adc_oneshot_unit_handle_t adc2_handle;
 
 public:
   static const uint8_t C64JOYUP = 0;

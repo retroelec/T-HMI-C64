@@ -17,24 +17,36 @@
 #include "Joystick.h"
 #include "Config.h"
 #include "JoystickInitializationException.h"
-#include <driver/adc.h>
 #include <driver/gpio.h>
+#include <esp_adc/adc_oneshot.h>
 #include <soc/gpio_struct.h>
 
 void Joystick::init() {
 #ifdef USE_JOYSTICK
   // init adc (x and y axis)
-  adc2_config_channel_atten(Config::ADC_JOYSTICK_X, ADC_ATTEN_DB_11);
-  adc2_config_channel_atten(Config::ADC_JOYSTICK_Y, ADC_ATTEN_DB_11);
+  adc_oneshot_unit_init_cfg_t init_config = {.unit_id = ADC_UNIT_2,
+                                             .clk_src = ADC_RTC_CLK_SRC_DEFAULT,
+                                             .ulp_mode = ADC_ULP_MODE_DISABLE};
+  esp_err_t err = adc_oneshot_new_unit(&init_config, &adc2_handle);
+  if (err != ESP_OK) {
+    throw JoystickInitializationException(esp_err_to_name(err));
+  }
+  adc_oneshot_chan_cfg_t channel_config = {.atten = ADC_ATTEN_DB_12,
+                                           .bitwidth = ADC_BITWIDTH_DEFAULT};
+  adc_oneshot_config_channel(adc2_handle, Config::ADC_JOYSTICK_X,
+                             &channel_config);
+  adc_oneshot_config_channel(adc2_handle, Config::ADC_JOYSTICK_Y,
+                             &channel_config);
   // init gpio (fire buttons)
   gpio_config_t io_conf;
-  io_conf.intr_type = (gpio_int_type_t)GPIO_INTR_DISABLE;
+  io_conf.intr_type = GPIO_INTR_DISABLE;
   io_conf.mode = GPIO_MODE_INPUT;
   io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
   io_conf.pin_bit_mask = (1ULL << Config::JOYSTICK_FIRE_PIN) |
                          (1ULL << Config::JOYSTICK_FIRE2_PIN);
-  esp_err_t err = gpio_config(&io_conf);
+
+  err = gpio_config(&io_conf);
   if (err != ESP_OK) {
     throw JoystickInitializationException(esp_err_to_name(err));
   }
@@ -42,14 +54,13 @@ void Joystick::init() {
 }
 
 uint8_t Joystick::getValue() {
-  // assume return value of adc2_get_raw is ESP_OK
-  int valueX;
-  int valueY;
+  // 2048 = medium adc value (12-bit resolution)
+  int valueX = 2048;
+  int valueY = 2048;
   uint8_t valueFire;
-#if defined USE_JOYSTICK
-  adc2_get_raw(Config::ADC_JOYSTICK_X, ADC_WIDTH_BIT_12, &valueX);
-  adc2_get_raw(Config::ADC_JOYSTICK_Y, ADC_WIDTH_BIT_12, &valueY);
-  // GPIO.in1.val must be used for GPIO pins > 32
+#ifdef USE_JOYSTICK
+  adc_oneshot_read(adc2_handle, Config::ADC_JOYSTICK_X, &valueX);
+  adc_oneshot_read(adc2_handle, Config::ADC_JOYSTICK_Y, &valueY);
   valueFire = (GPIO.in >> Config::JOYSTICK_FIRE_PIN) & 0x01;
 #else
   valueX = (LEFT_THRESHOLD + RIGHT_THRESHOLD) / 2;

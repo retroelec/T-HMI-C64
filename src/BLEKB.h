@@ -44,7 +44,7 @@ public:
   BLEKB();
   void init(C64Emu *c64emu);
   void handleKeyPress();
-  uint8_t getdc01(uint8_t dc00);
+  uint8_t getdc01(uint8_t dc00, bool xchgports);
   uint8_t getKBJoyValue(bool port2);
   void setKbcodes(uint8_t sentdc01, uint8_t sentdc00);
 };
