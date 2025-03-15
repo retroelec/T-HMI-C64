@@ -273,6 +273,6 @@ void C64Emu::setup() {
 }
 
 void C64Emu::loop() {
-  vic.refresh(true);
+  vic.refresh();
   vTaskDelay(Config::REFRESHDELAY);
 }

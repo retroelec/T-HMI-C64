@@ -281,7 +281,6 @@ void CPU6502::cmd6502halt() { cpuhalted = true; }
 void CPU6502::cmd6502brk() {
   pc++;
   setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), true);
-  numofcycles += 7;
 }
 
 void CPU6502::cmd6502oraIndirectX() {
@@ -1365,7 +1364,7 @@ void CPU6502::cmd6502incAbsoluteX() {
 }
 
 void CPU6502::cmd6502nopImmediate() {
-  uint8_t r = getMem(pc++);
+  getMem(pc++);
   numofcycles += 2;
 }
 
@@ -1756,7 +1755,7 @@ void CPU6502::cmd6502xaaImmediate() {
 
 void CPU6502::cmd6502sbxImmediate() {
   uint8_t r = getMem(pc++);
-  x = a & x - r;
+  x = (a & x) - r;
   cmpbase(a & x, r);
   numofcycles += 2;
 }
@@ -1885,4 +1884,5 @@ void CPU6502::setPCToIntVec(uint16_t intvect, bool intfrombrk) {
   iflag = true;
   // set pc
   pc = intvect;
+  numofcycles += 7;
 }

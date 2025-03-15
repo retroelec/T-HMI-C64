@@ -265,14 +265,23 @@ You have to insert the SD card before you power on the T-HMI development board.
 
 As there is no C64 tape/disk drive emulation available, the file must be loaded
 into memory using an "external command".
-To do this, you first type in the name of the game (without extension ".prg"!) so it shows up on the C64 text screen (e.g. dkong).
-You then press the LOAD button on your Android phone (cursor must be on the same line and behind the game title).
+To do this, you first type in the name of the program (without extension ".prg"!) so it shows up on the C64 text screen (e.g. dkong).
+You then press the LOAD button on your Android phone (cursor must be on the same line and behind or in the middle of the game title).
 If the file is found the text "LOADED" appears on screen, otherwise the text "FILE NOT FOUND" appears.
 Afterwards, as usual, you can start the game by typing "RUN" followed by pressing the button RETURN.
 
 <img src="doc/loadprg.gif" alt="class diagram" width="800"/>
 
 Hint: You can use [D64 Editor](https://www.d64editor.com/) to extract prg files from d64 files (also works unter linux using wine).
+
+### Save a program to SD card
+
+Type in the name of the program so that it appears on the screen. Then press the SAVE button on the DIV screen to save the program.
+
+### List programs on SD card
+
+Just press the LIST button on the DIV screen. If more than 23 programs are stored on the SD card,
+you can display all programs stored on the SD card by repeatedly pressing the LIST button.
 
 ### Send a program by BLE
 
@@ -310,6 +319,8 @@ All hardware ports not explicitly mentioned including their corresponding regist
 - rarly CPU is blocked after loading a game
 - some games have graphic errors
 - some games are not working at all
+- no "FLI border removal" / "sideborder removal"
+- no FLD
 
 ### Games
 
@@ -329,7 +340,7 @@ Games that are playable:
 - Castle Terror
 - Bagitman
 - Krakout
-- Miner 2049er
+- Miner 2049er (last line not visible, was visible in an earlier version)
 - Dig Dug
 - Quartet
 - International Soccer
@@ -342,12 +353,12 @@ Games that are playable:
 - Great Gianas Sister
 - Hyper Sports
 - Blue Max
-- Commando (graphic errors at bottom)
+- Commando (activate "Ignore Badlines" on DIV screen, graphic errors at bottom)
 - Fort Apocalypse
 - Hero
 - Burger Time 97
 - Burger Time 2023
-- Outrun (deactivate CIA2 on DIV screen)
+- Outrun
 - Q*bert
 - Space Taxi
 - Jupiter Lander
@@ -376,14 +387,25 @@ Games that are playable:
 - Rambo
 - Rick Dangerous
 - David's Midnight Magic (hint: use Android screen KBINP/PINBALL1) 
-- Terra Cresta (playable, but game is too slow)
+- Terra Cresta (activate "Ignore Badlines" on DIV screen)
 - Arkanoid
+- Ghostbusters
+- Bruce Lee
+- 1943 (graphic errors at bottom)
+- Nebulus
+- Drol
+- Paradroid
+- Westbank
+- Qix
+- Impossible Mission
+- Microprose Soccer (graphic errors at bottom)
 
 Games not working:
 
 - Burger Time (crashing)
-- Westbank (endless loop)
 - 1942 (no proper scrolling)
 - Lemmings (incomplete graphics)
 - Buggy Boy (endless loop)
+- Uridium (crashing)
+- Wizball (crashing)
 

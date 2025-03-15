@@ -217,7 +217,7 @@ void BLEKB::init(C64Emu *c64emu) {
 
   // init div
   virtjoystickvalue = 0xff;
-  detectreleasekey = false;
+  detectreleasekey = true;
 
   // init BLE
   deviceConnected = false;

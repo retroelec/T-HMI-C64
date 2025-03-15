@@ -8,10 +8,10 @@
 
     <!-- left column elements -->
     <Switch
-        android:id="@+id/toggleDeactivateCIA2"
+        android:id="@+id/toggleDeactivateTemp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Deactivate CIA2"
+        android:text="Ignore Badlines"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -22,7 +22,7 @@
         android:layout_marginTop="16dp"
         android:text="Monitor CPU"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toggleDeactivateCIA2" />
+        app:layout_constraintTop_toBottomOf="@id/toggleDeactivateTemp" />
 
     <Switch
         android:id="@+id/togglePerf"
@@ -40,7 +40,7 @@
         android:layout_height="wrap_content"
         android:text="Send raw keycodes"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/toggleDeactivateCIA2"
+        app:layout_constraintStart_toEndOf="@id/toggleDeactivateTemp"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Switch

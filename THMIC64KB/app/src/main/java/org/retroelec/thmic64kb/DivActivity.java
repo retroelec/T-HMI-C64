@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class DivActivity extends AppCompatActivity implements SettingsObserver, NotificationObserver {
-    private Switch toggleDeactivateCIA2Switch;
+    private Switch toggleDeactivateTempSwitch;
     private Switch toggleSendRawKeyCodes;
     private Switch toggleDebug;
     private Switch togglePerf;
@@ -197,7 +197,7 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
     @Override
     public void updateSettings() {
         runOnUiThread(() -> {
-            toggleDeactivateCIA2Switch.setChecked(settings.isDeactivateCIA2());
+            toggleDeactivateTempSwitch.setChecked(settings.isDeactivateTemp());
             toggleSendRawKeyCodes.setChecked(settings.isSendRawKeyCodes());
             toggleDebug.setChecked(settings.isDebug());
             togglePerf.setChecked(settings.isPerf());
@@ -231,8 +231,8 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
 
         setContentView(R.layout.div);
 
-        toggleDeactivateCIA2Switch = findViewById(R.id.toggleDeactivateCIA2);
-        toggleDeactivateCIA2Switch.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHFRAMECOLORREFRESH, (byte) 0x00, (byte) 0x80}, false));
+        toggleDeactivateTempSwitch = findViewById(R.id.toggleDeactivateTemp);
+        toggleDeactivateTempSwitch.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHFRAMECOLORREFRESH, (byte) 0x00, (byte) 0x80}, false));
 
         toggleSendRawKeyCodes = findViewById(R.id.toggleSendRawKeyCodes);
         toggleSendRawKeyCodes.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SENDRAWKEYS, (byte) 0x00, (byte) 0x80}, false));

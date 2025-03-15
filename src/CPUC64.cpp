@@ -22,6 +22,8 @@
 #include <esp_log.h>
 #include <esp_random.h>
 
+static const uint8_t NUMCIACHECKS = 2;
+
 static const char *TAG = "CPUC64";
 
 // read dc00 / dc01:
@@ -240,6 +242,10 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
         vic->latchd011 = val;
         vic->vicreg[vicidx] = val & 0x7f;
         adaptVICBaseAddrs(false);
+        vic->badlinecond0 = false;
+        if ((vic->rasterline == 0x30) && (val & 0x10)) {
+          vic->badlinecond0 = true;
+        }
       } else if (vicidx == 0x12) {
         vic->latchd012 = val;
       } else if (vicidx == 0x16) {
@@ -373,33 +379,31 @@ void CPUC64::checkciatimers(uint8_t cycles) {
   if (((cia1.latchdc0d & 0x88) == 0x88) && (!iflag)) {
     setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
   }
-  if (!deactivateCIA2) {
-    // CIA 2 TOD alarm
-    cia2.checkAlarm();
-    // check for CIA 2 TOD alarm interrupt
-    if (((cia2.latchdc0d & 0x84) == 0x84) && nmiAck) {
-      nmiAck = false;
-      setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
-    }
-    // CIA 2 Timer A
-    cia2.checkTimerA(cycles);
-    // check for CIA 2 Timer A interrupt
-    if (((cia2.latchdc0d & 0x81) == 0x81) && nmiAck) {
-      nmiAck = false;
-      setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
-    }
-    // CIA 2 Timer B
-    cia2.checkTimerB(cycles);
-    // check for CIA 2 Timer B interrupt
-    if (((cia2.latchdc0d & 0x82) == 0x82) && nmiAck) {
-      nmiAck = false;
-      setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
-    }
-    // check for CIA 2 SDR interrupt
-    if (((cia2.latchdc0d & 0x88) == 0x88) && nmiAck) {
-      nmiAck = false;
-      setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
-    }
+  // CIA 2 TOD alarm
+  cia2.checkAlarm();
+  // check for CIA 2 TOD alarm interrupt
+  if (((cia2.latchdc0d & 0x84) == 0x84) && nmiAck) {
+    nmiAck = false;
+    setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+  }
+  // CIA 2 Timer A
+  cia2.checkTimerA(cycles);
+  // check for CIA 2 Timer A interrupt
+  if (((cia2.latchdc0d & 0x81) == 0x81) && nmiAck) {
+    nmiAck = false;
+    setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+  }
+  // CIA 2 Timer B
+  cia2.checkTimerB(cycles);
+  // check for CIA 2 Timer B interrupt
+  if (((cia2.latchdc0d & 0x82) == 0x82) && nmiAck) {
+    nmiAck = false;
+    setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
+  }
+  // check for CIA 2 SDR interrupt
+  if (((cia2.latchdc0d & 0x88) == 0x88) && nmiAck) {
+    nmiAck = false;
+    setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
   }
 }
 
@@ -420,6 +424,7 @@ void CPUC64::run() {
   debugstartaddr = 0;
   debuggingstarted = false;
   numofcycles = 0;
+  uint8_t cycleslastline = 0;
   uint8_t badlinecycles = 0;
   while (true) {
     if (cpuhalted) {
@@ -428,17 +433,45 @@ void CPUC64::run() {
 
     // prepare next rasterline
     badlinecycles = vic->nextRasterline();
+    if (deactivateTemp) {
+      badlinecycles = 0;
+    }
     if (vic->screenblank) {
       badlinecycles = 0;
     }
+    numofcycles = 0;
+    int8_t numofcyclestoexe = 63 - badlinecycles - cycleslastline;
+    if (numofcyclestoexe < 0) {
+      numofcyclestoexe = 0;
+    }
+    uint8_t n = 1;
+    if (numofcyclestoexe > NUMCIACHECKS * 20) {
+      n = NUMCIACHECKS;
+    }
     // raster line interrupt?
     if ((vic->vicreg[0x19] & 0x81) && (vic->vicreg[0x1a] & 1) && (!iflag)) {
+      // execute one command to simulate "finish execution of actual command"
+      // (e.g. West Bank wouldn't work otherwise)
+      logDebugInfo();
+      execute(getMem(pc++));
+      // set pc to interrupt vector and start to execute interrupt routine
       setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
     }
-    // execute CPU cycles
-    // (4 = average number of cycles for an instruction)
-    numofcycles = 0;
-    uint8_t numofcyclestoexe = 63 - (4 / 2) - badlinecycles;
+    // execute CPU cycles and check CIA timers
+    uint8_t tmp = numofcyclestoexe / n;
+    uint8_t sumtmp = tmp;
+    for (uint8_t i = 0; i < n - 1; i++) {
+      while (numofcycles < sumtmp) {
+        if (cpuhalted) {
+          break;
+        }
+        logDebugInfo();
+        execute(getMem(pc++));
+      }
+      checkciatimers(tmp);
+      sumtmp += tmp;
+    }
+    tmp = numofcycles;
     while (numofcycles < numofcyclestoexe) {
       if (cpuhalted) {
         break;
@@ -446,20 +479,21 @@ void CPUC64::run() {
       logDebugInfo();
       execute(getMem(pc++));
     }
-    // cia timers
-    checkciatimers(numofcycles);
+    checkciatimers(numofcycles - tmp);
+    cycleslastline = numofcycles - numofcyclestoexe;
     // draw rasterline
     vic->drawRasterline();
     // sprite collision interrupt?
     if ((vic->vicreg[0x19] & 0x86) && (vic->vicreg[0x1a] & 6) && (!iflag)) {
       setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
     }
+    // restore key pressed?
     if (restorenmi && nmiAck) {
       nmiAck = false;
       restorenmi = false;
       setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
     }
-    // throttle CPU
+    // throttle
     numofcyclespersecond += numofcycles;
     measuredcycles.fetch_add(numofcycles, std::memory_order_release);
     uint16_t adjustcyclestmp = adjustcycles.load(std::memory_order_acquire);
@@ -495,7 +529,7 @@ void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic, C64Emu *c64emu) {
   adjustcycles.store(0, std::memory_order_release);
   joystickmode = 0;
   kbjoystickmode = 0;
-  deactivateCIA2 = false;
+  deactivateTemp = false;
   numofcycles = 0;
   numofcyclespersecond = 0;
   try {
