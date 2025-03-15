@@ -48,7 +48,7 @@ void getPath(char *path, uint8_t *ram) {
   while (*cursorpos == 32) {
     cursorpos--;
   }
-  while (*cursorpos != 32) {
+  while ((*cursorpos != 32) && (cursorpos >= ram + 0x0400)) {
     cursorpos--;
   }
   cursorpos++;

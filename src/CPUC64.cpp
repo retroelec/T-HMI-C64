@@ -22,6 +22,8 @@
 #include <esp_log.h>
 #include <esp_random.h>
 
+static const uint8_t NUMCIACHECKS = 2;
+
 static const char *TAG = "CPUC64";
 
 // read dc00 / dc01:
@@ -435,10 +437,28 @@ void CPUC64::run() {
     if ((vic->vicreg[0x19] & 0x81) && (vic->vicreg[0x1a] & 1) && (!iflag)) {
       setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
     }
-    // execute CPU cycles
+    // execute CPU cycles and check CIA timers
     // (4 = average number of cycles for an instruction)
     numofcycles = 0;
     uint8_t numofcyclestoexe = 63 - (4 / 2) - badlinecycles;
+    uint8_t n = 1;
+    if (badlinecycles == 0) {
+      n = NUMCIACHECKS;
+    }
+    uint8_t tmp = numofcyclestoexe / n;
+    uint8_t sumtmp = tmp;
+    for (uint8_t i = 0; i < n - 1; i++) {
+      while (numofcycles < sumtmp) {
+        if (cpuhalted) {
+          break;
+        }
+        logDebugInfo();
+        execute(getMem(pc++));
+      }
+      checkciatimers(tmp);
+      sumtmp += tmp;
+    }
+    tmp = numofcyclestoexe - numofcycles;
     while (numofcycles < numofcyclestoexe) {
       if (cpuhalted) {
         break;
@@ -446,8 +466,7 @@ void CPUC64::run() {
       logDebugInfo();
       execute(getMem(pc++));
     }
-    // cia timers
-    checkciatimers(numofcycles);
+    checkciatimers(tmp);
     // draw rasterline
     vic->drawRasterline();
     // sprite collision interrupt?
