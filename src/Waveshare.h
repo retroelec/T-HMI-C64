@@ -14,28 +14,21 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef CONFIGDISPLAY_H
-#define CONFIGDISPLAY_H
+#ifndef WAVESHARE_H
+#define WAVESHARE_H
 
-#include "Config.h"
-#include "DisplayDriver.h"
-#if defined(USE_ST7789V)
-#include "ST7789V.h"
-#elif defined(USE_RM67162)
-#include "RM67162.h"
-#elif defined(USE_ST7789VSERIAL)
-#include "ST7789VSerial.h"
-#endif
+#include "BoardDriver.h"
+#define SD_D3_PIN 21
 
-struct ConfigDisplay {
-  DisplayDriver *displayDriver;
-#if defined(USE_ST7789V)
-  ConfigDisplay() { displayDriver = new ST7789V(); }
-#elif defined(USE_RM67162)
-  ConfigDisplay() { displayDriver = new RM67162(); }
-#elif defined(USE_ST7789VSERIAL)
-  ConfigDisplay() { displayDriver = new ST7789VSerial(); }
-#endif
+class Waveshare : public BoardDriver {
+public:
+  void init() override {
+    // SD MMC
+    vTaskDelay(pdMS_TO_TICKS(500));
+    pinMode(SD_D3_PIN, OUTPUT);
+    digitalWrite(SD_D3_PIN, HIGH);
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
 };
 
-#endif // CONFIGDISPLAY_H
+#endif // WAVESHARE_H

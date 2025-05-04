@@ -19,8 +19,8 @@
 #include "Config.h"
 #include "ExternalCmds.h"
 #include "Joystick.h"
+#include "jllog.h"
 #include <cstring>
-#include <esp_log.h>
 
 static const char *TAG = "BLEKB";
 

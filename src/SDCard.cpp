@@ -16,7 +16,7 @@
 */
 #include "SDCard.h"
 #include "Config.h"
-#include <esp_log.h>
+#include "jllog.h"
 
 static const char *TAG = "SDCard";
 

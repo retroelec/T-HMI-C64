@@ -15,13 +15,17 @@ digraph T_HMI_C64 {
   C64Emu -> BoardDriver
   T_HMI -> BoardDriver [arrowhead=empty, style=dashed]
   T_DISPLAY_S3 -> BoardDriver [arrowhead=empty, style=dashed]
+  WAVESHARE -> BoardDriver [arrowhead=empty, style=dashed]
   ExternalCmds -> SDCard
   CPUC64 -> CIA
   CPUC64 -> CPU6502 [arrowhead=empty]
   CPUC64 -> Joystick
   CPUC64 -> VIC
+  CPUC64 -> SID
   VIC -> DisplayDriver
+  SID -> SoundDriver
   ST7789V -> DisplayDriver [arrowhead=empty, style=dashed]
   RM67162 -> DisplayDriver [arrowhead=empty, style=dashed]
+  I2SSound -> SoundDriver [arrowhead=empty, style=dashed]
 }
 

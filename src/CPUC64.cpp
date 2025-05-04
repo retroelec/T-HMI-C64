@@ -16,10 +16,11 @@
 */
 #include "CPUC64.h"
 #include "C64Emu.h"
+#include "Config.h"
 #include "JoystickInitializationException.h"
+#include "jllog.h"
 #include "roms/basic.h"
 #include "roms/kernal.h"
-#include <esp_log.h>
 #include <esp_random.h>
 
 static const uint8_t NUMCIACHECKS = 2;
@@ -61,14 +62,14 @@ uint8_t CPUC64::getMem(uint16_t addr) {
     }
     // ** SID resp RNG **
     else if (addr <= 0xd7ff) {
-      uint8_t sididx = (addr - 0xd400) % 0x100;
+      uint8_t sididx = (addr - 0xd400) % 0x20;
       if (sididx == 0x1b) {
         uint32_t rand = esp_random();
         return (uint8_t)(rand & 0xff);
       } else if (sididx == 0x1c) {
         return 0;
       } else {
-        return sidreg[sididx];
+        return sid.sidreg[sididx];
       }
     }
     // ** Colorram **
@@ -274,8 +275,22 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
     }
     // ** SID **
     else if (addr <= 0xd7ff) {
-      uint8_t sididx = (addr - 0xd400) % 0x100;
-      sidreg[sididx] = val;
+      uint8_t sididx = (addr - 0xd400) % 0x20;
+#ifndef USE_NOSOUND
+      if ((sididx == 0x04) || (sididx == 0x0b) || (sididx == 0x12)) {
+        uint8_t voice = sididx / 7;
+        bool wasGateOn = sid.sidreg[sididx] & 0x01;
+        bool isGateOn = val & 0x01;
+        if (!wasGateOn && isGateOn) {
+          sid.startSound(voice, val);
+        } else if (wasGateOn && !isGateOn) {
+          sid.stopSound(voice);
+        }
+      } else if (sididx == 0x18) {
+        sid.masterVolume = (float)(val & 0x0f) / 15.0;
+      }
+#endif
+      sid.sidreg[sididx] = val;
     }
     // ** Colorram **
     else if (addr <= 0xdbff) {
@@ -411,9 +426,19 @@ void CPUC64::logDebugInfo() {
   if (debug &&
       (debuggingstarted || (debugstartaddr == 0) || (pc == debugstartaddr))) {
     debuggingstarted = true;
-    // debug (use LOGE because LOGI doesn't work here...)
-    ESP_LOGE(TAG, "pc: %2x, cmd: %s, a: %x, x: %x, y: %x, sp: %x, sr: %x", pc,
+    ESP_LOGI(TAG, "pc: %2x, cmd: %s, a: %x, x: %x, y: %x, sp: %x, sr: %x", pc,
              cmdName[getMem(pc)], a, x, y, sp, sr);
+  }
+}
+
+void CPUC64::vTaskDelayUntilUS(int64_t lastMeasuredTime,
+                               uint32_t timeIncrement) {
+  int64_t now = esp_timer_get_time();
+  int64_t nextWake = lastMeasuredTime + timeIncrement;
+  if (now < nextWake) {
+    uint32_t numofburnedcycles = (uint32_t)(nextWake - now);
+    numofburnedcyclespersecond += numofburnedcycles;
+    esp_rom_delay_us(numofburnedcycles);
   }
 }
 
@@ -424,8 +449,8 @@ void CPUC64::run() {
   debugstartaddr = 0;
   debuggingstarted = false;
   numofcycles = 0;
-  uint8_t cycleslastline = 0;
   uint8_t badlinecycles = 0;
+  int64_t lastMeasuredTime = esp_timer_get_time();
   while (true) {
     if (cpuhalted) {
       continue;
@@ -433,6 +458,7 @@ void CPUC64::run() {
 
     // prepare next rasterline
     badlinecycles = vic->nextRasterline();
+
     if (deactivateTemp) {
       badlinecycles = 0;
     }
@@ -440,7 +466,7 @@ void CPUC64::run() {
       badlinecycles = 0;
     }
     numofcycles = 0;
-    int8_t numofcyclestoexe = 63 - badlinecycles - cycleslastline;
+    int8_t numofcyclestoexe = 63 - badlinecycles;
     if (numofcyclestoexe < 0) {
       numofcyclestoexe = 0;
     }
@@ -451,7 +477,6 @@ void CPUC64::run() {
     // raster line interrupt?
     if ((vic->vicreg[0x19] & 0x81) && (vic->vicreg[0x1a] & 1) && (!iflag)) {
       // execute one command to simulate "finish execution of actual command"
-      // (e.g. West Bank wouldn't work otherwise)
       logDebugInfo();
       execute(getMem(pc++));
       // set pc to interrupt vector and start to execute interrupt routine
@@ -480,7 +505,6 @@ void CPUC64::run() {
       execute(getMem(pc++));
     }
     checkciatimers(numofcycles - tmp);
-    cycleslastline = numofcycles - numofcyclestoexe;
     // draw rasterline
     vic->drawRasterline();
     // sprite collision interrupt?
@@ -493,14 +517,22 @@ void CPUC64::run() {
       restorenmi = false;
       setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
     }
-    // throttle
+    // "throttle"
     numofcyclespersecond += numofcycles;
-    measuredcycles.fetch_add(numofcycles, std::memory_order_release);
-    uint16_t adjustcyclestmp = adjustcycles.load(std::memory_order_acquire);
-    if (adjustcyclestmp > 0) {
-      esp_rom_delay_us(adjustcyclestmp);
-      adjustcycles.store(0, std::memory_order_release);
+    uint32_t nominaltime = (vic->rasterline + 1) * 1000000 / 50 / 312;
+    vTaskDelayUntilUS(lastMeasuredTime, nominaltime);
+    // get start time of frame, sid
+    if (vic->rasterline == 311) {
+      lastMeasuredTime = esp_timer_get_time();
+#ifndef USE_NOSOUND
+      sid.playAudio();
+#endif
     }
+#ifndef USE_NOSOUND
+    else if (vic->rasterline == 10) {
+      sid.fillBuffer();
+    }
+#endif
   }
 }
 
@@ -525,13 +557,12 @@ void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic, C64Emu *c64emu) {
   this->charrom = charrom;
   this->vic = vic;
   this->c64emu = c64emu;
-  measuredcycles.store(0, std::memory_order_release);
-  adjustcycles.store(0, std::memory_order_release);
   joystickmode = 0;
   kbjoystickmode = 0;
   deactivateTemp = false;
   numofcycles = 0;
   numofcyclespersecond = 0;
+  numofburnedcyclespersecond = 0;
   try {
     joystick.init();
   } catch (const JoystickInitializationException &e) {

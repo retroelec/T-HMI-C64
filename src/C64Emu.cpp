@@ -18,13 +18,13 @@
 #include "Config.h"
 #include "HardwareInitializationException.h"
 #include "VIC.h"
+#include "jllog.h"
 #include "roms/charset.h"
 #include <cstdint>
 #include <driver/gpio.h>
 #include <esp_adc/adc_cali.h>
 #include <esp_adc/adc_cali_scheme.h>
 #include <esp_adc/adc_oneshot.h>
-#include <esp_log.h>
 
 static const char *TAG = "C64Emu";
 
@@ -46,8 +46,6 @@ void IRAM_ATTR C64Emu::interruptProfilingBatteryCheckFunc() {
       voltage = raw_value * 2;
     }
     batteryVoltage = voltage;
-    ESP_LOGI(TAG, "adc raw: %d", raw_value);
-    ESP_LOGI(TAG, "battery voltage: %d mV", batteryVoltage);
     // if battery voltage is too low, then power off device
     if (batteryVoltage < 3550) {
       powerOff();
@@ -62,14 +60,15 @@ void IRAM_ATTR C64Emu::interruptProfilingBatteryCheckFunc() {
   }
   // frames per second
   if (vic.cntRefreshs != 0) {
-    ESP_LOGI(TAG, "fps: %d", vic.cntRefreshs);
+    cntRefreshs = vic.cntRefreshs;
   }
   vic.cntRefreshs = 0;
   // number of cycles per second
-  ESP_LOGI(TAG, "noc: %d, nbc: %d", cpu.numofcyclespersecond,
-           numofburnedcyclespersecond);
+  numofcyclespersecond = cpu.numofcyclespersecond;
+  numofburnedcyclespersecond = cpu.numofburnedcyclespersecond;
   cpu.numofcyclespersecond = 0;
-  numofburnedcyclespersecond = 0;
+  cpu.numofburnedcyclespersecond = 0;
+  showperfvalues = true;
 }
 
 bool C64Emu::updateTOD(CIA &cia) {
@@ -159,32 +158,10 @@ void IRAM_ATTR C64Emu::interruptSystemFunc() {
     blekb.handleKeyPress();
     checkForKeyboardCnt = 0;
   }
-
-  // throttle 6502 CPU
-  throttlingCnt++;
-  uint16_t measuredcyclestmp =
-      cpu.measuredcycles.load(std::memory_order_acquire);
-  // do not throttle at first half of each "measurement period" (otherwise CPU
-  // is throtteled a little bit too much)
-  if (throttlingCnt >= Config::THROTTELINGNUMSTEPS / 2) {
-    if (measuredcyclestmp > throttlingCnt * Config::INTERRUPTSYSTEMRESOLUTION) {
-      uint16_t adjustcycles =
-          measuredcyclestmp - throttlingCnt * Config::INTERRUPTSYSTEMRESOLUTION;
-      cpu.adjustcycles.store(adjustcycles, std::memory_order_release);
-      numofburnedcyclespersecond += adjustcycles;
-    }
-    if (throttlingCnt == Config::THROTTELINGNUMSTEPS) {
-      throttlingCnt = 0;
-      cpu.measuredcycles.store(0, std::memory_order_release);
-    }
-  }
 }
 
 void C64Emu::cpuCode(void *parameter) {
   ESP_LOGI(TAG, "cpuTask running on core %d", xPortGetCoreID());
-
-  // init LCD driver
-  vic.initLCDController();
 
   // interrupt each 100 ms to increment CIA real time clock (TOD)
   interruptTOD = timerBegin(1000000);
@@ -241,6 +218,8 @@ void C64Emu::setup() {
 
   // init VIC
   vic.init(ram, charset_rom);
+  // init LCD driver
+  vic.initLCDController();
 
   // init ble keyboard
   blekb.init(this);
@@ -260,7 +239,7 @@ void C64Emu::setup() {
                           &cpuTask,       // Task handle
                           1);             // Core where the task should run
 
-  // interrupt each 1000 us to get keyboard codes and throttle 6502 CPU
+  // interrupt each 1000 us to get keyboard codes
   interruptSystem = timerBegin(1000000);
   timerAttachInterrupt(interruptSystem, &interruptSystemFuncWrapper);
   timerAlarm(interruptSystem, Config::INTERRUPTSYSTEMRESOLUTION, true, 0);
@@ -275,4 +254,15 @@ void C64Emu::setup() {
 void C64Emu::loop() {
   vic.refresh();
   vTaskDelay(Config::REFRESHDELAY);
+  if (perf && showperfvalues) {
+    showperfvalues = false;
+    // frames per second
+    if (cntRefreshs != 0) {
+      ESP_LOGI(TAG, "fps: %d", cntRefreshs);
+    }
+    cntRefreshs = 0;
+    // number of cycles per second
+    ESP_LOGI(TAG, "noc: %lu, nbc: %lu", numofcyclespersecond,
+             numofburnedcyclespersecond);
+  }
 }

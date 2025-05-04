@@ -23,6 +23,8 @@
 #include "T_HMI.h"
 #elif defined(BOARD_T_DISPLAY_S3)
 #include "T_DISPLAY_S3.h"
+#elif defined(BOARD_WAVESHARE)
+#include "Waveshare.h"
 #endif
 
 struct ConfigBoard {
@@ -31,6 +33,8 @@ struct ConfigBoard {
   ConfigBoard() { boardDriver = new T_HMI(); }
 #elif defined(BOARD_T_DISPLAY_S3)
   ConfigBoard() { boardDriver = new T_DISPLAY_S3(); }
+#elif defined(BOARD_WAVESHARE)
+  ConfigBoard() { boardDriver = new Waveshare(); }
 #endif
 };
 

@@ -20,6 +20,7 @@
 #include "CIA.h"
 #include "CPU6502.h"
 #include "Joystick.h"
+#include "SID.h"
 #include "VIC.h"
 #include <cstdint>
 #include <mutex>
@@ -35,8 +36,6 @@ private:
   uint8_t *charrom;
   Joystick joystick;
 
-  uint8_t sidreg[0x100];
-
   bool bankARAM;
   bool bankDRAM;
   bool bankERAM;
@@ -47,6 +46,8 @@ private:
 
   bool nmiAck;
 
+  inline void vTaskDelayUntilUS(int64_t lastMeasuredTime,
+                                uint32_t timeIncrement);
   inline void adaptVICBaseAddrs(bool fromcia) __attribute__((always_inline));
   inline void decodeRegister1(uint8_t val) __attribute__((always_inline));
   inline void checkciatimers(uint8_t cycles) __attribute__((always_inline));
@@ -56,6 +57,7 @@ public:
   VIC *vic;
   CIA cia1;
   CIA cia2;
+  SID sid;
 
   CPUC64() : cia1(true), cia2(false) {}
 
@@ -68,8 +70,7 @@ public:
   uint16_t getPC();
 
   uint32_t numofcyclespersecond;
-  std::atomic<uint16_t> adjustcycles;
-  std::atomic<uint16_t> measuredcycles;
+  uint32_t numofburnedcyclespersecond;
 
   // set by class ExternalCmds
   uint8_t joystickmode;

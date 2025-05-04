@@ -16,10 +16,10 @@
 */
 #include "ExternalCmds.h"
 #include "C64Emu.h"
+#include "jllog.h"
 #include "listactions.h"
 #include "loadactions.h"
 #include "saveactions.h"
-#include <esp_log.h>
 
 static const char *TAG = "ExternalCmds";
 
@@ -194,7 +194,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
           c64emu->cpu.exeSubroutine(addr, 0, 0, 0);
         } else {
           if (!success) {
-            ESP_LOGI(TAG, "error reading entry");
+            ESP_LOGE(TAG, "error reading entry");
           }
           liststartflag = true;
           break;
@@ -202,7 +202,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
         cnt++;
       }
     } else {
-      ESP_LOGI(TAG, "error init sdcard");
+      ESP_LOGE(TAG, "error init sdcard");
     }
     c64emu->cpu.cpuhalted = false;
     return 0;

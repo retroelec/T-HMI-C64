@@ -1,3 +1,5 @@
+#include "../Config.h"
+#ifdef USE_RM67162
 #include "rm67162.h"
 #include "SPI.h"
 #include "Arduino.h"
@@ -320,3 +322,4 @@ void lcd_sleep()
 {
     lcd_send_cmd(0x10, NULL, 0);
 }
+#endif

@@ -14,28 +14,24 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef CONFIGDISPLAY_H
-#define CONFIGDISPLAY_H
+#ifndef CONFIGSOUND_H
+#define CONFIGSOUND_H
 
 #include "Config.h"
-#include "DisplayDriver.h"
-#if defined(USE_ST7789V)
-#include "ST7789V.h"
-#elif defined(USE_RM67162)
-#include "RM67162.h"
-#elif defined(USE_ST7789VSERIAL)
-#include "ST7789VSerial.h"
+#include "SoundDriver.h"
+#if defined(USE_I2SSOUND)
+#include "I2SSound.h"
+#elif defined(USE_NOSOUND)
+#include "NoSound.h"
 #endif
 
-struct ConfigDisplay {
-  DisplayDriver *displayDriver;
-#if defined(USE_ST7789V)
-  ConfigDisplay() { displayDriver = new ST7789V(); }
-#elif defined(USE_RM67162)
-  ConfigDisplay() { displayDriver = new RM67162(); }
-#elif defined(USE_ST7789VSERIAL)
-  ConfigDisplay() { displayDriver = new ST7789VSerial(); }
+struct ConfigSound {
+  SoundDriver *soundDriver;
+#if defined(USE_I2SSOUND)
+  ConfigSound() { soundDriver = new I2SSound(); }
+#elif defined(USE_NOSOUND)
+  ConfigSound() { soundDriver = new NoSound(); }
 #endif
 };
 
-#endif // CONFIGDISPLAY_H
+#endif // CONFIGSOUND_H

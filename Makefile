@@ -1,9 +1,20 @@
+ALLBOARDS := T_HMI T_DISPLAY_S3 WAVESHARE
+BOARD := T_HMI
+#BOARD := T_DISPLAY_S3
+#BOARD := WAVESHARE
+
 PORT := /dev/ttyACM0
-FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,LoopCore=0,DebugLevel=info
-SOURCEFILES=$(wildcard src/*.cpp src/rm67162/*.cpp)
+
+ifeq ($(BOARD), WAVESHARE)
+  FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
+else
+  FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info
+endif
+
+SOURCEFILES=$(wildcard src/*.cpp src/rm67162/*.cpp src/st7789vserial/*.cpp)
 
 default:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h src/saveactions.h src/listactions.h
-	arduino-cli compile --warnings all --fqbn $(FQBN) --build-path build T-HMI-C64.ino
+	arduino-cli compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD)" --build-path build$(BOARD) T-HMI-C64.ino
 
 src/loadactions.h:	src/loadactions.asm
 	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/loadactions.asm -o src/loadactions.prg
@@ -19,13 +30,19 @@ src/listactions.h:	src/listactions.asm
 
 compile:	default
 
+compileAll:
+	@for board in $(ALLBOARDS); do \
+		echo "\ncompiling for $$board"; \
+		$(MAKE) compile BOARD=$$board || exit $$?; \
+	done
+
 # first you have to get the docker image:
 # podman pull docker.io/retroelec42/arduino-cli:latest
 podcompile:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h src/saveactions.h src/listactions.h
-	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli compile --fqbn $(FQBN) --build-path build T-HMI-C64.ino
+	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli compile --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD)" --build-path build$(BOARD) T-HMI-C64.ino
 
 upload:
-	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build/T-HMI-C64.ino.bin
+	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build$(BOARD)/T-HMI-C64.ino.bin
 
 # create file $HOME/.minirc.dfl 
 # content:
