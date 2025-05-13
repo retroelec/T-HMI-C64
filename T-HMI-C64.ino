@@ -34,7 +34,7 @@ void core0Task(void *param) {
     while (true) {
     }
   }
-  vTaskDelay(1000 / portTICK_PERIOD_MS);
+  vTaskDelay(pdMS_TO_TICKS(1000));
   ESP_LOGI(TAG, "setup done");
 
   while (true) {
@@ -44,7 +44,7 @@ void core0Task(void *param) {
 
 void setup() {
   Serial.begin(115200);
-  vTaskDelay(500 / portTICK_PERIOD_MS);
+  vTaskDelay(pdMS_TO_TICKS(500));
   esp_log_level_set("*", ESP_LOG_INFO);
   ESP_LOGI(TAG, "start setup...");
   xTaskCreatePinnedToCore(core0Task, "core0Task", 8192, nullptr, 1,

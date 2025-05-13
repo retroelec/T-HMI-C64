@@ -29,6 +29,10 @@ private:
 
   adc_oneshot_unit_handle_t adc2_handle;
 
+  // read joystick value only each x rasterlines
+  uint32_t lastMeasuredTime;
+  uint8_t lastjoystickvalue;
+
 public:
   static const uint8_t C64JOYUP = 0;
   static const uint8_t C64JOYDOWN = 1;

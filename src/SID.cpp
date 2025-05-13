@@ -16,8 +16,6 @@
 */
 
 #include "SID.h"
-#include "jllog.h"
-#include <algorithm>
 #include <cmath>
 
 static const float attackLUT[16] = {
@@ -30,18 +28,91 @@ static const float releaseDecayLUT[16] = {
 
 SIDVoice::SIDVoice() { init(); }
 
+void SIDVoice::init() {
+  adsrState = IDLE;
+  control = 0;
+  noiseLFSR = 0x7FFFFF;
+  phase = 0.0f;
+  envelope = 0.0f;
+  syncNextVoice = false;
+}
+
+bool SIDVoice::isActive() { return adsrState != IDLE; }
+
+void SIDVoice::updVarFrequency(uint16_t freq) {
+  phaseIncrement =
+      (float)(freq)*985248.0f / 16777216.0f / Config::AUDIO_SAMPLE_RATE;
+}
+
+void SIDVoice::updVarPulseWidth(uint16_t pw) {
+  pulseWidth = (float)(pw & 0x0fff) / 4095.0;
+}
+
+void SIDVoice::updVarEnvelopeAD(uint8_t val) {
+  attackAdd = 1.0f / (attackLUT[(val >> 4) & 0x0f] * Config::AUDIO_SAMPLE_RATE);
+  decayAdd = (1.0f - sustainVolume) /
+             (releaseDecayLUT[val & 0x0f] * Config::AUDIO_SAMPLE_RATE);
+}
+
+void SIDVoice::updVarEnvelopeSR(uint8_t val) {
+  sustainVolume = (float)(val & 0x0f) / 15.0;
+  float time = releaseDecayLUT[val & 0x0f];
+  releaseAdd = sustainVolume > 0.0f
+                   ? sustainVolume / (time * Config::AUDIO_SAMPLE_RATE)
+                   : 1.0f / (time * Config::AUDIO_SAMPLE_RATE);
+}
+
+void SIDVoice::updVarControl(uint8_t val) {
+  uint8_t oldControl = control;
+  control = val;
+  bool oldGate = oldControl & 0x01;
+  bool newGate = control & 0x01;
+  // bit 0 (gate bit)
+  if (!oldGate && newGate) {
+    adsrState = ATTACK;
+    envelope = 0.0f;
+  } else if (oldGate && !newGate) {
+    adsrState = RELEASE;
+  }
+  // bit 1 (sync)
+  if (voice != 0) {
+    if (control & 0x02) {
+      prevVoice->syncNextVoice = true;
+    } else {
+      prevVoice->syncNextVoice = false;
+    }
+  }
+  // bit 2 (ringmod)
+  ringmod = control & 0x04;
+  // bit 3 (test)
+  bool oldTest = oldControl & 0x08;
+  bool newTest = control & 0x08;
+  if (!oldTest && newTest) {
+    phase = 0.0f;
+    phaseIncrement = 0.0f;
+    noiseLFSR = 0x7FFFF8;
+  }
+  // bit 4-7 (waveform)
+  uint8_t oldWave = oldControl & 0xF0;
+  uint8_t newWave = control & 0xF0;
+  if (newGate && (oldWave != newWave)) {
+    adsrState = ATTACK;
+    phase = 0.0f;
+  }
+}
+
 float SIDVoice::updateEnvelope() {
   switch (adsrState) {
   case ATTACK:
-    envelope += (1.0f - envelope) * attackCoeff;
-    if (envelope >= 0.99f) {
+    envelope += attackAdd;
+    if (envelope >= 1.0f) {
       envelope = 1.0f;
       adsrState = DECAY;
     }
     break;
   case DECAY:
-    envelope += (sustainVolume - envelope) * decayCoeff;
-    if (envelope <= sustainVolume + 0.001f) {
+    envelope -= decayAdd;
+    if (envelope <= sustainVolume) {
       envelope = sustainVolume;
       adsrState = SUSTAIN;
     }
@@ -49,8 +120,8 @@ float SIDVoice::updateEnvelope() {
   case SUSTAIN:
     break;
   case RELEASE:
-    envelope += (0.0f - envelope) * releaseCoeff;
-    if (envelope <= 0.001f) {
+    envelope -= releaseAdd;
+    if (envelope <= 0.0f) {
       envelope = 0.0f;
       adsrState = IDLE;
     }
@@ -59,96 +130,99 @@ float SIDVoice::updateEnvelope() {
     envelope = 0.0f;
     break;
   }
-  return std::clamp(envelope, 0.0f, 1.0f);
+  return envelope;
 }
 
-void SIDVoice::init() { adsrState = IDLE; }
-
-bool SIDVoice::isActive() { return adsrState != IDLE; }
-
-float computeCoefficient(float rateInSeconds) {
-  if (rateInSeconds <= 0.0f)
-    return 1.0f;
-  float samples = rateInSeconds * Config::AUDIO_SAMPLE_RATE;
-  return 1.0f - std::exp(-1.0f / samples);
+float SIDVoice::getNoiseValueUpdateLFSR() {
+  bool bit22 = (noiseLFSR >> 22) & 1;
+  bool bit17 = (noiseLFSR >> 17) & 1;
+  bool bit16 = (noiseLFSR >> 16) & 1;
+  bool bit10 = (noiseLFSR >> 10) & 1;
+  bool feedback = bit22 ^ bit17 ^ bit16 ^ bit10;
+  noiseLFSR = ((noiseLFSR << 1) | feedback) & 0x7FFFFF;
+  uint16_t noise12bit =
+      (((noiseLFSR >> 22) & 1) << 11) | (((noiseLFSR >> 20) & 1) << 10) |
+      (((noiseLFSR >> 16) & 1) << 9) | (((noiseLFSR >> 13) & 1) << 8) |
+      (((noiseLFSR >> 11) & 1) << 7) | (((noiseLFSR >> 7) & 1) << 6) |
+      (((noiseLFSR >> 6) & 1) << 5) | (((noiseLFSR >> 3) & 1) << 4) |
+      (((noiseLFSR >> 1) & 1) << 3) | (((noiseLFSR >> 0) & 1) << 2) |
+      (((noiseLFSR >> 18) & 1) << 1) | (((noiseLFSR >> 14) & 1) << 0);
+  return ((float)noise12bit / 2047.5f) - 1.0f;
 }
 
-void SIDVoice::start(uint8_t *voicereg, uint8_t control) {
-  freqHz = (float)(voicereg[0] | (voicereg[1] << 8)) * 985248.0f / 16777216.0f;
-  attack = attackLUT[(voicereg[5] >> 4) & 0x0f];
-  decay = releaseDecayLUT[voicereg[5] & 0x0f];
-  sustainVolume = (float)((voicereg[6] >> 4) & 0x0f) / 15.0;
-  release = releaseDecayLUT[voicereg[6] & 0x0f];
-  adsrState = ATTACK;
-  waveform = NOWAVE;
-  if (control & 0x80) {
-    waveform = WAVE_NOISE;
-  } else if (control & 0x40) {
-    waveform = WAVE_PULSE;
-    pulseWidth =
-        (float)((voicereg[2] | ((voicereg[3] & 0x0f) << 8)) & 0x0fff) / 4095.0;
-  } else if (control & 0x20) {
-    waveform = WAVE_SAWTOOTH;
-  } else if (control & 0x10) {
-    waveform = WAVE_TRIANGLE;
-  }
-  envelope = 0.0f;
-  phase = 0.0f;
-  attackCoeff = computeCoefficient(attack);
-  decayCoeff = computeCoefficient(decay);
-  releaseCoeff = computeCoefficient(release);
-}
-
-void SIDVoice::stop() { adsrState = RELEASE; }
-
-float SIDVoice::generateSample(float masterVolume) {
+float SIDVoice::generateSample() {
   // 0 <= phase < 1
   // -1 <= sample < 1
-  float phaseIncrement = freqHz / Config::AUDIO_SAMPLE_RATE;
   phase += phaseIncrement;
   if (phase >= 1.0f) {
-    phase -= 1.0f;
+    phase = 0.0f;
+    if (syncNextVoice) { // syncNextVoice is never true for voice 2
+      nextVoice->phase = 0.0f;
+    }
   }
   float sample = 0.0f;
-  switch (waveform) {
-  case NOWAVE:
-    return 0.0f;
-  case WAVE_TRIANGLE:
-    sample = (phase < 0.5f) ? (4.0f * phase - 1.0f) : (3.0f - 4.0f * phase);
-    break;
-  case WAVE_SAWTOOTH:
-    sample = 2.0f * phase - 1.0f;
-    break;
-  case WAVE_PULSE:
-    sample = (phase < pulseWidth) ? 1.0f : -1.0f;
-    break;
-  case WAVE_NOISE:
-    if (phase < phaseIncrement) {
-      noiseValue = ((float)(rand() % 65536) / 32768.0f) - 1.0f;
+  uint8_t wavecnt = 0;
+  // triangle
+  if (control & 0x10) {
+    float triangle = 4.0f * fabsf(phase - 0.5f) - 1.0f;
+    if (ringmod && prevVoice->phase >= 0.5f) {
+      triangle = -triangle;
     }
-    sample = noiseValue;
-    break;
+    sample += triangle;
+    wavecnt++;
   }
-  float env = updateEnvelope();
-  return sample * env * masterVolume;
+  // saw
+  if (control & 0x20) {
+    sample += 2.0f * phase - 1.0f;
+    wavecnt++;
+  }
+  // pulse
+  if (control & 0x40) {
+    sample += (phase < pulseWidth) ? 1.0f : -1.0f;
+    wavecnt++;
+  }
+  // noise
+  if (control & 0x80) {
+    if (phase < phaseIncrement) {
+      noiseValue = getNoiseValueUpdateLFSR();
+    }
+    sample += noiseValue;
+    wavecnt++;
+  }
+  if (wavecnt > 1) {
+    sample /= (float)wavecnt;
+  }
+  return sample;
 }
 
-SID::SID() { init(); }
+SID::SID() {
+  configSound.soundDriver->init();
+  init();
+}
 
 int16_t SID::generateSample() {
   float sample = 0.0f;
+  oc3sample = 0.0f;
+  v3env = 0.0f;
   uint8_t cnt = 0;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 2; i++) {
     if (sidVoice[i].isActive()) {
       cnt++;
-      sample += sidVoice[i].generateSample(masterVolume);
+      float env = sidVoice[i].updateEnvelope();
+      sample += env * sidVoice[i].generateSample();
     }
+  }
+  if (sidVoice[2].isActive()) {
+    cnt++;
+    v3env = sidVoice[2].updateEnvelope();
+    oc3sample = sidVoice[2].generateSample();
+    sample += v3env * oc3sample;
   }
   if (cnt == 0) {
     return 0.0;
   }
   sample /= cnt;
-  return static_cast<int16_t>(sample * 30000.0f);
+  return static_cast<int16_t>(sample * c64Volume * emuVolume);
 }
 
 bool SID::isVoiceActive() {
@@ -161,7 +235,7 @@ bool SID::isVoiceActive() {
 }
 
 void SID::init() {
-  configSound.soundDriver->init();
+  emuVolume = 30000.0f;
   bufferfilled = false;
   for (uint8_t i = 0; i < 0x20; i++) {
     sidreg[i] = 0;
@@ -169,20 +243,35 @@ void SID::init() {
   for (int i = 0; i < 3; i++) {
     sidVoice[i].init();
   }
+  sidVoice[0].voice = 0;
+  sidVoice[1].voice = 1;
+  sidVoice[2].voice = 2;
+  sidVoice[0].nextVoice = &sidVoice[1];
+  sidVoice[1].nextVoice = &sidVoice[2];
+  sidVoice[2].nextVoice = nullptr;
+  sidVoice[0].prevVoice = &sidVoice[2];
+  sidVoice[1].prevVoice = &sidVoice[0];
+  sidVoice[2].prevVoice = &sidVoice[1];
 }
-
-void SID::startSound(uint8_t voice, uint8_t val) {
-  sidVoice[voice].start(&sidreg[voice * 7], val);
-}
-
-void SID::stopSound(uint8_t voice) { sidVoice[voice].stop(); }
 
 void SID::fillBuffer() {
   if (!isVoiceActive()) {
-    return;
-  }
-  for (uint16_t i = 0; i < NUMSAMPLESPERFRAME; i++) {
-    samples[i] = generateSample();
+    if (buffer0filled) {
+      return;
+    }
+    for (uint16_t i = 0; i < NUMSAMPLESPERFRAME; i++) {
+      samples[i] = 0;
+      oc3samples[i] = 0.0f;
+      v3envs[i] = 0.0f;
+    }
+    buffer0filled = true;
+  } else {
+    for (uint16_t i = 0; i < NUMSAMPLESPERFRAME; i++) {
+      samples[i] = generateSample();
+      oc3samples[i] = oc3sample;
+      v3envs[i] = v3env;
+    }
+    buffer0filled = false;
   }
   bufferfilled = true;
 }

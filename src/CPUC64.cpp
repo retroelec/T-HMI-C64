@@ -64,9 +64,13 @@ uint8_t CPUC64::getMem(uint16_t addr) {
     else if (addr <= 0xd7ff) {
       uint8_t sididx = (addr - 0xd400) % 0x20;
       if (sididx == 0x1b) {
+        // return static_cast<uint8_t>(
+        //     (sid.oc3samples[vic->rasterline * 881 / 311] + 1.0f) * 128.0f);
         uint32_t rand = esp_random();
         return (uint8_t)(rand & 0xff);
       } else if (sididx == 0x1c) {
+        // return static_cast<uint8_t>(
+        //     sid.v3envs[vic->rasterline * 881 / 311] * 255.0f + 0.1f);
         return 0;
       } else {
         return sid.sidreg[sididx];
@@ -276,21 +280,36 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
     // ** SID **
     else if (addr <= 0xd7ff) {
       uint8_t sididx = (addr - 0xd400) % 0x20;
-#ifndef USE_NOSOUND
-      if ((sididx == 0x04) || (sididx == 0x0b) || (sididx == 0x12)) {
+      sid.sidreg[sididx] = val;
+#ifdef USE_I2SSOUND
+      if (sididx <= 0x14) {
         uint8_t voice = sididx / 7;
-        bool wasGateOn = sid.sidreg[sididx] & 0x01;
-        bool isGateOn = val & 0x01;
-        if (!wasGateOn && isGateOn) {
-          sid.startSound(voice, val);
-        } else if (wasGateOn && !isGateOn) {
-          sid.stopSound(voice);
+        int regInVoice = sididx % 7;
+        switch (regInVoice) {
+        case 0:
+        case 1:
+          sid.sidVoice[voice].updVarFrequency(sid.sidreg[voice * 7] |
+                                              (sid.sidreg[1 + voice * 7] << 8));
+          break;
+        case 2:
+        case 3:
+          sid.sidVoice[voice].updVarPulseWidth(
+              sid.sidreg[2 + voice * 7] | (sid.sidreg[3 + voice * 7] << 8));
+          break;
+        case 4:
+          sid.sidVoice[voice].updVarControl(sid.sidreg[sididx]);
+          break;
+        case 5:
+          sid.sidVoice[voice].updVarEnvelopeAD(sid.sidreg[sididx]);
+          break;
+        case 6:
+          sid.sidVoice[voice].updVarEnvelopeSR(sid.sidreg[sididx]);
+          break;
         }
       } else if (sididx == 0x18) {
-        sid.masterVolume = (float)(val & 0x0f) / 15.0;
+        sid.c64Volume = (float)(val & 0x0f) / 15.0;
       }
 #endif
-      sid.sidreg[sididx] = val;
     }
     // ** Colorram **
     else if (addr <= 0xdbff) {
@@ -524,11 +543,11 @@ void CPUC64::run() {
     // get start time of frame, sid
     if (vic->rasterline == 311) {
       lastMeasuredTime = esp_timer_get_time();
-#ifndef USE_NOSOUND
+#ifdef USE_I2SSOUND
       sid.playAudio();
 #endif
     }
-#ifndef USE_NOSOUND
+#ifdef USE_I2SSOUND
     else if (vic->rasterline == 10) {
       sid.fillBuffer();
     }

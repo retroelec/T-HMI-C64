@@ -23,58 +23,61 @@
 class SIDVoice {
 private:
   enum ADSRState { ATTACK, DECAY, SUSTAIN, RELEASE, IDLE };
-  enum Waveform {
-    WAVE_TRIANGLE,
-    WAVE_SAWTOOTH,
-    WAVE_PULSE,
-    WAVE_NOISE,
-    NOWAVE
-  };
 
-  // extract from SID registers
-  float freqHz;
   float pulseWidth;
-  float attack;
-  float decay;
   float sustainVolume;
-  float release;
-  float attackCoeff;
-  float decayCoeff;
-  float releaseCoeff;
-
-  ADSRState adsrState = IDLE;
-  float envelope = 0.0f;
-  Waveform waveform;
+  float attackAdd;
+  float decayAdd;
+  float releaseAdd;
+  ADSRState adsrState;
+  float envelope;
   float noiseValue;
-  float phase = 0.0f;
+  uint32_t noiseLFSR;
+  float phase;
+  float phaseIncrement;
+  uint8_t control;
 
-  float updateEnvelope();
+  float getNoiseValueUpdateLFSR();
 
 public:
+  bool syncNextVoice;
+  bool ringmod;
+  uint8_t voice;
+  SIDVoice *nextVoice;
+  SIDVoice *prevVoice;
+
   SIDVoice();
   void init();
   bool isActive();
-  void start(uint8_t *voicereg, uint8_t val);
-  void stop();
-  float generateSample(float masterVolume);
+  void updVarFrequency(uint16_t freq);
+  void updVarPulseWidth(uint16_t pw);
+  void updVarEnvelopeAD(uint8_t val);
+  void updVarEnvelopeSR(uint8_t val);
+  void updVarControl(uint8_t val);
+  float updateEnvelope();
+  float generateSample();
 };
 
 class SID {
 private:
   static const uint16_t NUMSAMPLESPERFRAME = Config::AUDIO_SAMPLE_RATE / 50;
   int16_t samples[NUMSAMPLESPERFRAME];
-
+  float oc3sample;
+  float v3env;
   ConfigSound configSound;
   bool bufferfilled;
-
-  SIDVoice sidVoice[3];
+  bool buffer0filled;
 
   int16_t generateSample();
   bool isVoiceActive();
 
 public:
-  float masterVolume;
+  SIDVoice sidVoice[3];
+  float c64Volume;
+  float emuVolume;
   uint8_t sidreg[0x20];
+  float oc3samples[NUMSAMPLESPERFRAME];
+  float v3envs[NUMSAMPLESPERFRAME];
 
   SID();
   void init();

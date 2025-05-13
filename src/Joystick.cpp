@@ -19,6 +19,7 @@
 #include "JoystickInitializationException.h"
 #include <driver/gpio.h>
 #include <esp_adc/adc_oneshot.h>
+#include <esp_cpu.h>
 #include <soc/gpio_struct.h>
 
 void Joystick::init() {
@@ -50,10 +51,19 @@ void Joystick::init() {
   if (err != ESP_OK) {
     throw JoystickInitializationException(esp_err_to_name(err));
   }
+  // init other attributes
+  lastjoystickvalue = 0xff;
+  lastMeasuredTime = esp_cpu_get_cycle_count();
 #endif
 }
 
 uint8_t Joystick::getValue() {
+  // do not check joystick value too often (max only each 2 ms)
+  uint32_t actMeasuredTime = esp_cpu_get_cycle_count();
+  if ((actMeasuredTime - lastMeasuredTime) < 480000) {
+    return lastjoystickvalue;
+  }
+  lastMeasuredTime = actMeasuredTime;
   // 2048 = medium adc value (12-bit resolution)
   int valueX = 2048;
   int valueY = 2048;
@@ -82,6 +92,7 @@ uint8_t Joystick::getValue() {
   if (valueFire == 0) {
     value &= ~(1 << C64JOYFIRE);
   }
+  lastjoystickvalue = value;
   return value;
 }
 
