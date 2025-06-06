@@ -15,9 +15,7 @@
  http://www.gnu.org/licenses/.
 */
 #include "BLEKB.h"
-#include "C64Emu.h"
 #include "Config.h"
-#include "ExternalCmds.h"
 #include "Joystick.h"
 #include "jllog.h"
 #include <cstring>
@@ -35,60 +33,6 @@ static const uint8_t VIRTUALJOYSTICKUP_DEACTIVATED = 0x84;
 static const uint8_t VIRTUALJOYSTICKDOWN_ACTIVATED = 0x08;
 static const uint8_t VIRTUALJOYSTICKDOWN_DEACTIVATED = 0x88;
 
-class ExeExtCmdTask {
-private:
-  TaskHandle_t exeExtCmdTaskHandle;
-  BLEKB &blekb;
-  ExternalCmds &externalCmds;
-  uint8_t type;
-
-  static void exeExternalCmd(void *parameter) {
-    ExeExtCmdTask *instance = static_cast<ExeExtCmdTask *>(parameter);
-    instance->type =
-        instance->externalCmds.executeExternalCmd(instance->blekb.buffer);
-    // signal that task is done using a task notification
-    BaseType_t notifyResult = xTaskNotifyGive(instance->exeExtCmdTaskHandle);
-    if (notifyResult == pdPASS) {
-      ESP_LOGD(TAG, "Notification sent successfully");
-    } else {
-      ESP_LOGD(TAG, "Failed to send notification");
-    }
-    // delete task
-    vTaskDelete(NULL);
-  }
-
-public:
-  ExeExtCmdTask(BLEKB &blekb, ExternalCmds &externalCmds)
-      : exeExtCmdTaskHandle(NULL), blekb(blekb), externalCmds(externalCmds) {}
-
-  uint8_t exe() {
-    exeExtCmdTaskHandle = xTaskGetCurrentTaskHandle();
-    xTaskCreate(ExeExtCmdTask::exeExternalCmd, // Task function
-                "externalCmdTask",             // Name of the task
-                10000,                         // Stack size (in words)
-                this,                          // Task input parameter
-                1,                             // Priority of the task
-                NULL                           // Task handle
-    );
-    // wait for task to be completed
-    uint32_t ulNotificationValue;
-    BaseType_t result = xTaskNotifyWait(
-        0x00,                 // No bits to clear on entry
-        ULONG_MAX,            // Clear all bits on exit
-        &ulNotificationValue, // Where to store the notification value
-        pdMS_TO_TICKS(5000)   // Wait max 5 seconds
-    );
-    if (result == pdPASS) {
-      // Return the stored return value
-      ESP_LOGD(TAG, "task completed, type = %d", type);
-      return type;
-    } else {
-      ESP_LOGD(TAG, "failed to send notification or timed out");
-      return 0;
-    }
-  }
-};
-
 BLEKBServerCallback::BLEKBServerCallback(BLEKB &blekb) : blekb(blekb) {}
 
 void BLEKBServerCallback::onConnect(BLEServer *pServer) {
@@ -102,9 +46,8 @@ void BLEKBServerCallback::onDisconnect(BLEServer *pServer) {
   pServer->getAdvertising()->start();
 }
 
-BLEKBCharacteristicCallback::BLEKBCharacteristicCallback(
-    BLEKB &blekb, ExternalCmds &externalCmds)
-    : blekb(blekb), externalCmds(externalCmds) {}
+BLEKBCharacteristicCallback::BLEKBCharacteristicCallback(BLEKB &blekb)
+    : blekb(blekb) {}
 
 void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
   if (!blekb.deviceConnected) {
@@ -152,61 +95,16 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
     blekb.shiftctrlcode = blekb.buffer[2];
     blekb.keypresseddowncnt = 0;
     blekb.keypresseddown = true;
-    // external command?
-    if (blekb.shiftctrlcode & 128) {
-      // execute external command
-      // have to use a seperate task, because stack size of the BLE processing
-      // task is too small (and task size is not changeable under Arduino)
-      ESP_LOGI(TAG, "run external command...");
-      ExeExtCmdTask exeExtCmdTask(blekb, externalCmds);
-      uint8_t type = exeExtCmdTask.exe();
-      // send notification
-      switch (type) {
-      case 1:
-        pCharacteristic->setValue(
-            reinterpret_cast<uint8_t *>(&(externalCmds.type1notification)),
-            sizeof(BLENotificationStruct1));
-        break;
-      case 2:
-        pCharacteristic->setValue(
-            reinterpret_cast<uint8_t *>(&(externalCmds.type2notification)),
-            sizeof(BLENotificationStruct2));
-        break;
-      case 3:
-        pCharacteristic->setValue(
-            reinterpret_cast<uint8_t *>(&(externalCmds.type3notification)),
-            sizeof(BLENotificationStruct3));
-        break;
-      case 4:
-        pCharacteristic->setValue(
-            reinterpret_cast<uint8_t *>(&(externalCmds.type4notification)),
-            sizeof(BLENotificationStruct4));
-        break;
-      case 5:
-        pCharacteristic->setValue(
-            reinterpret_cast<uint8_t *>(&(externalCmds.type5notification)),
-            sizeof(BLENotificationStruct5));
-        break;
-      default:
-        type = 0;
-      }
-      if (type > 0) {
-        pCharacteristic->notify();
-        ESP_LOGI(TAG, "notification sent");
-      }
-    }
   }
 }
 
 BLEKB::BLEKB() { buffer = nullptr; }
 
-void BLEKB::init(C64Emu *c64emu) {
+void BLEKB::init() {
   if (buffer != nullptr) {
     // init method must be called only once
     return;
   }
-
-  this->c64emu = c64emu;
 
   // init buffer
   buffer = new uint8_t[256];
@@ -226,19 +124,18 @@ void BLEKB::init(C64Emu *c64emu) {
   pServer->setCallbacks(new BLEKBServerCallback(*this));
 
   BLEService *pService = pServer->createService(Config::SERVICE_UUID);
-  BLECharacteristic *pCharacteristic = pService->createCharacteristic(
+  pCharacteristic = pService->createCharacteristic(
       Config::CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
-  pCharacteristic->setCallbacks(
-      new BLEKBCharacteristicCallback(*this, c64emu->externalCmds));
+  pCharacteristic->setCallbacks(new BLEKBCharacteristicCallback(*this));
   pCharacteristic->setValue("THMIC64");
   pService->start();
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(Config::SERVICE_UUID);
   pAdvertising->setMinPreferred(0x12);
-  pAdvertising->setMinInterval(0x30); // min advertising interval (30ms)
-  pAdvertising->setMaxInterval(0x60); // max advertising interval (60ms)
+  pAdvertising->setMinInterval(0x30); // min advertising interval (48*0.625ms)
+  pAdvertising->setMaxInterval(0x60); // max advertising interval (96*0.625ms)
   pAdvertising->start();
 
   esp_ble_conn_update_params_t conn_params = {
@@ -251,13 +148,27 @@ void BLEKB::init(C64Emu *c64emu) {
   esp_ble_gap_update_conn_params(&conn_params);
 }
 
-void BLEKB::handleKeyPress() {
-  if ((shiftctrlcode & 128) != 0) {
-    // "external" commands are handled in BLEKBCharacteristicCallback::onWrite
+uint8_t *BLEKB::getExtCmdBuffer() {
+  if (shiftctrlcode & 128) {
     shiftctrlcode = 0;
     sentdc01 = 0xff;
+    sentdc00 = 0xff;
     keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
     keypresseddown = false;
+    return buffer;
+  }
+  return nullptr;
+}
+
+void BLEKB::sendExtCmdNotification(uint8_t *data, size_t size) {
+  pCharacteristic->setValue(data, size);
+  pCharacteristic->notify();
+  ESP_LOGI(TAG, "notification sent");
+}
+
+void BLEKB::scanKeyboard() {
+  if (shiftctrlcode & 128) {
+    // "external" commands are handled in getExtCmdBuffer()
     return;
   }
   // key is "pressed down" at least for 24 ms
@@ -273,7 +184,7 @@ void BLEKB::handleKeyPress() {
   return;
 }
 
-uint8_t BLEKB::getdc01(uint8_t querydc00, bool xchgports) {
+uint8_t BLEKB::getDC01(uint8_t querydc00, bool xchgports) {
   uint8_t kbcode1;
   uint8_t kbcode2;
   if (xchgports) {
@@ -336,7 +247,11 @@ uint8_t BLEKB::getdc01(uint8_t querydc00, bool xchgports) {
 
 uint8_t BLEKB::getKBJoyValue(bool port2) { return virtjoystickvalue; }
 
-void BLEKB::setKbcodes(uint8_t sentdc01, uint8_t sentdc00) {
+void BLEKB::setKBcodes(uint8_t sentdc01, uint8_t sentdc00) {
   this->sentdc01 = sentdc01;
   this->sentdc00 = sentdc00;
+}
+
+void BLEKB::setDetectReleasekey(bool detectreleasekey) {
+  this->detectreleasekey = detectreleasekey;
 }

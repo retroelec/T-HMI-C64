@@ -45,17 +45,20 @@ void IRAM_ATTR C64Emu::interruptProfilingBatteryCheckFunc() {
       // fallback if calibration was not successful
       voltage = raw_value * 2;
     }
-    batteryVoltage = voltage;
+    cpu.batteryVoltage = voltage;
     // if battery voltage is too low, then power off device
-    if (batteryVoltage < 3550) {
+    if (cpu.batteryVoltage < 3550) {
       powerOff();
     }
     // reset "timer"
     cntSecondsForBatteryCheck = 0;
   }
-
+  // power off?
+  if (cpu.poweroff) {
+    powerOff();
+  }
   // profiling (if activated)
-  if (!perf) {
+  if (!cpu.perf) {
     return;
   }
   // frames per second
@@ -155,7 +158,7 @@ void IRAM_ATTR C64Emu::interruptSystemFunc() {
   // check for keyboard inputs ca. each 8 ms
   checkForKeyboardCnt++;
   if (checkForKeyboardCnt == (8333 / Config::INTERRUPTSYSTEMRESOLUTION)) {
-    blekb.handleKeyPress();
+    cpu.configInput.inputDriver->scanKeyboard();
     checkForKeyboardCnt = 0;
   }
 }
@@ -221,14 +224,8 @@ void C64Emu::setup() {
   // init LCD driver
   vic.initLCDController();
 
-  // init ble keyboard
-  blekb.init(this);
-
   // init CPU
-  cpu.init(ram, charset_rom, &vic, this);
-
-  // init ExternalCmds (must be initialized after cpu!)
-  externalCmds.init(ram, this);
+  cpu.init(ram, charset_rom, &vic);
 
   // start cpu task
   xTaskCreatePinnedToCore(cpuCodeWrapper, // Function to implement the task
@@ -254,7 +251,7 @@ void C64Emu::setup() {
 void C64Emu::loop() {
   vic.refresh();
   vTaskDelay(Config::REFRESHDELAY);
-  if (perf && showperfvalues) {
+  if (cpu.perf && showperfvalues) {
     showperfvalues = false;
     // frames per second
     if (cntRefreshs != 0) {

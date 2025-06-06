@@ -15,7 +15,8 @@ Contact: retroelec42@gmail.com
 ## News
 
 - Support for ESP32-S3-LCD-2.8 from Waveshare
-- Basic SID emulation
+- Simple SID emulation
+- Code refactoring
 
 ## Hardware
 
@@ -119,8 +120,7 @@ Switch voltage to 3.3V on the Arduino joystick module.
 - You may have to adapt the file Makefile and change the name of the serial port (adapt variable PORT).
 - On a linux system you may have to add the group dialout to your user to be able to upload code as a normal user:  
   sudo usermod -a -G dialout your-username  
-  (You have to logout and login again to get the group get active.)  
-  It may also be necessary to allow normal users to access the serial port:  
+  (you have to logout and login again to get the group get active) *and* you may have to change the access rights:  
   sudo chmod 666 /dev/ttyACM0
 - Optional: You *can* install the required Arduino core and libraries using the following command in the directory T-HMI-C64
   (however please be aware that you could overwrite an already installed specfic Arduino core, see also next chapter):  
@@ -254,7 +254,7 @@ You can also send a programm from your Android device to the emulator (DIV scree
 
 ### Class diagram of the emulator
 
-<img src="doc/classdiagram.png" alt="class diagram" width="800"/>
+<img src="doc/classdiagram.png" alt="class diagram" width="1000"/>
 
 ### Keyboard
 
@@ -276,7 +276,7 @@ All hardware ports not explicitly mentioned including their corresponding regist
 
 "Software stuff" not emulated resp. known bugs:
 
-- some SID registers are not or only partly implemented yet: $d415 - $d41c
+- simple SID emulation, some SID registers are not or only partly implemented yet: $d415 - $d41c
 - no tape/disk drive emulation (and no plans to do this)
 - "illegal instructions" test suite fails
 - rarly CPU is blocked after loading a game

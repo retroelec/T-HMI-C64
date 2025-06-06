@@ -24,6 +24,8 @@ class SIDVoice {
 private:
   enum ADSRState { ATTACK, DECAY, SUSTAIN, RELEASE, IDLE };
 
+  float phase;
+  float phaseIncrement;
   float pulseWidth;
   float sustainVolume;
   float attackAdd;
@@ -32,17 +34,17 @@ private:
   ADSRState adsrState;
   float envelope;
   float noiseValue;
-  uint32_t noiseLFSR;
-  float phase;
-  float phaseIncrement;
-  uint8_t control;
-
-  float getNoiseValueUpdateLFSR();
-
-public:
+  uint32_t lfsr;
   bool syncNextVoice;
   bool ringmod;
+
+  void nextLFSR();
+  float getNoiseNormalized() const;
+
+public:
+  uint8_t control;
   uint8_t voice;
+  float v3env;
   SIDVoice *nextVoice;
   SIDVoice *prevVoice;
 
@@ -62,8 +64,6 @@ class SID {
 private:
   static const uint16_t NUMSAMPLESPERFRAME = Config::AUDIO_SAMPLE_RATE / 50;
   int16_t samples[NUMSAMPLESPERFRAME];
-  float oc3sample;
-  float v3env;
   ConfigSound configSound;
   bool bufferfilled;
   bool buffer0filled;
@@ -76,7 +76,6 @@ public:
   float c64Volume;
   float emuVolume;
   uint8_t sidreg[0x20];
-  float oc3samples[NUMSAMPLESPERFRAME];
   float v3envs[NUMSAMPLESPERFRAME];
 
   SID();

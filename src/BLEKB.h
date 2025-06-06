@@ -17,20 +17,19 @@
 #ifndef BLEKB_H
 #define BLEKB_H
 
+#include "InputDriver.h"
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <cstdint>
 #include <string>
 
-class C64Emu;
-class ExternalCmds;
-
-class BLEKB {
+class BLEKB : public InputDriver {
 private:
-  C64Emu *c64emu;
+  BLECharacteristic *pCharacteristic;
   uint8_t sentdc01;
   uint8_t sentdc00;
+  bool detectreleasekey;
 
 public:
   bool deviceConnected;
@@ -39,14 +38,16 @@ public:
   uint8_t keypresseddowncnt;
   uint8_t virtjoystickvalue;
   bool keypresseddown;
-  bool detectreleasekey;
 
   BLEKB();
-  void init(C64Emu *c64emu);
-  void handleKeyPress();
-  uint8_t getdc01(uint8_t dc00, bool xchgports);
-  uint8_t getKBJoyValue(bool port2);
-  void setKbcodes(uint8_t sentdc01, uint8_t sentdc00);
+  void init() override;
+  uint8_t *getExtCmdBuffer() override;
+  void sendExtCmdNotification(uint8_t *data, size_t size) override;
+  void scanKeyboard() override;
+  uint8_t getDC01(uint8_t dc00, bool xchgports) override;
+  uint8_t getKBJoyValue(bool port2) override;
+  void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) override;
+  void setDetectReleasekey(bool detectreleasekey) override;
 };
 
 class BLEKBServerCallback : public BLEServerCallbacks {
@@ -62,10 +63,9 @@ public:
 class BLEKBCharacteristicCallback : public BLECharacteristicCallbacks {
 private:
   BLEKB &blekb;
-  ExternalCmds &externalCmds;
 
 public:
-  BLEKBCharacteristicCallback(BLEKB &blekb, ExternalCmds &externalCmds);
+  BLEKBCharacteristicCallback(BLEKB &blekb);
   void onWrite(BLECharacteristic *pCharacteristic);
 };
 

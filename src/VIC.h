@@ -38,7 +38,7 @@ private:
   inline void drawByteMCData(uint8_t data, uint16_t &idx, uint16_t &xp,
                              uint16_t *tftColArr, bool *collArr, uint8_t dx)
       __attribute__((always_inline));
-  void drawblankline(uint8_t line);
+  void drawframeline(uint8_t line);
   inline bool shiftDy(uint8_t line, int8_t dy, uint16_t bgcol)
       __attribute__((always_inline));
   inline void shiftDx(uint8_t dx, uint16_t bgcol, uint16_t &idx)
@@ -109,7 +109,6 @@ public:
   uint16_t screenmemstart;
   uint16_t rasterline;
   uint8_t syncd020;
-  bool screenblank;
   bool badlinecond0;
 
   VIC();

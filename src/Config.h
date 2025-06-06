@@ -22,6 +22,8 @@
 
 struct Config {
 
+#define USE_BLE_INPUT
+
 #if defined(BOARD_T_HMI)
 #define USE_ST7789V
 #define USE_SDCARD
@@ -113,8 +115,9 @@ struct Config {
   // resolution of system timer (get BLE KB codes)
   static const uint16_t INTERRUPTSYSTEMRESOLUTION = 1000;
 
-  // audio sample rate
+  // audio
   static const uint16_t AUDIO_SAMPLE_RATE = 44100;
+  static const uint16_t AUDIO_FILLBUFFER_RASTERLINE = 10;
 }; // namespace Config
 
 #endif // CONFIG_H

@@ -17,10 +17,8 @@
 #ifndef C64EMU_H
 #define C64EMU_H
 
-#include "BLEKB.h"
 #include "CPUC64.h"
 #include "ConfigBoard.h"
-#include "ExternalCmds.h"
 
 class C64Emu {
 private:
@@ -70,14 +68,10 @@ private:
 
 public:
   CPUC64 cpu;
-  BLEKB blekb;
-  ExternalCmds externalCmds;
-  bool perf = false;
   bool showperfvalues = false;
   uint8_t cntRefreshs = 0;
   uint32_t numofcyclespersecond = 0;
   uint32_t numofburnedcyclespersecond = 0;
-  uint32_t batteryVoltage = 0;
 
   void powerOff();
   void setup();

@@ -15,8 +15,8 @@
  http://www.gnu.org/licenses/.
 */
 #include "CPUC64.h"
-#include "C64Emu.h"
 #include "Config.h"
+#include "ExternalCmds.h"
 #include "JoystickInitializationException.h"
 #include "jllog.h"
 #include "roms/basic.h"
@@ -60,18 +60,14 @@ uint8_t CPUC64::getMem(uint16_t addr) {
         return vic->vicreg[vicidx];
       }
     }
-    // ** SID resp RNG **
+    // ** SID **
     else if (addr <= 0xd7ff) {
       uint8_t sididx = (addr - 0xd400) % 0x20;
       if (sididx == 0x1b) {
-        // return static_cast<uint8_t>(
-        //     (sid.oc3samples[vic->rasterline * 881 / 311] + 1.0f) * 128.0f);
-        uint32_t rand = esp_random();
-        return (uint8_t)(rand & 0xff);
+        return (uint8_t)(esp_random() & 0xff);
       } else if (sididx == 0x1c) {
-        // return static_cast<uint8_t>(
-        //     sid.v3envs[vic->rasterline * 881 / 311] * 255.0f + 0.1f);
-        return 0;
+        return static_cast<uint8_t>(sid.v3envs[vic->rasterline * 881 / 311] *
+                                    255.0f);
       } else {
         return sid.sidreg[sididx];
       }
@@ -88,21 +84,21 @@ uint8_t CPUC64::getMem(uint16_t addr) {
         uint8_t input = 0xff;
         if (joystickmode == 2) {
           // real joystick, but still check for keyboard input
-          input = c64emu->blekb.getdc01(cia1.ciareg[0x01], true);
+          input = configInput.inputDriver->getDC01(cia1.ciareg[0x01], true);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             input = joystick.getValue();
           }
         } else if (kbjoystickmode == 2) {
           // keyboard joystick, but still check for keyboard input
-          input = c64emu->blekb.getdc01(cia1.ciareg[0x01], true);
+          input = configInput.inputDriver->getDC01(cia1.ciareg[0x01], true);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
-            input = c64emu->blekb.getKBJoyValue(true);
+            input = configInput.inputDriver->getKBJoyValue(true);
           }
         } else {
           // keyboard
-          input = c64emu->blekb.getdc01(cia1.ciareg[0x01], true);
+          input = configInput.inputDriver->getDC01(cia1.ciareg[0x01], true);
         }
         return (cia1.ciareg[0x00] | ~ddra) & input;
       } else if (ciaidx == 0x01) {
@@ -116,21 +112,21 @@ uint8_t CPUC64::getMem(uint16_t addr) {
         }
         if (joystickmode == 1) {
           // real joystick, but still check for keyboard input
-          input = c64emu->blekb.getdc01(cia1.ciareg[0x00], false);
+          input = configInput.inputDriver->getDC01(cia1.ciareg[0x00], false);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             input = joystick.getValue();
           }
         } else if (kbjoystickmode == 1) {
           // keyboard joystick, but still check for keyboard input
-          input = c64emu->blekb.getdc01(cia1.ciareg[0x00], false);
+          input = configInput.inputDriver->getDC01(cia1.ciareg[0x00], false);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
-            input = c64emu->blekb.getKBJoyValue(false);
+            input = configInput.inputDriver->getKBJoyValue(false);
           }
         } else {
           // keyboard
-          input = c64emu->blekb.getdc01(cia1.ciareg[0x00], false);
+          input = configInput.inputDriver->getDC01(cia1.ciareg[0x00], false);
         }
         return (cia1.ciareg[0x01] | ~ddrb) & input;
       }
@@ -461,12 +457,53 @@ void CPUC64::vTaskDelayUntilUS(int64_t lastMeasuredTime,
   }
 }
 
+void CPUC64::check4extcmd() {
+  uint8_t *extcmdbuffer = configInput.inputDriver->getExtCmdBuffer();
+  if (extcmdbuffer != nullptr) {
+    uint8_t type = externalCmds->executeExternalCmd(extcmdbuffer);
+    // sync detectreleasekey
+    configInput.inputDriver->setDetectReleasekey(detectreleasekey);
+    // send notification
+    uint8_t *data;
+    size_t size;
+    switch (type) {
+    case 1:
+      data = reinterpret_cast<uint8_t *>(&(externalCmds->type1notification));
+      size = sizeof(externalCmds->type1notification);
+      break;
+    case 2:
+      data = reinterpret_cast<uint8_t *>(&(externalCmds->type2notification));
+      size = sizeof(externalCmds->type2notification);
+      break;
+    case 3:
+      data = reinterpret_cast<uint8_t *>(&(externalCmds->type3notification));
+      size = sizeof(externalCmds->type3notification);
+      break;
+    case 4:
+      data = reinterpret_cast<uint8_t *>(&(externalCmds->type4notification));
+      size = sizeof(externalCmds->type4notification);
+      break;
+    case 5:
+      data = reinterpret_cast<uint8_t *>(&(externalCmds->type5notification));
+      size = sizeof(externalCmds->type5notification);
+      break;
+    default:
+      type = 0;
+    }
+    if (type > 0) {
+      configInput.inputDriver->sendExtCmdNotification(data, size);
+      ESP_LOGI(TAG, "notification sent");
+    }
+  }
+}
+
 void CPUC64::run() {
   // pc *must* be set externally!
   cpuhalted = false;
   debug = false;
   debugstartaddr = 0;
   debuggingstarted = false;
+  detectreleasekey = true;
   numofcycles = 0;
   uint8_t badlinecycles = 0;
   int64_t lastMeasuredTime = esp_timer_get_time();
@@ -479,9 +516,6 @@ void CPUC64::run() {
     badlinecycles = vic->nextRasterline();
 
     if (deactivateTemp) {
-      badlinecycles = 0;
-    }
-    if (vic->screenblank) {
       badlinecycles = 0;
     }
     numofcycles = 0;
@@ -536,6 +570,8 @@ void CPUC64::run() {
       restorenmi = false;
       setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
     }
+    // check for "external commands" once per frame
+    check4extcmd();
     // "throttle"
     numofcyclespersecond += numofcycles;
     uint32_t nominaltime = (vic->rasterline + 1) * 1000000 / 50 / 312;
@@ -548,7 +584,7 @@ void CPUC64::run() {
 #endif
     }
 #ifdef USE_I2SSOUND
-    else if (vic->rasterline == 10) {
+    else if (vic->rasterline == Config::AUDIO_FILLBUFFER_RASTERLINE) {
       sid.fillBuffer();
     }
 #endif
@@ -570,24 +606,27 @@ void CPUC64::initMemAndRegs() {
   pc = kernal_rom[addr] + (kernal_rom[addr + 1] << 8);
 }
 
-void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic, C64Emu *c64emu) {
+void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic) {
   ESP_LOGI(TAG, "CPUC64::init");
   this->ram = ram;
   this->charrom = charrom;
   this->vic = vic;
-  this->c64emu = c64emu;
+  this->externalCmds = new ExternalCmds();
   joystickmode = 0;
   kbjoystickmode = 0;
   deactivateTemp = false;
   numofcycles = 0;
   numofcyclespersecond = 0;
   numofburnedcyclespersecond = 0;
+  configInput.inputDriver->init();
   try {
     joystick.init();
   } catch (const JoystickInitializationException &e) {
     ESP_LOGI(TAG, "error in init. of joystick: %s - continue anyway", e.what());
   }
+  sid.init();
   initMemAndRegs();
+  externalCmds->init(ram, this);
 }
 
 void CPUC64::setPC(uint16_t newPC) {
@@ -642,5 +681,5 @@ void CPUC64::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
 }
 
 void CPUC64::setKeycodes(uint8_t keycode1, uint8_t keycode2) {
-  c64emu->blekb.setKbcodes(keycode1, keycode2);
+  configInput.inputDriver->setKBcodes(keycode1, keycode2);
 }

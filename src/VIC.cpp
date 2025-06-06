@@ -54,7 +54,7 @@ void VIC::drawByteMCData(uint8_t data, uint16_t &idx, uint16_t &xp,
   }
 }
 
-void VIC::drawblankline(uint8_t line) {
+void VIC::drawframeline(uint8_t line) {
   uint16_t framecol = tftColorFromC64ColorArr[vicreg[0x20] & 15];
   uint16_t idx = line * 320;
   for (uint16_t i = 0; i < 320; i++) {
@@ -299,15 +299,19 @@ void VIC::drawSpriteDataSC(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                            uint8_t *data, uint8_t color) {
   uint16_t tftcolor = tftColorFromC64ColorArr[color];
   uint16_t idx = xpos + ypos * 320;
+  bool only38cols = !(vicreg[0x16] & 8);
+  uint16_t low = only38cols ? 8 : 0;
+  uint16_t high = only38cols ? 312 : 320;
   for (uint8_t x = 0; x < 3; x++) {
     uint8_t d = *data++;
     uint8_t bitval = 128;
     for (uint8_t i = 0; i < 8; i++) {
-      if (xpos < 0) {
+      if (xpos < low) {
         idx++;
         xpos++;
+        bitval >>= 1;
         continue;
-      } else if (xpos >= 320) {
+      } else if (xpos >= high) {
         return;
       }
       if (d & bitval) {
@@ -341,15 +345,19 @@ void VIC::drawSpriteDataSCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                              uint8_t *data, uint8_t color) {
   uint16_t tftcolor = tftColorFromC64ColorArr[color];
   uint16_t idx = xpos + ypos * 320;
+  bool only38cols = !(vicreg[0x16] & 8);
+  uint16_t low = only38cols ? 8 : 0;
+  uint16_t high = only38cols ? 312 : 320;
   for (uint8_t x = 0; x < 3; x++) {
     uint8_t d = *data++;
     uint8_t bitval = 128;
     for (uint8_t i = 0; i < 8; i++) {
-      if (xpos < 0) {
+      if (xpos < low) {
         idx += 2;
         xpos += 2;
+        bitval >>= 1;
         continue;
-      } else if (xpos >= 320) {
+      } else if (xpos >= high) {
         return;
       }
       if (d & bitval) {
@@ -387,11 +395,14 @@ void VIC::drawSpriteDataSCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,
 
 void VIC::drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, int16_t &xpos,
                                 uint8_t bitnr, uint16_t *tftcolor) {
-  if (xpos < 0) {
+  bool only38cols = !(vicreg[0x16] & 8);
+  uint16_t low = only38cols ? 8 : 0;
+  uint16_t high = only38cols ? 312 : 320;
+  if (xpos < low) {
     idx += 2;
     xpos += 2;
     return;
-  } else if (xpos >= 320) {
+  } else if (xpos >= high) {
     return;
   }
   if (idxc) {
@@ -490,7 +501,7 @@ void VIC::drawSprites(uint8_t line) {
   for (int8_t nr = 7; nr >= 0; nr--) {
     if (spritesenabled & bitval) {
       uint8_t facysize = (spritesdoubley & bitval) ? 2 : 1;
-      uint16_t y = vicreg[0x01 + nr * 2];
+      uint8_t y = vicreg[0x01 + nr * 2];
       if ((line >= y) && (line < (y + 21 * facysize))) {
         int16_t x = vicreg[0x00 + nr * 2] - 24;
         if (vicreg[0x10] & bitval) {
@@ -589,6 +600,7 @@ void VIC::refresh() {
 
 uint8_t VIC::nextRasterline() {
   bool rsel = vicreg[0x11] & 8;
+  bool screenblank = false;
   rasterline++;
   if (rasterline > 311) {
     rasterline = 0;
@@ -609,9 +621,7 @@ uint8_t VIC::nextRasterline() {
   } else if ((rasterline == 247) && (!rsel)) {
     vertborder = true;
   } else if (rasterline == 251) {
-    if (vicreg[0x11] & 0x10) {
-      screenblank = false;
-    } else {
+    if (!(vicreg[0x11] & 0x10)) {
       screenblank = true;
     }
     if (rsel) {
@@ -629,6 +639,9 @@ uint8_t VIC::nextRasterline() {
     }
   }
   // calculate cycles used by VIC
+  if (screenblank) {
+    return 0;
+  }
   uint8_t viccycles = 0;
   // badline?
   if (((vicreg[0x11] & 7) == (raster7 & 7)) && badlinecond &&
@@ -691,7 +704,7 @@ void VIC::drawRasterline() {
       }
       drawSprites(rasterline - 1);
     } else {
-      drawblankline(rasterline - 51);
+      drawframeline(rasterline - 51);
     }
     lineC64map++;
   }

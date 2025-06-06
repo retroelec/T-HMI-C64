@@ -17,15 +17,16 @@
 #ifndef EXTERNALCMDS_H
 #define EXTERNALCMDS_H
 
-class C64Emu;
-
 #include "SDCard.h"
 #include <cstdint>
 
 // notifications may be not larger than 20 bytes
 
-struct BLENotificationStruct1 {
+struct NotificationStruct {
   uint8_t type;
+};
+
+struct BLENotificationStruct1 : NotificationStruct {
   uint8_t joymode;
   uint8_t deactivateTemp;
   uint8_t sendrawkeycodes;
@@ -34,8 +35,7 @@ struct BLENotificationStruct1 {
   uint8_t switchdetectreleasekey;
 };
 
-struct BLENotificationStruct2 {
-  uint8_t type;
+struct BLENotificationStruct2 : NotificationStruct {
   uint8_t cpuRunning;
   uint16_t pc;
   uint8_t a;
@@ -58,25 +58,24 @@ struct BLENotificationStruct2 {
 
 static const uint8_t BLENOTIFICATIONTYPE3NUMOFBYTES =
     16; // must be divisible by 8
-struct BLENotificationStruct3 {
-  uint8_t type;
+
+struct BLENotificationStruct3 : NotificationStruct {
   uint8_t mem[BLENOTIFICATIONTYPE3NUMOFBYTES];
 };
 
-struct BLENotificationStruct4 {
-  uint8_t type;
-};
+struct BLENotificationStruct4 : NotificationStruct {};
 
-struct BLENotificationStruct5 {
-  uint8_t type;
+struct BLENotificationStruct5 : NotificationStruct {
   uint8_t batteryVolLow;
   uint8_t batteryVolHi;
 };
 
+class CPUC64; // forward declaration
+
 class ExternalCmds {
 private:
-  C64Emu *c64emu;
   uint8_t *ram;
+  CPUC64 *cpu;
   SDCard sdcard;
   bool sendrawkeycodes;
   uint16_t actaddrreceivecmd;
@@ -97,7 +96,7 @@ public:
   BLENotificationStruct4 type4notification;
   BLENotificationStruct5 type5notification;
 
-  void init(uint8_t *ram, C64Emu *c64emu);
+  void init(uint8_t *ram, CPUC64 *cpu);
   uint8_t executeExternalCmd(uint8_t *buffer);
 };
 

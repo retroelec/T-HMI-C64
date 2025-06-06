@@ -1,0 +1,68 @@
+@startuml
+title class diagram
+
+skinparam class {
+  BackgroundColor #f3f3f3
+  ArrowColor Black
+  BorderColor Black
+}
+
+interface BoardDriver
+interface DisplayDriver
+interface SoundDriver
+interface InputDriver
+
+class C64Emu
+class CPUC64
+class VIC
+class T_HMI
+class T_DISPLAY_S3
+class Waveshare
+class BLEKB
+class ExternalCmds
+class CIA
+class CPU6502
+class Joystick
+class SID
+class SDCard
+class ST7789V
+class RM67162
+class ST7789VSerial
+class I2SSound
+class ConfigBoard
+class ConfigDisplay
+class ConfigSound
+class ConfigInput
+
+C64Emu --> CPUC64
+C64Emu --> VIC
+C64Emu --> BoardDriver
+C64Emu --> ConfigBoard
+C64Emu --> ConfigSound
+
+T_HMI ..|> BoardDriver
+T_DISPLAY_S3 ..|> BoardDriver
+Waveshare ..|> BoardDriver
+
+CPUC64 *-- ExternalCmds
+CPUC64 --> CIA
+CPUC64 --|> CPU6502
+CPUC64 --> Joystick
+CPUC64 --> VIC
+CPUC64 --> SID
+CPUC64 --> InputDriver
+CPUC64 --> ConfigInput
+
+BLEKB ..|> InputDriver
+
+VIC --> DisplayDriver
+VIC --> ConfigDisplay
+SID --> SoundDriver
+ExternalCmds --> SDCard
+
+ST7789V ..|> DisplayDriver
+RM67162 ..|> DisplayDriver
+ST7789VSerial ..|> DisplayDriver
+I2SSound ..|> SoundDriver
+@enduml
+
