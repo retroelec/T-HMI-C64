@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -19,12 +19,12 @@
 
 #include "CIA.h"
 #include "CPU6502.h"
-#include "ConfigInput.h"
+#include "ConfigKeyboard.h"
 #include "Joystick.h"
 #include "SID.h"
 #include "VIC.h"
+#include <atomic>
 #include <cstdint>
-#include <mutex>
 
 class ExternalCmds; // forward declaration
 
@@ -42,8 +42,6 @@ private:
   bool bankDIO;
   uint8_t register1;
 
-  std::mutex pcMutex;
-
   bool nmiAck;
 
   inline void vTaskDelayUntilUS(int64_t lastMeasuredTime,
@@ -60,7 +58,7 @@ public:
   CIA cia2;
   SID sid;
   ExternalCmds *externalCmds;
-  ConfigInput configInput;
+  ConfigKeyboard configKeyboard;
 
   CPUC64() : cia1(true), cia2(false) {}
 
@@ -72,12 +70,11 @@ public:
   uint8_t getSR();
   uint16_t getPC();
 
-  uint32_t numofcyclespersecond;
-  uint32_t numofburnedcyclespersecond;
-
-  bool perf = false;
-  uint32_t batteryVoltage = 0;
-  bool poweroff = false;
+  std::atomic<uint32_t> numofcyclespersecond;
+  std::atomic<uint32_t> numofburnedcyclespersecond;
+  std::atomic<bool> perf;
+  std::atomic<uint32_t> batteryVoltage;
+  std::atomic<bool> poweroff;
 
   // set by class ExternalCmds
   uint8_t joystickmode;

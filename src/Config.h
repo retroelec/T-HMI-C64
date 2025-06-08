@@ -22,7 +22,7 @@
 
 struct Config {
 
-#define USE_BLE_INPUT
+#define USE_BLE_KEYBOARD
 
 #if defined(BOARD_T_HMI)
 #define USE_ST7789V
@@ -111,9 +111,6 @@ struct Config {
       "695ba701-a48c-43f6-9028-3c885771f19f";
   static constexpr const char *CHARACTERISTIC_UUID =
       "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
-
-  // resolution of system timer (get BLE KB codes)
-  static const uint16_t INTERRUPTSYSTEMRESOLUTION = 1000;
 
   // audio
   static const uint16_t AUDIO_SAMPLE_RATE = 44100;

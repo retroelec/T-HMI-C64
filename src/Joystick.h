@@ -17,8 +17,11 @@
 #ifndef JOYSTICK_H
 #define JOYSTICK_H
 
+#include "Config.h"
 #include <cstdint>
+#ifdef USE_JOYSTICK
 #include <esp_adc/adc_oneshot.h>
+#endif
 
 class Joystick {
 private:
@@ -27,7 +30,9 @@ private:
   static const uint16_t LEFT_THRESHOLD = 500;
   static const uint16_t RIGHT_THRESHOLD = 3500;
 
+#ifdef USE_JOYSTICK
   adc_oneshot_unit_handle_t adc2_handle;
+#endif
 
   // read joystick value only each x rasterlines
   uint32_t lastMeasuredTime;

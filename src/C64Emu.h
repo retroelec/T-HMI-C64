@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -19,6 +19,7 @@
 
 #include "CPUC64.h"
 #include "ConfigBoard.h"
+#include <atomic>
 
 class C64Emu {
 private:
@@ -28,9 +29,9 @@ private:
       instance->interruptTODFunc();
     }
   }
-  static void interruptSystemFuncWrapper() {
+  static void interruptScanKeyboardFuncWrapper() {
     if (instance != nullptr) {
-      instance->interruptSystemFunc();
+      instance->interruptScanKeyboardFunc();
     }
   }
   static void interruptProfilingBatteryCheckFuncWrapper() {
@@ -48,32 +49,26 @@ private:
   ConfigBoard configBoard;
   VIC vic;
 
-  uint16_t checkForKeyboardCnt = 0;
-
   uint16_t cntSecondsForBatteryCheck;
 
   hw_timer_t *interruptProfilingBatteryCheck = NULL;
   hw_timer_t *interruptTOD = NULL;
-  hw_timer_t *interruptSystem = NULL;
+  hw_timer_t *interruptScanKeyboard = NULL;
   TaskHandle_t cpuTask;
 
   void interruptTODFunc();
-  void interruptSystemFunc();
+  void interruptScanKeyboardFunc();
   void interruptProfilingBatteryCheckFunc();
   void cpuCode(void *parameter);
-  bool updateTOD(CIA &cia);
-
-  adc_oneshot_unit_handle_t adc1_handle;
-  adc_cali_handle_t adc_cali_handle;
+  void calibrateBattery();
 
 public:
   CPUC64 cpu;
-  bool showperfvalues = false;
-  uint8_t cntRefreshs = 0;
-  uint32_t numofcyclespersecond = 0;
-  uint32_t numofburnedcyclespersecond = 0;
+  std::atomic<bool> showperfvalues = false;
+  std::atomic<uint8_t> cntRefreshs = 0;
+  std::atomic<uint32_t> numofcyclespersecond = 0;
+  std::atomic<uint32_t> numofburnedcyclespersecond = 0;
 
-  void powerOff();
   void setup();
   void loop();
 };

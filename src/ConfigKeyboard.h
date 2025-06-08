@@ -14,20 +14,20 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef CONFIGINPUT_H
-#define CONFIGINPUT_H
+#ifndef CONFIGKEYBOARD_H
+#define CONFIGKEYBOARD_H
 
 #include "Config.h"
-#include "InputDriver.h"
-#if defined(USE_BLE_INPUT)
+#include "KeyboardDriver.h"
+#if defined(USE_BLE_KEYBOARD)
 #include "BLEKB.h"
 #endif
 
-struct ConfigInput {
-  InputDriver *inputDriver;
-#if defined(USE_BLE_INPUT)
-  ConfigInput() { inputDriver = new BLEKB(); }
+struct ConfigKeyboard {
+  KeyboardDriver *keyboardDriver;
+#if defined(USE_BLE_KEYBOARD)
+  ConfigKeyboard() { keyboardDriver = new BLEKB(); }
 #endif
 };
 
-#endif // CONFIGINPUT_H
+#endif // CONFIGKEYBOARD_H

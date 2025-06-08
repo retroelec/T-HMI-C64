@@ -16,11 +16,13 @@
 */
 #include "Joystick.h"
 #include "Config.h"
+#include "OSUtils.h"
+#ifdef USE_JOYSTICK
 #include "JoystickInitializationException.h"
 #include <driver/gpio.h>
 #include <esp_adc/adc_oneshot.h>
-#include <esp_cpu.h>
 #include <soc/gpio_struct.h>
+#endif
 
 void Joystick::init() {
 #ifdef USE_JOYSTICK
@@ -51,15 +53,15 @@ void Joystick::init() {
   if (err != ESP_OK) {
     throw JoystickInitializationException(esp_err_to_name(err));
   }
+#endif
   // init other attributes
   lastjoystickvalue = 0xff;
-  lastMeasuredTime = esp_cpu_get_cycle_count();
-#endif
+  lastMeasuredTime = OSUtils::getCPUCycleCount();
 }
 
 uint8_t Joystick::getValue() {
   // do not check joystick value too often (max only each 2 ms)
-  uint32_t actMeasuredTime = esp_cpu_get_cycle_count();
+  uint32_t actMeasuredTime = OSUtils::getCPUCycleCount();
   if ((actMeasuredTime - lastMeasuredTime) < 480000) {
     return lastjoystickvalue;
   }

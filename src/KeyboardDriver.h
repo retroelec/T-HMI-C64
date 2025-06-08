@@ -14,13 +14,13 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef INPUTDRIVER_H
-#define INPUTDRIVER_H
+#ifndef KEYBOARDDRIVER_H
+#define KEYBOARDDRIVER_H
 
 #include <cstddef>
 #include <cstdint>
 
-class InputDriver {
+class KeyboardDriver {
 public:
   virtual void init() = 0;
   virtual uint8_t *getExtCmdBuffer() = 0;
@@ -30,7 +30,7 @@ public:
   virtual uint8_t getKBJoyValue(bool port2) = 0;
   virtual void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) = 0;
   virtual void setDetectReleasekey(bool detectreleasekey) = 0;
-  virtual ~InputDriver() {}
+  virtual ~KeyboardDriver() {}
 };
 
-#endif // INPUTDRIVER_H
+#endif // KEYBOARDDRIVER_H

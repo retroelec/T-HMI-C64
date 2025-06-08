@@ -18,6 +18,7 @@
 #define VIC_H
 
 #include "ConfigDisplay.h"
+#include <atomic>
 #include <cstdint>
 
 class VIC {
@@ -95,7 +96,7 @@ private:
 
 public:
   // profiling info
-  uint8_t cntRefreshs;
+  std::atomic<uint8_t> cntRefreshs;
 
   uint8_t *colormap;
   uint8_t *charset;

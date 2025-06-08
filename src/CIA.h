@@ -26,6 +26,9 @@
 // - read the clear-on-read register $dc0d will ACK all pending CIA 1 interrupts
 
 class CIA {
+private:
+  bool updateTODInt();
+
 public:
   uint8_t ciareg[0x10];
 
@@ -59,5 +62,6 @@ public:
   void checkTimerB(uint8_t deltaT);
   uint8_t getCommonCIAReg(uint8_t ciaidx);
   void setCommonCIAReg(uint8_t ciaidx, uint8_t val);
+  void updateTOD();
 };
 #endif // CIA_H

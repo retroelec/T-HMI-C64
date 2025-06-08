@@ -271,3 +271,77 @@ void CIA::setCommonCIAReg(uint8_t ciaidx, uint8_t val) {
     ciareg[ciaidx] = val;
   }
 }
+
+bool CIA::updateTODInt() {
+  uint8_t dc08 = latchrundc08.load(std::memory_order_acquire);
+  dc08++;
+  if (dc08 > 9) {
+    dc08 = 0;
+    uint8_t dc09 = latchrundc09.load(std::memory_order_acquire);
+    uint8_t dc09one = dc09 & 15;
+    uint8_t dc09ten = dc09 >> 4;
+    dc09one++;
+    if (dc09one > 9) {
+      dc09one = 0;
+      dc09ten++;
+      if (dc09ten > 5) {
+        dc09ten = 0;
+        uint8_t dc0a = latchrundc0a.load(std::memory_order_acquire);
+        uint8_t dc0aone = dc0a & 15;
+        uint8_t dc0aten = dc0a >> 4;
+        dc0aone++;
+        if (dc0aone > 9) {
+          dc0aone = 0;
+          dc0aten++;
+          if (dc0aten > 5) {
+            dc0aten = 0;
+            uint8_t dc0b = latchrundc0b.load(std::memory_order_acquire);
+            uint8_t dc0bone = dc0b & 15;
+            uint8_t dc0bten = dc0b >> 4;
+            bool pm = dc0b & 128;
+            dc0bone++;
+            if (((dc0bten == 0) && (dc0bone > 9)) ||
+                (dc0bten && (dc0bone > 1))) {
+              dc0bone = 0;
+              dc0bten++;
+              if (dc0bten > 1) {
+                dc0bten = 0;
+                pm = !pm;
+              }
+            }
+            latchrundc0b.store(dc0bone | (dc0bten << 4) | (pm ? 127 : 0),
+                               std::memory_order_release);
+          }
+        }
+        latchrundc0a.store(dc0aone | (dc0aten << 4), std::memory_order_release);
+      }
+    }
+    latchrundc09.store(dc09one | (dc09ten << 4), std::memory_order_release);
+  }
+  latchrundc08.store(dc08, std::memory_order_release);
+  uint8_t alarmdc08 = latchalarmdc08.load(std::memory_order_acquire);
+  if (dc08 == alarmdc08) {
+    uint8_t dc09 = latchrundc09.load(std::memory_order_acquire);
+    uint8_t alarmdc09 = latchalarmdc09.load(std::memory_order_acquire);
+    if (dc09 == alarmdc09) {
+      uint8_t dc0a = latchrundc0a.load(std::memory_order_acquire);
+      uint8_t alarmdc0a = latchalarmdc0a.load(std::memory_order_acquire);
+      if (dc0a == alarmdc0a) {
+        uint8_t dc0b = latchrundc0b.load(std::memory_order_acquire);
+        uint8_t alarmdc0b = latchalarmdc0b.load(std::memory_order_acquire);
+        if (dc0b == alarmdc0b) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+void CIA::updateTOD() {
+  if (isTODRunning.load(std::memory_order_acquire)) {
+    if (updateTODInt()) {
+      isAlarm.store(true, std::memory_order_release);
+    }
+  }
+}

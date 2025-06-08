@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -17,14 +17,14 @@
 #ifndef BLEKB_H
 #define BLEKB_H
 
-#include "InputDriver.h"
+#include "KeyboardDriver.h"
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <cstdint>
 #include <string>
 
-class BLEKB : public InputDriver {
+class BLEKB : public KeyboardDriver {
 private:
   BLECharacteristic *pCharacteristic;
   uint8_t sentdc01;
@@ -32,6 +32,7 @@ private:
   bool detectreleasekey;
 
 public:
+  portMUX_TYPE blekbmutex = portMUX_INITIALIZER_UNLOCKED;
   bool deviceConnected;
   uint8_t *buffer;
   uint8_t shiftctrlcode;

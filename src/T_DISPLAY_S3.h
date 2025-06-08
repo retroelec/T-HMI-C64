@@ -22,6 +22,12 @@
 class T_DISPLAY_S3 : public BoardDriver {
 public:
   void init() override {}
+
+  void powerOff() override {}
+
+  adc_oneshot_unit_handle_t getAdcHandle() override { return nullptr; }
+
+  adc_cali_handle_t getAdcCaliHandle() override { return nullptr; }
 };
 
 #endif // T_DISPLAY_S3_H

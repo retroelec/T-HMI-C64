@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -17,7 +17,6 @@
 #ifndef CPU6502_H
 #define CPU6502_H
 
-#include <atomic>
 #include <cstdint>
 
 class CPU6502 {
@@ -542,7 +541,7 @@ public:
   uint8_t numofcycles;
 
   // stop cpu
-  std::atomic<bool> cpuhalted;
+  bool cpuhalted;
 
   // pure virtual methods
   virtual void run() = 0;

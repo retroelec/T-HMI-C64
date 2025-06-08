@@ -29,6 +29,12 @@ public:
     digitalWrite(SD_D3_PIN, HIGH);
     vTaskDelay(pdMS_TO_TICKS(10));
   }
+
+  void powerOff() override {}
+
+  adc_oneshot_unit_handle_t getAdcHandle() override { return nullptr; }
+
+  adc_cali_handle_t getAdcCaliHandle() override { return nullptr; }
 };
 
 #endif // WAVESHARE_H

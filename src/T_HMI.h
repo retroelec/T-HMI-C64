@@ -20,10 +20,47 @@
 #include "BoardDriver.h"
 #include "Config.h"
 #include "HardwareInitializationException.h"
+#include "OSUtils.h"
 #include <driver/gpio.h>
+#include <esp_adc/adc_cali.h>
+#include <esp_adc/adc_cali_scheme.h>
+#include <esp_adc/adc_oneshot.h>
 #include <soc/gpio_struct.h>
 
 class T_HMI : public BoardDriver {
+private:
+  adc_oneshot_unit_handle_t adc1_handle;
+  adc_cali_handle_t adc_cali_handle;
+
+  void calibrateBattery() {
+    // initialize ADC unit 1 in one-shot mode with default RTC clock source
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT_1,
+        .clk_src = ADC_RTC_CLK_SRC_DEFAULT,
+        .ulp_mode = ADC_ULP_MODE_DISABLE};
+    adc_oneshot_new_unit(&init_config, &adc1_handle);
+    // configure the selected ADC channel (for battery voltage measurement)
+    // - attenuation of 12 dB allows input voltages up to ~3.3V
+    // - default bit width (typically 12 bits)
+    adc_oneshot_chan_cfg_t config = {.atten = ADC_ATTEN_DB_12,
+                                     .bitwidth = ADC_BITWIDTH_DEFAULT};
+    adc_oneshot_config_channel(adc1_handle, Config::BAT_ADC, &config);
+    // configure ADC calibration using curve fitting scheme
+    // this uses calibration data (if available) stored in eFuses
+    adc_cali_curve_fitting_config_t cali_config = {
+        .unit_id = ADC_UNIT_1,
+        .chan = Config::BAT_ADC,
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    esp_err_t ret =
+        adc_cali_create_scheme_curve_fitting(&cali_config, &adc_cali_handle);
+    // check if calibration was successful; log error if it failed
+    if (ret != ESP_OK) {
+      OSUtils::log(LOG_ERROR, "T-HMI", "adc calibration failed");
+    }
+  }
+
 public:
   void init() override {
     gpio_config_t io_conf;
@@ -39,7 +76,23 @@ public:
     }
     GPIO.out_w1ts = (1 << Config::PWR_ON);
     GPIO.out_w1ts = (1 << Config::PWR_EN);
+    calibrateBattery();
   }
+
+  void powerOff() override {
+    gpio_config_t io_conf;
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = (1ULL << Config::PWR_ON);
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    gpio_config(&io_conf);
+    gpio_set_level((gpio_num_t)Config::PWR_ON, 0);
+  }
+
+  adc_oneshot_unit_handle_t getAdcHandle() override { return adc1_handle; }
+
+  adc_cali_handle_t getAdcCaliHandle() override { return adc_cali_handle; }
 };
 
 #endif // T_HMI_H

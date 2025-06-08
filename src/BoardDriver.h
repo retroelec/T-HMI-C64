@@ -20,6 +20,9 @@
 class BoardDriver {
 public:
   virtual void init() = 0;
+  virtual void powerOff() = 0;
+  virtual adc_oneshot_unit_handle_t getAdcHandle() = 0;
+  virtual adc_cali_handle_t getAdcCaliHandle() = 0;
   virtual ~BoardDriver() {}
 };
 

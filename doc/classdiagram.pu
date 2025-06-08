@@ -10,7 +10,7 @@ skinparam class {
 interface BoardDriver
 interface DisplayDriver
 interface SoundDriver
-interface InputDriver
+interface KeyboardDriver
 
 class C64Emu
 class CPUC64
@@ -29,16 +29,16 @@ class ST7789V
 class RM67162
 class ST7789VSerial
 class I2SSound
+class NoSound
 class ConfigBoard
 class ConfigDisplay
 class ConfigSound
-class ConfigInput
+class ConfigKeyboard
 
 C64Emu --> CPUC64
 C64Emu --> VIC
 C64Emu --> BoardDriver
 C64Emu --> ConfigBoard
-C64Emu --> ConfigSound
 
 T_HMI ..|> BoardDriver
 T_DISPLAY_S3 ..|> BoardDriver
@@ -50,19 +50,21 @@ CPUC64 --|> CPU6502
 CPUC64 --> Joystick
 CPUC64 --> VIC
 CPUC64 --> SID
-CPUC64 --> InputDriver
-CPUC64 --> ConfigInput
+CPUC64 --> KeyboardDriver
+CPUC64 --> ConfigKeyboard
 
-BLEKB ..|> InputDriver
+BLEKB ..|> KeyboardDriver
 
 VIC --> DisplayDriver
 VIC --> ConfigDisplay
 SID --> SoundDriver
+SID --> ConfigSound
 ExternalCmds --> SDCard
 
 ST7789V ..|> DisplayDriver
 RM67162 ..|> DisplayDriver
 ST7789VSerial ..|> DisplayDriver
 I2SSound ..|> SoundDriver
+NoSound ..|> SoundDriver
 @enduml
 

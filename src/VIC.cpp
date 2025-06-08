@@ -554,12 +554,11 @@ void VIC::initVarsAndRegs() {
   vicreg[0x19] = 0x71;
   vicreg[0x1a] = 0xf0;
 
-  cntRefreshs = 0;
+  cntRefreshs.store(0, std::memory_order_release);
   syncd020 = 0;
   vicmem = 0;
   bitmapstart = 0x2000;
   screenmemstart = 1024;
-  cntRefreshs = 0;
   rasterline = 0;
   charset = chrom;
   vertborder = true;
@@ -595,7 +594,7 @@ void VIC::checkFrameColor() {
 void VIC::refresh() {
   configDisplay.displayDriver->drawBitmap(bitmap);
   checkFrameColor();
-  cntRefreshs++;
+  cntRefreshs.fetch_add(1, std::memory_order_release);
 }
 
 uint8_t VIC::nextRasterline() {

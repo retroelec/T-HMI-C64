@@ -271,6 +271,7 @@ int16_t SID::generateSample() {
 }
 
 void SID::fillBuffer() {
+#ifndef USE_NOSOUND
   if (!isVoiceActive()) {
     if (buffer0filled) {
       return;
@@ -287,6 +288,7 @@ void SID::fillBuffer() {
     v3envs[i] = sidVoice[2].v3env;
   }
   bufferfilled = true;
+#endif
 }
 
 void SID::playAudio() {

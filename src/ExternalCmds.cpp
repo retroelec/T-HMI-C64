@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -16,7 +16,7 @@
 */
 #include "ExternalCmds.h"
 #include "CPUC64.h"
-#include "jllog.h"
+#include "OSUtils.h"
 #include "listactions.h"
 #include "loadactions.h"
 #include "saveactions.h"
@@ -62,7 +62,7 @@ void ExternalCmds::setType1Notification() {
   type1notification.deactivateTemp = cpu->deactivateTemp;
   type1notification.sendrawkeycodes = sendrawkeycodes;
   type1notification.switchdebug = cpu->debug;
-  type1notification.switchperf = cpu->perf;
+  type1notification.switchperf = cpu->perf.load(std::memory_order_acquire);
   type1notification.switchdetectreleasekey = cpu->detectreleasekey;
 }
 
@@ -118,22 +118,22 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::NOEXTCMD:
     return 0;
   case ExtCmd::LOAD: {
-    ESP_LOGI(TAG, "load from sdcard...");
+    OSUtils::log(LOG_INFO, TAG, "load from sdcard...");
     cpu->cpuhalted = true;
     bool fileloaded = false;
     bool error = false;
     uint16_t addr;
     if (sdcard.init()) {
-      addr = sdcard.load(SD_MMC, ram);
+      addr = sdcard.load(ram);
       if (addr == 0) {
-        ESP_LOGI(TAG, "file not found");
+        OSUtils::log(LOG_INFO, TAG, "file not found");
       } else {
         setVarTab(addr);
         fileloaded = true;
       }
     } else {
       error = true;
-      ESP_LOGI(TAG, "error init sdcard");
+      OSUtils::log(LOG_INFO, TAG, "error init sdcard");
     }
     addr = src_loadactions_prg[0] + (src_loadactions_prg[1] << 8);
     memcpy(ram + addr, src_loadactions_prg + 2, src_loadactions_prg_len - 2);
@@ -148,16 +148,16 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   }
   case ExtCmd::SAVE: {
-    ESP_LOGI(TAG, "save to sdcard...");
+    OSUtils::log(LOG_INFO, TAG, "save to sdcard...");
     cpu->cpuhalted = true;
     bool filesaved = false;
     if (sdcard.init()) {
-      filesaved = sdcard.save(SD_MMC, ram);
+      filesaved = sdcard.save(ram);
       if (!filesaved) {
-        ESP_LOGI(TAG, "error saving file");
+        OSUtils::log(LOG_INFO, TAG, "error saving file");
       }
     } else {
-      ESP_LOGI(TAG, "error init sdcard");
+      OSUtils::log(LOG_INFO, TAG, "error init sdcard");
     }
     uint16_t addr = src_saveactions_prg[0] + (src_saveactions_prg[1] << 8);
     memcpy(ram + addr, src_saveactions_prg + 2, src_saveactions_prg_len - 2);
@@ -170,7 +170,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   }
   case ExtCmd::LIST: {
-    ESP_LOGI(TAG, "list sdcard...");
+    OSUtils::log(LOG_INFO, TAG, "list sdcard...");
     cpu->cpuhalted = true;
     if (sdcard.init()) {
       uint16_t addr = src_listactions_prg[0] + (src_listactions_prg[1] << 8);
@@ -183,7 +183,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       uint8_t filename[17];
       int cnt = 0;
       while (cnt < 23) {
-        bool success = sdcard.listnextentry(SD_MMC, filename, liststartflag);
+        bool success = sdcard.listnextentry(filename, liststartflag);
         liststartflag = false;
         if (success && (filename[0] != '\0')) {
           // copy filename to c64 ram (0x0342)
@@ -194,7 +194,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
           cpu->exeSubroutine(addr, 0, 0, 0);
         } else {
           if (!success) {
-            ESP_LOGE(TAG, "error reading entry");
+            OSUtils::log(LOG_ERROR, TAG, "error reading entry");
           }
           liststartflag = true;
           break;
@@ -202,13 +202,13 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
         cnt++;
       }
     } else {
-      ESP_LOGE(TAG, "error init sdcard");
+      OSUtils::log(LOG_ERROR, TAG, "error init sdcard");
     }
     cpu->cpuhalted = false;
     return 0;
   }
   case ExtCmd::RECEIVEDATA: {
-    ESP_LOGI(TAG, "enter receivedata");
+    OSUtils::log(LOG_INFO, TAG, "enter receivedata");
     cpu->cpuhalted = true;
     // simple "protocol":
     // - byte 0: cmd (as usual)
@@ -220,7 +220,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     uint8_t cmddetail = buffer[1];
     if (cmddetail == 0) {
       // next block
-      ESP_LOGI(TAG, "next block: %x", actaddrreceivecmd);
+      OSUtils::log(LOG_INFO, TAG, "next block: %x", actaddrreceivecmd);
       for (uint8_t i = 3; i < 253; i++) {
         ram[actaddrreceivecmd + i - 3] = buffer[i];
       }
@@ -229,7 +229,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       // first block
       uint16_t addr = buffer[3] + (buffer[4] << 8);
       actaddrreceivecmd = addr;
-      ESP_LOGI(TAG, "first block: %x", actaddrreceivecmd);
+      OSUtils::log(LOG_INFO, TAG, "first block: %x", actaddrreceivecmd);
       for (uint8_t i = 5; i < 253; i++) {
         ram[actaddrreceivecmd + i - 5] = buffer[i];
       }
@@ -237,7 +237,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     } else if (cmddetail == 2) {
       // last block
       uint8_t len = buffer[3];
-      ESP_LOGI(TAG, "last block: %x", actaddrreceivecmd);
+      OSUtils::log(LOG_INFO, TAG, "last block: %x", actaddrreceivecmd);
       for (uint8_t i = 4; i < (len + 4); i++) {
         ram[actaddrreceivecmd + i - 4] = buffer[i];
       }
@@ -245,7 +245,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       setVarTab(actaddrreceivecmd);
     }
     cpu->cpuhalted = false;
-    ESP_LOGI(TAG, "leave receivedata");
+    OSUtils::log(LOG_INFO, TAG, "leave receivedata");
     setType4Notification();
     return 4;
   }
@@ -259,34 +259,37 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   case ExtCmd::SHOWREG:
     setType2Notification();
-    ESP_LOGI(TAG, "cpuRunning %s",
-             type2notification.cpuRunning ? "true" : "false");
-    ESP_LOGI(TAG, "pc = %x, a = %x, x = %x, y = %x, sr = %x",
-             type2notification.pc, type2notification.a, type2notification.x,
-             type2notification.y, type2notification.sr);
-    ESP_LOGI(TAG, "d011 = %x, d016 = %x, d018 = %x", type2notification.d011,
-             type2notification.d016, type2notification.d018);
-    ESP_LOGI(TAG, "d019 = %x, d01a = %x, register1 = %x",
-             type2notification.d019, type2notification.d01a,
-             type2notification.register1);
-    ESP_LOGI(TAG, "dc0d = %x, dc0e = %x, dc0f = %x", type2notification.dc0d,
-             type2notification.dc0e, type2notification.dc0f);
-    ESP_LOGI(TAG, "dd0d = %x, dd0e = %x, dd0f = %x", type2notification.dd0d,
-             type2notification.dd0e, type2notification.dd0f);
+    OSUtils::log(LOG_INFO, TAG, "cpuRunning %s",
+                 type2notification.cpuRunning ? "true" : "false");
+    OSUtils::log(LOG_INFO, TAG, "pc = %x, a = %x, x = %x, y = %x, sr = %x",
+                 type2notification.pc, type2notification.a, type2notification.x,
+                 type2notification.y, type2notification.sr);
+    OSUtils::log(LOG_INFO, TAG, "d011 = %x, d016 = %x, d018 = %x",
+                 type2notification.d011, type2notification.d016,
+                 type2notification.d018);
+    OSUtils::log(LOG_INFO, TAG, "d019 = %x, d01a = %x, register1 = %x",
+                 type2notification.d019, type2notification.d01a,
+                 type2notification.register1);
+    OSUtils::log(LOG_INFO, TAG, "dc0d = %x, dc0e = %x, dc0f = %x",
+                 type2notification.dc0d, type2notification.dc0e,
+                 type2notification.dc0f);
+    OSUtils::log(LOG_INFO, TAG, "dd0d = %x, dd0e = %x, dd0f = %x",
+                 type2notification.dd0d, type2notification.dd0e,
+                 type2notification.dd0f);
     return 2;
   case ExtCmd::SHOWMEM: {
     uint16_t addr = buffer[3] + (buffer[4] << 8);
     // use addr also as debugging start address
     cpu->debugstartaddr = addr;
-    ESP_LOGI(TAG, "addr: %x", addr);
+    OSUtils::log(LOG_INFO, TAG, "addr: %x", addr);
     setType3Notification(addr);
     for (uint8_t i = 0; i < BLENOTIFICATIONTYPE3NUMOFBYTES / 8; i++) {
       uint8_t j = i * 8;
-      ESP_LOGI(TAG, "mem[%d]: %d %d %d %d %d %d %d %d", j,
-               type3notification.mem[j], type3notification.mem[j + 1],
-               type3notification.mem[j + 2], type3notification.mem[j + 3],
-               type3notification.mem[j + 4], type3notification.mem[j + 5],
-               type3notification.mem[j + 6], type3notification.mem[j + 7]);
+      OSUtils::log(LOG_INFO, TAG, "mem[%d]: %d %d %d %d %d %d %d %d", j,
+                   type3notification.mem[j], type3notification.mem[j + 1],
+                   type3notification.mem[j + 2], type3notification.mem[j + 3],
+                   type3notification.mem[j + 4], type3notification.mem[j + 5],
+                   type3notification.mem[j + 6], type3notification.mem[j + 7]);
     }
     return 3;
   }
@@ -301,73 +304,75 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::JOYSTICKMODE1:
     cpu->joystickmode = 1;
     cpu->kbjoystickmode = 0;
-    ESP_LOGI(TAG, "joystickmode = %x", cpu->joystickmode);
+    OSUtils::log(LOG_INFO, TAG, "joystickmode = %x", cpu->joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::JOYSTICKMODE2:
     cpu->joystickmode = 2;
     cpu->kbjoystickmode = 0;
-    ESP_LOGI(TAG, "joystickmode = %x", cpu->joystickmode);
+    OSUtils::log(LOG_INFO, TAG, "joystickmode = %x", cpu->joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::JOYSTICKMODEOFF:
     cpu->joystickmode = 0;
-    ESP_LOGI(TAG, "joystickmode = %x", cpu->joystickmode);
+    OSUtils::log(LOG_INFO, TAG, "joystickmode = %x", cpu->joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::KBJOYSTICKMODE1:
     cpu->kbjoystickmode = 1;
     cpu->joystickmode = 0;
-    ESP_LOGI(TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
+    OSUtils::log(LOG_INFO, TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODE2:
     cpu->kbjoystickmode = 2;
     cpu->joystickmode = 0;
-    ESP_LOGI(TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
+    OSUtils::log(LOG_INFO, TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODEOFF:
     cpu->kbjoystickmode = 0;
-    ESP_LOGI(TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
+    OSUtils::log(LOG_INFO, TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
     return 0;
   case ExtCmd::GETSTATUS:
     // just send type 1 notification
-    ESP_LOGI(TAG, "send status to BLE client");
+    OSUtils::log(LOG_INFO, TAG, "send status to BLE client");
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHFRAMECOLORREFRESH:
     cpu->deactivateTemp = !cpu->deactivateTemp;
-    ESP_LOGI(TAG, "deactivateTemp = %x", cpu->deactivateTemp);
+    OSUtils::log(LOG_INFO, TAG, "deactivateTemp = %x", cpu->deactivateTemp);
     setType1Notification();
     return 1;
   case ExtCmd::SENDRAWKEYS:
     sendrawkeycodes = !sendrawkeycodes;
-    ESP_LOGI(TAG, "sendrawkeycodes = %x", sendrawkeycodes);
+    OSUtils::log(LOG_INFO, TAG, "sendrawkeycodes = %x", sendrawkeycodes);
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHDEBUG:
     cpu->debug = !cpu->debug;
     cpu->debuggingstarted = false;
-    ESP_LOGI(TAG, "debug = %x", cpu->debug);
+    OSUtils::log(LOG_INFO, TAG, "debug = %x", cpu->debug);
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHPERF:
-    cpu->perf = !cpu->perf;
-    ESP_LOGI(TAG, "perf = %x", cpu->perf);
+    cpu->perf.store(!cpu->perf.load(std::memory_order_acquire),
+                    std::memory_order_release);
+    OSUtils::log(LOG_INFO, TAG, "perf = %x",
+                 cpu->perf.load(std::memory_order_acquire));
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHDETECTRELEASEKEY:
     cpu->detectreleasekey = !cpu->detectreleasekey;
-    ESP_LOGI(TAG, "detectreleasekey = %x", cpu->detectreleasekey);
+    OSUtils::log(LOG_INFO, TAG, "detectreleasekey = %x", cpu->detectreleasekey);
     setType1Notification();
     return 1;
   case ExtCmd::GETBATTERYVOLTAGE: {
-    uint32_t voltage = cpu->batteryVoltage;
+    uint32_t voltage = cpu->batteryVoltage.load(std::memory_order_acquire);
     setType5Notification(voltage & 0xff, (voltage >> 8) & 0xff);
     return 5;
   }
 #ifdef BOARD_T_HMI
   case ExtCmd::POWEROFF:
-    cpu->poweroff = true;
+    cpu->poweroff.store(true, std::memory_order_release);
     return 0;
 #endif
   }

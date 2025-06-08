@@ -18,7 +18,6 @@
 #define SDCARD_H
 
 #include <FS.h>
-#include <SD_MMC.h>
 #include <cstdint>
 
 class SDCard {
@@ -29,9 +28,9 @@ private:
 public:
   SDCard();
   bool init();
-  uint16_t load(fs::FS &fs, uint8_t *ram);
-  bool save(fs::FS &fs, uint8_t *ram);
-  bool listnextentry(fs::FS &fs, uint8_t *nextentry, bool start);
+  uint16_t load(uint8_t *ram);
+  bool save(uint8_t *ram);
+  bool listnextentry(uint8_t *nextentry, bool start);
 };
 
 #endif // SDCARD_H

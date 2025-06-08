@@ -17,7 +17,7 @@
 
 #include "src/C64Emu.h"
 #include "src/Config.h"
-#include "src/jllog.h"
+#include "src/OSUtils.h"
 
 static const char *TAG = "T-HMI-C64";
 
@@ -26,16 +26,16 @@ TaskHandle_t core0TaskHandle;
 C64Emu c64Emu;
 
 void core0Task(void *param) {
-  ESP_LOGI(TAG, "setup() running on core %d", xPortGetCoreID());
+  OSUtils::log(LOG_INFO, TAG, "setup() running on core %d", xPortGetCoreID());
   try {
     c64Emu.setup();
   } catch (...) {
-    ESP_LOGE(TAG, "setup() failed");
+    OSUtils::log(LOG_ERROR, TAG, "setup() failed");
     while (true) {
     }
   }
   vTaskDelay(pdMS_TO_TICKS(1000));
-  ESP_LOGI(TAG, "setup done");
+  OSUtils::log(LOG_INFO, TAG, "setup done");
 
   while (true) {
     c64Emu.loop();
@@ -46,7 +46,7 @@ void setup() {
   Serial.begin(115200);
   vTaskDelay(pdMS_TO_TICKS(500));
   esp_log_level_set("*", ESP_LOG_INFO);
-  ESP_LOGI(TAG, "start setup...");
+  OSUtils::log(LOG_INFO, TAG, "start setup...");
   xTaskCreatePinnedToCore(core0Task, "core0Task", 8192, nullptr, 1,
                           &core0TaskHandle, 0);
 }

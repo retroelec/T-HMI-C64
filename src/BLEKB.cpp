@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -17,7 +17,7 @@
 #include "BLEKB.h"
 #include "Config.h"
 #include "Joystick.h"
-#include "jllog.h"
+#include "OSUtils.h"
 #include <cstring>
 
 static const char *TAG = "BLEKB";
@@ -37,12 +37,12 @@ BLEKBServerCallback::BLEKBServerCallback(BLEKB &blekb) : blekb(blekb) {}
 
 void BLEKBServerCallback::onConnect(BLEServer *pServer) {
   blekb.deviceConnected = true;
-  ESP_LOGI(TAG, "BLE device connected");
+  OSUtils::log(LOG_INFO, TAG, "BLE device connected");
 };
 
 void BLEKBServerCallback::onDisconnect(BLEServer *pServer) {
   blekb.deviceConnected = false;
-  ESP_LOGI(TAG, "BLE device disconnected, try to connect...");
+  OSUtils::log(LOG_INFO, TAG, "BLE device disconnected, try to connect...");
   pServer->getAdvertising()->start();
 }
 
@@ -89,12 +89,14 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
     //                bit 1 -> ctrl
     //                bit 2 -> commodore
     //                bit 7 -> external command (cmd, x, 128)
+    portENTER_CRITICAL(&blekb.blekbmutex);
     for (uint8_t i = 0; i < len; i++) {
       blekb.buffer[i] = (uint8_t)value[i];
     }
     blekb.shiftctrlcode = blekb.buffer[2];
     blekb.keypresseddowncnt = 0;
     blekb.keypresseddown = true;
+    portEXIT_CRITICAL(&blekb.blekbmutex);
   }
 }
 
@@ -163,24 +165,25 @@ uint8_t *BLEKB::getExtCmdBuffer() {
 void BLEKB::sendExtCmdNotification(uint8_t *data, size_t size) {
   pCharacteristic->setValue(data, size);
   pCharacteristic->notify();
-  ESP_LOGI(TAG, "notification sent");
+  OSUtils::log(LOG_INFO, TAG, "notification sent");
 }
 
 void BLEKB::scanKeyboard() {
-  if (shiftctrlcode & 128) {
-    // "external" commands are handled in getExtCmdBuffer()
-    return;
+  portENTER_CRITICAL(&blekbmutex);
+  // "external" commands are handled in getExtCmdBuffer()
+  if (!(shiftctrlcode & 128)) {
+    // key is "pressed down" at least for 24 ms
+    if ((detectreleasekey && keypresseddown) ||
+        (keypresseddowncnt < NUMOFCYCLES_KEYPRESSEDDOWN)) {
+      sentdc00 = buffer[0];
+      sentdc01 = buffer[1];
+      keypresseddowncnt++;
+    } else {
+      sentdc01 = 0xff;
+      sentdc00 = 0xff;
+    }
   }
-  // key is "pressed down" at least for 24 ms
-  if ((detectreleasekey && keypresseddown) ||
-      (keypresseddowncnt < NUMOFCYCLES_KEYPRESSEDDOWN)) {
-    sentdc00 = buffer[0];
-    sentdc01 = buffer[1];
-    keypresseddowncnt++;
-  } else {
-    sentdc01 = 0xff;
-    sentdc00 = 0xff;
-  }
+  portEXIT_CRITICAL(&blekbmutex);
   return;
 }
 

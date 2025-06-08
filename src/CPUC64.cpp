@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -18,10 +18,9 @@
 #include "Config.h"
 #include "ExternalCmds.h"
 #include "JoystickInitializationException.h"
-#include "jllog.h"
+#include "OSUtils.h"
 #include "roms/basic.h"
 #include "roms/kernal.h"
-#include <esp_random.h>
 
 static const uint8_t NUMCIACHECKS = 2;
 
@@ -35,8 +34,8 @@ static const char *TAG = "CPUC64";
 // regardless of how any other connection is set. In other words, it's not
 // possible for the line to be high if anything on that line wants to bring it
 // low.
-// => use "(cia1.ciareg[0x00] | ~ddra) & input;" instead of "(cia1.ciareg[0x00]
-// & ddra) | (input & ~ddra);"
+// => use "(cia1.ciareg[0x00] | ~ddra) & input;" instead of
+// "(cia1.ciareg[0x00] & ddra) | (input & ~ddra);"
 
 uint8_t CPUC64::getMem(uint16_t addr) {
   if ((!bankARAM) && ((addr >= 0xa000) && (addr <= 0xbfff))) {
@@ -64,7 +63,7 @@ uint8_t CPUC64::getMem(uint16_t addr) {
     else if (addr <= 0xd7ff) {
       uint8_t sididx = (addr - 0xd400) % 0x20;
       if (sididx == 0x1b) {
-        return (uint8_t)(esp_random() & 0xff);
+        return OSUtils::getRandomByte();
       } else if (sididx == 0x1c) {
         return static_cast<uint8_t>(sid.v3envs[vic->rasterline * 881 / 311] *
                                     255.0f);
@@ -84,21 +83,24 @@ uint8_t CPUC64::getMem(uint16_t addr) {
         uint8_t input = 0xff;
         if (joystickmode == 2) {
           // real joystick, but still check for keyboard input
-          input = configInput.inputDriver->getDC01(cia1.ciareg[0x01], true);
+          input =
+              configKeyboard.keyboardDriver->getDC01(cia1.ciareg[0x01], true);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             input = joystick.getValue();
           }
         } else if (kbjoystickmode == 2) {
           // keyboard joystick, but still check for keyboard input
-          input = configInput.inputDriver->getDC01(cia1.ciareg[0x01], true);
+          input =
+              configKeyboard.keyboardDriver->getDC01(cia1.ciareg[0x01], true);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
-            input = configInput.inputDriver->getKBJoyValue(true);
+            input = configKeyboard.keyboardDriver->getKBJoyValue(true);
           }
         } else {
           // keyboard
-          input = configInput.inputDriver->getDC01(cia1.ciareg[0x01], true);
+          input =
+              configKeyboard.keyboardDriver->getDC01(cia1.ciareg[0x01], true);
         }
         return (cia1.ciareg[0x00] | ~ddra) & input;
       } else if (ciaidx == 0x01) {
@@ -112,21 +114,24 @@ uint8_t CPUC64::getMem(uint16_t addr) {
         }
         if (joystickmode == 1) {
           // real joystick, but still check for keyboard input
-          input = configInput.inputDriver->getDC01(cia1.ciareg[0x00], false);
+          input =
+              configKeyboard.keyboardDriver->getDC01(cia1.ciareg[0x00], false);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             input = joystick.getValue();
           }
         } else if (kbjoystickmode == 1) {
           // keyboard joystick, but still check for keyboard input
-          input = configInput.inputDriver->getDC01(cia1.ciareg[0x00], false);
+          input =
+              configKeyboard.keyboardDriver->getDC01(cia1.ciareg[0x00], false);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
-            input = configInput.inputDriver->getKBJoyValue(false);
+            input = configKeyboard.keyboardDriver->getKBJoyValue(false);
           }
         } else {
           // keyboard
-          input = configInput.inputDriver->getDC01(cia1.ciareg[0x00], false);
+          input =
+              configKeyboard.keyboardDriver->getDC01(cia1.ciareg[0x00], false);
         }
         return (cia1.ciareg[0x01] | ~ddrb) & input;
       }
@@ -277,7 +282,6 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
     else if (addr <= 0xd7ff) {
       uint8_t sididx = (addr - 0xd400) % 0x20;
       sid.sidreg[sididx] = val;
-#ifdef USE_I2SSOUND
       if (sididx <= 0x14) {
         uint8_t voice = sididx / 7;
         int regInVoice = sididx % 7;
@@ -305,7 +309,6 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
       } else if (sididx == 0x18) {
         sid.c64Volume = (float)(val & 0x0f) / 15.0;
       }
-#endif
     }
     // ** Colorram **
     else if (addr <= 0xdbff) {
@@ -364,12 +367,12 @@ void CPUC64::setMem(uint16_t addr, uint8_t val) {
 
 void CPUC64::cmd6502halt() {
   cpuhalted = true;
-  ESP_LOGE(TAG, "illegal code, cpu halted, pc = %x", pc - 1);
+  OSUtils::log(LOG_ERROR, TAG, "illegal code, cpu halted, pc = %x", pc - 1);
 }
 
 /*
 void CPUC64::cmd6502nop1a() {
-  ESP_LOGI(TAG, "nop: %d", micros());
+  OSUtils::log(LOG_INFO, TAG, "nop: %d", micros());
   numofcycles += 2;
 }
 */
@@ -441,28 +444,29 @@ void CPUC64::logDebugInfo() {
   if (debug &&
       (debuggingstarted || (debugstartaddr == 0) || (pc == debugstartaddr))) {
     debuggingstarted = true;
-    ESP_LOGI(TAG, "pc: %2x, cmd: %s, a: %x, x: %x, y: %x, sp: %x, sr: %x", pc,
-             cmdName[getMem(pc)], a, x, y, sp, sr);
+    OSUtils::log(LOG_INFO, TAG,
+                 "pc: %2x, cmd: %s, a: %x, x: %x, y: %x, sp: %x, sr: %x", pc,
+                 cmdName[getMem(pc)], a, x, y, sp, sr);
   }
 }
 
 void CPUC64::vTaskDelayUntilUS(int64_t lastMeasuredTime,
                                uint32_t timeIncrement) {
-  int64_t now = esp_timer_get_time();
+  int64_t now = OSUtils::getTimeUS();
   int64_t nextWake = lastMeasuredTime + timeIncrement;
   if (now < nextWake) {
-    uint32_t numofburnedcycles = (uint32_t)(nextWake - now);
-    numofburnedcyclespersecond += numofburnedcycles;
-    esp_rom_delay_us(numofburnedcycles);
+    uint32_t pause = (uint32_t)(nextWake - now);
+    numofburnedcyclespersecond.fetch_add(pause, std::memory_order_release);
+    OSUtils::pauseExecutionUS(pause);
   }
 }
 
 void CPUC64::check4extcmd() {
-  uint8_t *extcmdbuffer = configInput.inputDriver->getExtCmdBuffer();
+  uint8_t *extcmdbuffer = configKeyboard.keyboardDriver->getExtCmdBuffer();
   if (extcmdbuffer != nullptr) {
     uint8_t type = externalCmds->executeExternalCmd(extcmdbuffer);
     // sync detectreleasekey
-    configInput.inputDriver->setDetectReleasekey(detectreleasekey);
+    configKeyboard.keyboardDriver->setDetectReleasekey(detectreleasekey);
     // send notification
     uint8_t *data;
     size_t size;
@@ -491,8 +495,8 @@ void CPUC64::check4extcmd() {
       type = 0;
     }
     if (type > 0) {
-      configInput.inputDriver->sendExtCmdNotification(data, size);
-      ESP_LOGI(TAG, "notification sent");
+      configKeyboard.keyboardDriver->sendExtCmdNotification(data, size);
+      OSUtils::log(LOG_INFO, TAG, "notification sent");
     }
   }
 }
@@ -506,7 +510,7 @@ void CPUC64::run() {
   detectreleasekey = true;
   numofcycles = 0;
   uint8_t badlinecycles = 0;
-  int64_t lastMeasuredTime = esp_timer_get_time();
+  int64_t lastMeasuredTime = OSUtils::getTimeUS();
   while (true) {
     if (cpuhalted) {
       continue;
@@ -573,26 +577,21 @@ void CPUC64::run() {
     // check for "external commands" once per frame
     check4extcmd();
     // "throttle"
-    numofcyclespersecond += numofcycles;
+    numofcyclespersecond.fetch_add(numofcycles, std::memory_order_release);
     uint32_t nominaltime = (vic->rasterline + 1) * 1000000 / 50 / 312;
     vTaskDelayUntilUS(lastMeasuredTime, nominaltime);
     // get start time of frame, sid
     if (vic->rasterline == 311) {
-      lastMeasuredTime = esp_timer_get_time();
-#ifdef USE_I2SSOUND
+      lastMeasuredTime = OSUtils::getTimeUS();
       sid.playAudio();
-#endif
-    }
-#ifdef USE_I2SSOUND
-    else if (vic->rasterline == Config::AUDIO_FILLBUFFER_RASTERLINE) {
+    } else if (vic->rasterline == Config::AUDIO_FILLBUFFER_RASTERLINE) {
       sid.fillBuffer();
     }
-#endif
   }
 }
 
 void CPUC64::initMemAndRegs() {
-  ESP_LOGI(TAG, "CPUC64::initMemAndRegs");
+  OSUtils::log(LOG_INFO, TAG, "CPUC64::initMemAndRegs");
   setMem(0, 0x2f);
   setMem(1, 0x37);
   setMem(0x8004, 0);
@@ -607,7 +606,7 @@ void CPUC64::initMemAndRegs() {
 }
 
 void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic) {
-  ESP_LOGI(TAG, "CPUC64::init");
+  OSUtils::log(LOG_INFO, TAG, "CPUC64::init");
   this->ram = ram;
   this->charrom = charrom;
   this->vic = vic;
@@ -616,23 +615,25 @@ void CPUC64::init(uint8_t *ram, uint8_t *charrom, VIC *vic) {
   kbjoystickmode = 0;
   deactivateTemp = false;
   numofcycles = 0;
-  numofcyclespersecond = 0;
-  numofburnedcyclespersecond = 0;
-  configInput.inputDriver->init();
+  numofcyclespersecond.store(0, std::memory_order_release);
+  numofburnedcyclespersecond.store(0, std::memory_order_release);
+  perf.store(false, std::memory_order_release);
+  batteryVoltage.store(0, std::memory_order_release);
+  poweroff.store(false, std::memory_order_release);
+
+  configKeyboard.keyboardDriver->init();
   try {
     joystick.init();
   } catch (const JoystickInitializationException &e) {
-    ESP_LOGI(TAG, "error in init. of joystick: %s - continue anyway", e.what());
+    OSUtils::log(LOG_INFO, TAG,
+                 "error in init. of joystick: %s - continue anyway", e.what());
   }
   sid.init();
   initMemAndRegs();
   externalCmds->init(ram, this);
 }
 
-void CPUC64::setPC(uint16_t newPC) {
-  std::lock_guard<std::mutex> lock(pcMutex);
-  pc = newPC;
-}
+void CPUC64::setPC(uint16_t newPC) { pc = newPC; }
 
 void CPUC64::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
                            uint8_t regy) {
@@ -681,5 +682,5 @@ void CPUC64::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
 }
 
 void CPUC64::setKeycodes(uint8_t keycode1, uint8_t keycode2) {
-  configInput.inputDriver->setKBcodes(keycode1, keycode2);
+  configKeyboard.keyboardDriver->setKBcodes(keycode1, keycode2);
 }

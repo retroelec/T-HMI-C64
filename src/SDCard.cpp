@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -16,9 +16,12 @@
 */
 #include "SDCard.h"
 #include "Config.h"
-#include "jllog.h"
+#if defined(USE_SDCARD)
+#include "OSUtils.h"
+#include <SD_MMC.h>
 
 static const char *TAG = "SDCard";
+#endif
 
 SDCard::SDCard() : initalized(false) {}
 
@@ -70,14 +73,15 @@ void getPath(char *path, uint8_t *ram) {
   path[i] = '\0';
 }
 
-uint16_t SDCard::load(fs::FS &fs, uint8_t *ram) {
+uint16_t SDCard::load(uint8_t *ram) {
   if (!initalized) {
     return 0;
   }
+#if defined(USE_SDCARD)
   char path[22];
   getPath(path, ram);
-  ESP_LOGI(TAG, "load file %s", path);
-  File file = fs.open(path);
+  OSUtils::log(LOG_INFO, TAG, "load file %s", path);
+  File file = SD_MMC.open(path);
   if (!file) {
     return 0;
   }
@@ -97,18 +101,22 @@ uint16_t SDCard::load(fs::FS &fs, uint8_t *ram) {
   }
   file.close();
   return addr;
+#else
+  return 0;
+#endif
 }
 
-bool SDCard::save(fs::FS &fs, uint8_t *ram) {
+bool SDCard::save(uint8_t *ram) {
   if (!initalized) {
     return false;
   }
+#if defined(USE_SDCARD)
   char path[22];
   getPath(path, ram);
   uint16_t startaddr = ram[43] + ram[44] * 256;
   uint16_t endaddr = ram[45] + ram[46] * 256;
-  ESP_LOGI(TAG, "save file %s", path);
-  File file = fs.open(path, FILE_WRITE);
+  OSUtils::log(LOG_INFO, TAG, "save file %s", path);
+  File file = SD_MMC.open(path, FILE_WRITE);
   if (!file) {
     return false;
   }
@@ -119,20 +127,24 @@ bool SDCard::save(fs::FS &fs, uint8_t *ram) {
   }
   file.close();
   return true;
+#else
+  return false;
+#endif
 }
 
-bool SDCard::listnextentry(fs::FS &fs, uint8_t *nextentry, bool start) {
+bool SDCard::listnextentry(uint8_t *nextentry, bool start) {
   if (!initalized) {
     return false;
   }
+#if defined(USE_SDCARD)
   File file;
   if (start) {
     if (root) {
       root.close();
     }
-    root = fs.open("/");
+    root = SD_MMC.open("/");
     if (!root || !root.isDirectory()) {
-      ESP_LOGI(TAG, "cannot open root dir");
+      OSUtils::log(LOG_INFO, TAG, "cannot open root dir");
       return false;
     }
     file = root.openNextFile();
@@ -159,4 +171,7 @@ bool SDCard::listnextentry(fs::FS &fs, uint8_t *nextentry, bool start) {
   }
   nextentry[16] = '\0';
   return true;
+#else
+  return false;
+#endif
 }
