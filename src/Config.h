@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -64,6 +64,8 @@ struct Config {
   static const uint8_t JOYSTICK_FIRE_PIN = 18;
   static const uint8_t JOYSTICK_FIRE2_PIN = 17;
 
+  // "heuristic performance factor"
+  static constexpr float HEURISTIC_PERFORMANCE_FACTOR = 1.0;
 #elif defined(BOARD_T_DISPLAY_S3)
 #define USE_RM67162
 #define USE_NOSOUND
@@ -75,6 +77,8 @@ struct Config {
   static const uint16_t LCDHEIGHT = 240;
   static const uint8_t REFRESHDELAY = 13;
 
+  // "heuristic performance factor"
+  static constexpr float HEURISTIC_PERFORMANCE_FACTOR = 1.0;
 #elif defined(BOARD_WAVESHARE)
 #define USE_ST7789VSERIAL
 #define USE_SDCARD
@@ -86,7 +90,7 @@ struct Config {
   // DisplayDriver (considering a possible rotation)
   static const uint16_t LCDWIDTH = 320;
   static const uint16_t LCDHEIGHT = 240;
-  static const uint8_t REFRESHDELAY = 8;
+  static const uint8_t REFRESHDELAY = 11;
 
   // Sound
   static const uint8_t I2S_DOUT = 47;
@@ -104,6 +108,8 @@ struct Config {
   static const uint8_t JOYSTICK_FIRE_PIN = 11;
   static const uint8_t JOYSTICK_FIRE2_PIN = 10;
 
+  // "heuristic performance factor"
+  static constexpr float HEURISTIC_PERFORMANCE_FACTOR = 0.7;
 #endif
 
   // BLEKB

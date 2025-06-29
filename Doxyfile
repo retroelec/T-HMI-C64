@@ -1,0 +1,44 @@
+# Doxyfile 1.9.x - Minimal config for C++ project
+
+# Project info
+PROJECT_NAME           = "T-HMI-C64"
+PROJECT_BRIEF          = "C64 Emulator for ESP32-S3 with “Android keyboard” (BLE)"
+OUTPUT_DIRECTORY       = ./docs
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+
+# Source files
+RECURSIVE              = YES
+FILE_PATTERNS          = *Driver.h
+
+# Documentation style
+#EXTRACT_ALL            = YES
+#EXTRACT_PRIVATE        = YES
+#EXTRACT_STATIC         = YES
+#EXTRACT_LOCAL_CLASSES  = YES
+
+# Show undocumented members (optional)
+#SHOW_UNDOCUMENTED     = YES
+
+# Input & output
+INPUT                  = ./src
+OUTPUT_LANGUAGE        = English
+#GENERATE_TREEVIEW      = YES
+
+# Graphs (optional, needs Graphviz installed)
+#HAVE_DOT               = YES
+#CALL_GRAPH             = YES
+#CALLER_GRAPH           = YES
+#CLASS_DIAGRAMS         = YES
+#DOT_IMAGE_FORMAT       = svg
+
+# Markdown support
+USE_MDFILE_AS_MAINPAGE = README.md
+MARKDOWN_SUPPORT       = YES
+
+# Misc
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = YES
+
+# Customize as needed
+

@@ -36,12 +36,12 @@ static const uint8_t VIRTUALJOYSTICKDOWN_DEACTIVATED = 0x88;
 BLEKBServerCallback::BLEKBServerCallback(BLEKB &blekb) : blekb(blekb) {}
 
 void BLEKBServerCallback::onConnect(BLEServer *pServer) {
-  blekb.deviceConnected = true;
+  blekb.deviceConnected.store(true, std::memory_order_release);
   OSUtils::log(LOG_INFO, TAG, "BLE device connected");
 };
 
 void BLEKBServerCallback::onDisconnect(BLEServer *pServer) {
-  blekb.deviceConnected = false;
+  blekb.deviceConnected.store(false, std::memory_order_release);
   OSUtils::log(LOG_INFO, TAG, "BLE device disconnected, try to connect...");
   pServer->getAdvertising()->start();
 }
@@ -50,53 +50,54 @@ BLEKBCharacteristicCallback::BLEKBCharacteristicCallback(BLEKB &blekb)
     : blekb(blekb) {}
 
 void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
-  if (!blekb.deviceConnected) {
+  if (!blekb.deviceConnected.load(std::memory_order_acquire)) {
     return;
   }
+
   String value = pCharacteristic->getValue();
   uint8_t len = value.length() > 255 ? 255 : value.length();
+
   if (len == 1) { // virtual joystick or release key
     uint8_t virtjoy = (uint8_t)value[0];
+
     if (virtjoy == 0xff) {
       // key released
-      blekb.keypresseddown = false;
+      blekb.keypresseddown.store(false, std::memory_order_release);
     }
+
     bool deactivated = virtjoy & 0x80;
     uint8_t direction = virtjoy & 0x7f;
+    uint8_t virt = blekb.virtjoystickvalue.load(std::memory_order_acquire);
     if (deactivated) {
-      blekb.virtjoystickvalue |= (1 << direction);
+      virt |= (1 << direction);
     } else {
+      virt &= ~(1 << direction);
       if (direction == Joystick::C64JOYLEFT) {
-        blekb.virtjoystickvalue &= ~(1 << direction);
-        blekb.virtjoystickvalue |= (1 << Joystick::C64JOYRIGHT);
+        virt |= (1 << Joystick::C64JOYRIGHT);
       } else if (direction == Joystick::C64JOYRIGHT) {
-        blekb.virtjoystickvalue &= ~(1 << direction);
-        blekb.virtjoystickvalue |= (1 << Joystick::C64JOYLEFT);
+        virt |= (1 << Joystick::C64JOYLEFT);
       } else if (direction == Joystick::C64JOYUP) {
-        blekb.virtjoystickvalue &= ~(1 << direction);
-        blekb.virtjoystickvalue |= (1 << Joystick::C64JOYDOWN);
+        virt |= (1 << Joystick::C64JOYDOWN);
       } else if (direction == Joystick::C64JOYDOWN) {
-        blekb.virtjoystickvalue &= ~(1 << direction);
-        blekb.virtjoystickvalue |= (1 << Joystick::C64JOYUP);
-      } else { // fire
-        blekb.virtjoystickvalue &= ~(1 << direction);
+        virt |= (1 << Joystick::C64JOYUP);
       }
     }
+    blekb.virtjoystickvalue.store(virt, std::memory_order_release);
   } else if (len >= 3) { // keyboard codes or external commands
     // BLE client sends 3 codes for each key press: dc00, dc01, "shiftctrlcode"
-    // BLE client sends 3 codes for each external command: extCmd, detail, 128
-    // shiftctrlcode: bit 0 -> shift
+    // BLE client sends at least 3 codes for each external command: extCmd,
+    // detail, 128, {data} shiftctrlcode: bit 0 -> shift
     //                bit 1 -> ctrl
     //                bit 2 -> commodore
-    //                bit 7 -> external command (cmd, x, 128)
-    portENTER_CRITICAL(&blekb.blekbmutex);
+    //                bit 7 -> external command
     for (uint8_t i = 0; i < len; i++) {
       blekb.buffer[i] = (uint8_t)value[i];
     }
-    blekb.shiftctrlcode = blekb.buffer[2];
-    blekb.keypresseddowncnt = 0;
-    blekb.keypresseddown = true;
-    portEXIT_CRITICAL(&blekb.blekbmutex);
+    blekb.shiftctrlcode.store(blekb.buffer[2], std::memory_order_release);
+    if (!(blekb.shiftctrlcode & 128)) {
+      blekb.keypresseddowncnt.store(0, std::memory_order_release);
+      blekb.keypresseddown.store(true, std::memory_order_release);
+    }
   }
 }
 
@@ -104,23 +105,19 @@ BLEKB::BLEKB() { buffer = nullptr; }
 
 void BLEKB::init() {
   if (buffer != nullptr) {
-    // init method must be called only once
     return;
   }
-
-  // init buffer
   buffer = new uint8_t[256];
-  keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
-  keypresseddown = false;
-  sentdc01 = 0xff;
-  sentdc00 = 0xff;
-
-  // init div
-  virtjoystickvalue = 0xff;
-  detectreleasekey = true;
+  keypresseddowncnt.store(NUMOFCYCLES_KEYPRESSEDDOWN,
+                          std::memory_order_release);
+  keypresseddown.store(false, std::memory_order_release);
+  sentdc01.store(0xff, std::memory_order_release);
+  sentdc00.store(0xff, std::memory_order_release);
+  virtjoystickvalue.store(0xff, std::memory_order_release);
+  detectreleasekey.store(true, std::memory_order_release);
 
   // init BLE
-  deviceConnected = false;
+  deviceConnected.store(false, std::memory_order_release);
   BLEDevice::init("THMIC64");
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new BLEKBServerCallback(*this));
@@ -150,13 +147,14 @@ void BLEKB::init() {
   esp_ble_gap_update_conn_params(&conn_params);
 }
 
-uint8_t *BLEKB::getExtCmdBuffer() {
-  if (shiftctrlcode & 128) {
-    shiftctrlcode = 0;
-    sentdc01 = 0xff;
-    sentdc00 = 0xff;
-    keypresseddowncnt = NUMOFCYCLES_KEYPRESSEDDOWN;
-    keypresseddown = false;
+uint8_t *BLEKB::getExtCmdData() {
+  if (shiftctrlcode.load(std::memory_order_acquire) & 128) {
+    shiftctrlcode.store(0, std::memory_order_release);
+    sentdc01.store(0xff, std::memory_order_release);
+    sentdc00.store(0xff, std::memory_order_release);
+    keypresseddowncnt.store(NUMOFCYCLES_KEYPRESSEDDOWN,
+                            std::memory_order_release);
+    keypresseddown.store(false, std::memory_order_release);
     return buffer;
   }
   return nullptr;
@@ -169,47 +167,40 @@ void BLEKB::sendExtCmdNotification(uint8_t *data, size_t size) {
 }
 
 void BLEKB::scanKeyboard() {
-  portENTER_CRITICAL(&blekbmutex);
-  // "external" commands are handled in getExtCmdBuffer()
-  if (!(shiftctrlcode & 128)) {
-    // key is "pressed down" at least for 24 ms
-    if ((detectreleasekey && keypresseddown) ||
-        (keypresseddowncnt < NUMOFCYCLES_KEYPRESSEDDOWN)) {
-      sentdc00 = buffer[0];
-      sentdc01 = buffer[1];
-      keypresseddowncnt++;
+  // "external" commands are handled in getExtCmdData()
+  if (!(shiftctrlcode.load(std::memory_order_acquire) & 128)) {
+    if ((detectreleasekey.load(std::memory_order_acquire) &&
+         keypresseddown.load(std::memory_order_acquire)) ||
+        (keypresseddowncnt.load(std::memory_order_acquire) <
+         NUMOFCYCLES_KEYPRESSEDDOWN)) {
+      // id detectreleasekey == false: key is "pressed down" at least for 24 ms
+      sentdc00.store(buffer[0], std::memory_order_release);
+      sentdc01.store(buffer[1], std::memory_order_release);
+      keypresseddowncnt.store(
+          keypresseddowncnt.load(std::memory_order_acquire) + 1,
+          std::memory_order_release);
     } else {
-      sentdc01 = 0xff;
-      sentdc00 = 0xff;
+      sentdc01.store(0xff, std::memory_order_release);
+      sentdc00.store(0xff, std::memory_order_release);
     }
   }
-  portEXIT_CRITICAL(&blekbmutex);
-  return;
 }
 
 uint8_t BLEKB::getDC01(uint8_t querydc00, bool xchgports) {
-  uint8_t kbcode1;
-  uint8_t kbcode2;
-  if (xchgports) {
-    kbcode1 = sentdc01;
-    kbcode2 = sentdc00;
-  } else {
-    kbcode1 = sentdc00;
-    kbcode2 = sentdc01;
-  }
+  uint8_t kbcode1 = xchgports ? sentdc01.load(std::memory_order_acquire)
+                              : sentdc00.load(std::memory_order_acquire);
+  uint8_t kbcode2 = xchgports ? sentdc00.load(std::memory_order_acquire)
+                              : sentdc01.load(std::memory_order_acquire);
   if (querydc00 == 0) {
     return kbcode2;
   }
   // special case "shift" + "commodore"
-  if ((shiftctrlcode & 5) == 5) {
-    if (querydc00 == kbcode1) {
-      return kbcode2;
-    } else {
-      return 0xff;
-    }
+  if ((shiftctrlcode.load(std::memory_order_acquire) & 5) == 5) {
+    return (querydc00 == kbcode1) ? kbcode2 : 0xff;
   }
   // key combined with a "special key" (shift, ctrl, commodore)?
-  if ((~querydc00 & 2) && (shiftctrlcode & 1)) { // *query* left shift key?
+  if ((~querydc00 & 2) && (shiftctrlcode.load(std::memory_order_acquire) &
+                           1)) { // *query* left shift key?
     if (kbcode1 == 0xfd) {
       // handle scan of key codes in the same "row"
       return kbcode2 & 0x7f;
@@ -217,14 +208,17 @@ uint8_t BLEKB::getDC01(uint8_t querydc00, bool xchgports) {
       return 0x7f;
     }
   } else if ((~querydc00 & 0x40) &&
-             (shiftctrlcode & 1)) { // *query* right shift key?
+             (shiftctrlcode.load(std::memory_order_acquire) &
+              1)) { // *query* right shift key?
     if (kbcode1 == 0xbf) {
       // handle scan of key codes in the same "row"
       return kbcode2 & 0xef;
     } else {
       return 0xef;
     }
-  } else if ((~querydc00 & 0x80) && (shiftctrlcode & 2)) { // *query* ctrl key?
+  } else if ((~querydc00 & 0x80) &&
+             (shiftctrlcode.load(std::memory_order_acquire) &
+              2)) { // *query* ctrl key?
     if (kbcode1 == 0x7f) {
       // handle scan of key codes in the same "row"
       return kbcode2 & 0xfb;
@@ -232,7 +226,8 @@ uint8_t BLEKB::getDC01(uint8_t querydc00, bool xchgports) {
       return 0xfb;
     }
   } else if ((~querydc00 & 0x80) &&
-             (shiftctrlcode & 4)) { // *query* commodore key?
+             (shiftctrlcode.load(std::memory_order_acquire) &
+              4)) { // *query* commodore key?
     if (kbcode1 == 0x7f) {
       // handle scan of key codes in the same "row"
       return kbcode2 & 0xdf;
@@ -240,21 +235,19 @@ uint8_t BLEKB::getDC01(uint8_t querydc00, bool xchgports) {
       return 0xdf;
     }
   }
-  // query "main" key press
-  if (querydc00 == kbcode1) {
-    return kbcode2;
-  } else {
-    return 0xff;
-  }
+  // query key press
+  return (querydc00 == kbcode1) ? kbcode2 : 0xff;
 }
 
-uint8_t BLEKB::getKBJoyValue(bool port2) { return virtjoystickvalue; }
-
-void BLEKB::setKBcodes(uint8_t sentdc01, uint8_t sentdc00) {
-  this->sentdc01 = sentdc01;
-  this->sentdc00 = sentdc00;
+uint8_t BLEKB::getKBJoyValue() {
+  return virtjoystickvalue.load(std::memory_order_acquire);
 }
 
-void BLEKB::setDetectReleasekey(bool detectreleasekey) {
-  this->detectreleasekey = detectreleasekey;
+void BLEKB::setKBcodes(uint8_t sentdc01Val, uint8_t sentdc00Val) {
+  sentdc01.store(sentdc01Val, std::memory_order_release);
+  sentdc00.store(sentdc00Val, std::memory_order_release);
+}
+
+void BLEKB::setDetectReleasekey(bool detectreleasekeyVal) {
+  detectreleasekey.store(detectreleasekeyVal, std::memory_order_release);
 }

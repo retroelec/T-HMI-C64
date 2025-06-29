@@ -21,32 +21,32 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <atomic>
 #include <cstdint>
 #include <string>
 
 class BLEKB : public KeyboardDriver {
 private:
   BLECharacteristic *pCharacteristic;
-  uint8_t sentdc01;
-  uint8_t sentdc00;
-  bool detectreleasekey;
+  std::atomic<uint8_t> sentdc01;
+  std::atomic<uint8_t> sentdc00;
+  std::atomic<bool> detectreleasekey;
 
 public:
-  portMUX_TYPE blekbmutex = portMUX_INITIALIZER_UNLOCKED;
-  bool deviceConnected;
   uint8_t *buffer;
-  uint8_t shiftctrlcode;
-  uint8_t keypresseddowncnt;
-  uint8_t virtjoystickvalue;
-  bool keypresseddown;
+  std::atomic<bool> deviceConnected;
+  std::atomic<uint8_t> shiftctrlcode;
+  std::atomic<uint8_t> keypresseddowncnt;
+  std::atomic<uint8_t> virtjoystickvalue;
+  std::atomic<bool> keypresseddown;
 
   BLEKB();
   void init() override;
-  uint8_t *getExtCmdBuffer() override;
+  uint8_t *getExtCmdData() override;
   void sendExtCmdNotification(uint8_t *data, size_t size) override;
   void scanKeyboard() override;
   uint8_t getDC01(uint8_t dc00, bool xchgports) override;
-  uint8_t getKBJoyValue(bool port2) override;
+  uint8_t getKBJoyValue() override;
   void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) override;
   void setDetectReleasekey(bool detectreleasekey) override;
 };

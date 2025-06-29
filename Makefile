@@ -1,7 +1,7 @@
 ALLBOARDS := T_HMI T_DISPLAY_S3 WAVESHARE
-BOARD := T_HMI
+#BOARD := T_HMI
 #BOARD := T_DISPLAY_S3
-#BOARD := WAVESHARE
+BOARD := WAVESHARE
 
 PORT := /dev/ttyACM0
 
@@ -39,7 +39,7 @@ compileAll:
 # first you have to get the docker image:
 # podman pull docker.io/retroelec42/arduino-cli:latest
 podcompile:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h src/saveactions.h src/listactions.h
-	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli compile --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD)" --build-path build$(BOARD) T-HMI-C64.ino
+	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli-thmic64 compile --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD)" --build-path build$(BOARD) T-HMI-C64.ino
 
 upload:
 	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build$(BOARD)/T-HMI-C64.ino.bin
@@ -57,7 +57,7 @@ format:
 install:	check_install
 	arduino-cli config init --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json --overwrite
 	arduino-cli core update-index
-	arduino-cli core install esp32:esp32@3.0.5
+	arduino-cli core install esp32:esp32@3.2.0
 
 check_install:
 	@echo -n "Are you sure? [y/N] " && read ans && [ $${ans:-N} = y ]

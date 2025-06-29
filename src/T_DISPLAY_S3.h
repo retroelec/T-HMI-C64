@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -23,11 +23,9 @@ class T_DISPLAY_S3 : public BoardDriver {
 public:
   void init() override {}
 
+  uint16_t getBatteryVoltage() override { return 4000; }
+
   void powerOff() override {}
-
-  adc_oneshot_unit_handle_t getAdcHandle() override { return nullptr; }
-
-  adc_cali_handle_t getAdcCaliHandle() override { return nullptr; }
 };
 
 #endif // T_DISPLAY_S3_H

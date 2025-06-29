@@ -299,6 +299,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     cpu->vic->initVarsAndRegs();
     cpu->cia1.init(true);
     cpu->cia2.init(false);
+    cpu->sid.init();
     cpu->cpuhalted = false;
     return 0;
   case ExtCmd::JOYSTICKMODE1:
@@ -366,15 +367,13 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     setType1Notification();
     return 1;
   case ExtCmd::GETBATTERYVOLTAGE: {
-    uint32_t voltage = cpu->batteryVoltage.load(std::memory_order_acquire);
+    uint16_t voltage = cpu->batteryVoltage.load(std::memory_order_acquire);
     setType5Notification(voltage & 0xff, (voltage >> 8) & 0xff);
     return 5;
   }
-#ifdef BOARD_T_HMI
   case ExtCmd::POWEROFF:
     cpu->poweroff.store(true, std::memory_order_release);
     return 0;
-#endif
   }
   return 0;
 }

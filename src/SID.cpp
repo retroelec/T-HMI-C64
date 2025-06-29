@@ -37,7 +37,6 @@ void SIDVoice::init() {
   envelope = 0.0f;
   syncNextVoice = false;
   ringmod = false;
-  v3env = 0.0f;
   pulseWidth = 0.0f;
   sustainVolume = 0.0f;
   attackAdd = 0.0f;
@@ -50,7 +49,7 @@ bool SIDVoice::isActive() { return adsrState != IDLE; }
 
 void SIDVoice::updVarFrequency(uint16_t freq) {
   phaseIncrement =
-      (float)(freq)*985248.0f / 16777216.0f / Config::AUDIO_SAMPLE_RATE;
+      (float)(freq) * 985248.0f / 16777216.0f / Config::AUDIO_SAMPLE_RATE;
 }
 
 void SIDVoice::updVarPulseWidth(uint16_t pw) {
@@ -141,9 +140,6 @@ float SIDVoice::updateEnvelope() {
     envelope = 0.0f;
     break;
   }
-  if (voice == 2) {
-    v3env = envelope;
-  }
   return envelope;
 }
 
@@ -165,17 +161,17 @@ float SIDVoice::getNoiseNormalized() const {
 }
 
 float SIDVoice::generateSample() {
-  // 0 <= phase < 1
+  // 0 <= phase <= 1
   // -1 <= sample < 1
   phase += phaseIncrement;
-  if (phase >= 1.0f) {
+  if (phase > 1.0f) {
     phase = 0.0f;
     if (syncNextVoice) { // syncNextVoice is never true for voice 3 (index 2)
       nextVoice->phase = 0.0f;
     }
   }
   bool active = isActive();
-  float sample = 0.0f;
+  sample = 0.0f;
   uint8_t wavecnt = 0;
   if (active) {
     // triangle
@@ -219,12 +215,14 @@ float SIDVoice::generateSample() {
 
 void SID::init() {
   emuVolume = 30000.0f;
-  bufferfilled = false;
+  c64Volume = 0.0f;
+  actSampleIdx = 0;
+  for (uint16_t i = 0; i < NUMSAMPLESPERFRAME; i++) {
+    samples[i] = 0;
+  }
   for (uint8_t i = 0; i < 0x20; i++) {
     sidreg[i] = 0;
   }
-  // use fillBuffer method to clear samples array
-  buffer0filled = false;
   for (int i = 0; i < 3; i++) {
     sidVoice[i].init();
   }
@@ -240,17 +238,8 @@ void SID::init() {
 }
 
 SID::SID() {
-  configSound.soundDriver->init();
+  sound.soundDriver->init();
   init();
-}
-
-bool SID::isVoiceActive() {
-  for (int i = 0; i < 3; i++) {
-    if (sidVoice[i].isActive()) {
-      return true;
-    }
-  }
-  return false;
 }
 
 int16_t SID::generateSample() {
@@ -261,7 +250,11 @@ int16_t SID::generateSample() {
       cnt++;
     }
     float env = sidVoice[i].updateEnvelope();
-    sample += env * sidVoice[i].generateSample();
+    float sample0 = sidVoice[i].generateSample();
+    if ((i == 2) && voice2silent) {
+      sample0 = 0.0f;
+    }
+    sample += env * sample0;
   }
   if (cnt == 0) {
     return 0;
@@ -270,32 +263,20 @@ int16_t SID::generateSample() {
   return static_cast<int16_t>(sample * c64Volume * emuVolume);
 }
 
-void SID::fillBuffer() {
-#ifndef USE_NOSOUND
-  if (!isVoiceActive()) {
-    if (buffer0filled) {
-      return;
-    }
-    for (uint16_t i = 0; i < NUMSAMPLESPERFRAME; i++) {
-      samples[i] = 0;
-    }
-    buffer0filled = true;
-  } else {
-    buffer0filled = false;
+void SID::fillBuffer(uint16_t rasterline) {
+  voice2silent = sidreg[0x18] & 0x80;
+  uint16_t targetSampleIdx = rasterline * NUMSAMPLESPERFRAME / 312 + 1;
+  uint16_t numOfSamples = 2;
+  if (actSampleIdx < targetSampleIdx) {
+    numOfSamples++;
   }
-  for (uint16_t i = 0; i < NUMSAMPLESPERFRAME; i++) {
-    samples[i] = generateSample();
-    v3envs[i] = sidVoice[2].v3env;
+  for (uint8_t i = 0; i < numOfSamples; i++) {
+    samples[actSampleIdx + i] = generateSample();
   }
-  bufferfilled = true;
-#endif
+  actSampleIdx += numOfSamples;
 }
 
 void SID::playAudio() {
-  if (!bufferfilled) {
-    return;
-  }
-  configSound.soundDriver->playAudio(samples,
-                                     NUMSAMPLESPERFRAME * sizeof(int16_t));
-  bufferfilled = false;
+  sound.soundDriver->playAudio(samples, NUMSAMPLESPERFRAME * sizeof(int16_t));
+  actSampleIdx = 0;
 }

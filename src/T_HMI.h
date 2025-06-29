@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -29,37 +29,7 @@
 
 class T_HMI : public BoardDriver {
 private:
-  adc_oneshot_unit_handle_t adc1_handle;
-  adc_cali_handle_t adc_cali_handle;
-
-  void calibrateBattery() {
-    // initialize ADC unit 1 in one-shot mode with default RTC clock source
-    adc_oneshot_unit_init_cfg_t init_config = {
-        .unit_id = ADC_UNIT_1,
-        .clk_src = ADC_RTC_CLK_SRC_DEFAULT,
-        .ulp_mode = ADC_ULP_MODE_DISABLE};
-    adc_oneshot_new_unit(&init_config, &adc1_handle);
-    // configure the selected ADC channel (for battery voltage measurement)
-    // - attenuation of 12 dB allows input voltages up to ~3.3V
-    // - default bit width (typically 12 bits)
-    adc_oneshot_chan_cfg_t config = {.atten = ADC_ATTEN_DB_12,
-                                     .bitwidth = ADC_BITWIDTH_DEFAULT};
-    adc_oneshot_config_channel(adc1_handle, Config::BAT_ADC, &config);
-    // configure ADC calibration using curve fitting scheme
-    // this uses calibration data (if available) stored in eFuses
-    adc_cali_curve_fitting_config_t cali_config = {
-        .unit_id = ADC_UNIT_1,
-        .chan = Config::BAT_ADC,
-        .atten = ADC_ATTEN_DB_12,
-        .bitwidth = ADC_BITWIDTH_DEFAULT,
-    };
-    esp_err_t ret =
-        adc_cali_create_scheme_curve_fitting(&cali_config, &adc_cali_handle);
-    // check if calibration was successful; log error if it failed
-    if (ret != ESP_OK) {
-      OSUtils::log(LOG_ERROR, "T-HMI", "adc calibration failed");
-    }
-  }
+  OSUtils osUtils;
 
 public:
   void init() override {
@@ -76,7 +46,24 @@ public:
     }
     GPIO.out_w1ts = (1 << Config::PWR_ON);
     GPIO.out_w1ts = (1 << Config::PWR_EN);
-    calibrateBattery();
+    osUtils.calibrateBattery();
+  }
+
+  uint16_t getBatteryVoltage() override {
+    // get battery voltage
+    int voltage = 0;
+    if (osUtils.adc_handle) {
+      int raw_value = 0;
+      adc_oneshot_read(osUtils.adc_handle, Config::BAT_ADC, &raw_value);
+      if (osUtils.adc_cali_handle) {
+        adc_cali_raw_to_voltage(osUtils.adc_cali_handle, raw_value, &voltage);
+        voltage *= 2;
+      } else {
+        // fallback if calibration was not successful
+        voltage = raw_value * 2;
+      }
+    }
+    return (uint16_t)voltage;
   }
 
   void powerOff() override {
@@ -89,10 +76,6 @@ public:
     gpio_config(&io_conf);
     gpio_set_level((gpio_num_t)Config::PWR_ON, 0);
   }
-
-  adc_oneshot_unit_handle_t getAdcHandle() override { return adc1_handle; }
-
-  adc_cali_handle_t getAdcCaliHandle() override { return adc_cali_handle; }
 };
 
 #endif // T_HMI_H

@@ -35,36 +35,40 @@ class ConfigDisplay
 class ConfigSound
 class ConfigKeyboard
 
-C64Emu --> CPUC64
-C64Emu --> VIC
-C64Emu --> BoardDriver
-C64Emu --> ConfigBoard
-
 T_HMI ..|> BoardDriver
 T_DISPLAY_S3 ..|> BoardDriver
 Waveshare ..|> BoardDriver
+ConfigBoard o-- BoardDriver
 
-CPUC64 *-- ExternalCmds
-CPUC64 --> CIA
-CPUC64 --|> CPU6502
-CPUC64 --> Joystick
-CPUC64 --> VIC
-CPUC64 --> SID
-CPUC64 --> KeyboardDriver
-CPUC64 --> ConfigKeyboard
+C64Emu *-- CPUC64
+C64Emu *-- VIC
+C64Emu *-- ConfigBoard
 
 BLEKB ..|> KeyboardDriver
+ConfigKeyboard o-- KeyboardDriver
 
-VIC --> DisplayDriver
-VIC --> ConfigDisplay
-SID --> SoundDriver
-SID --> ConfigSound
-ExternalCmds --> SDCard
+CPUC64 --|> CPU6502
+CPUC64 o-- ExternalCmds
+ExternalCmds --> CPUC64
+CPUC64 o-- VIC
+CPUC64 *-- CIA : 2
+CPUC64 *-- Joystick
+CPUC64 *-- SID
+CPUC64 *-- ConfigKeyboard
 
 ST7789V ..|> DisplayDriver
 RM67162 ..|> DisplayDriver
 ST7789VSerial ..|> DisplayDriver
+ConfigDisplay o-- DisplayDriver
+
+VIC o-- ConfigDisplay
+
 I2SSound ..|> SoundDriver
 NoSound ..|> SoundDriver
+ConfigSound o-- SoundDriver
+
+SID *-- ConfigSound
+
+ExternalCmds *-- SDCard
 @enduml
 

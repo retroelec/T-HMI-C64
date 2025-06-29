@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -17,12 +17,42 @@
 #ifndef BOARDDRIVER_H
 #define BOARDDRIVER_H
 
+/**
+ * @brief Interface for board-specific hardware control.
+ *
+ * This interface defines the essential methods that must be implemented
+ * for hardware initialization, battery voltage monitoring, and power management
+ * on a specific embedded board.
+ */
 class BoardDriver {
 public:
+  /**
+   * @brief Initializes the board-specific hardware.
+   *
+   * This method must set up peripherals, pins, drivers, and any other
+   * hardware-dependent components needed for the board to function.
+   */
   virtual void init() = 0;
+
+  /**
+   * @brief Retrieves the current battery voltage in millivolts.
+   *
+   * The voltage is typically measured using an ADC pin and may include
+   * calibration and compensation for a voltage divider if present.
+   *
+   * @return The battery voltage in millivolts.
+   */
+  virtual uint16_t getBatteryVoltage() = 0;
+
+  /**
+   * @brief Powers off the board.
+   *
+   * This method should perform all required steps to safely shut down
+   * the board, such as disabling peripherals, saving state, and
+   * initiating deep sleep or triggering hardware-controlled shutdown.
+   */
   virtual void powerOff() = 0;
-  virtual adc_oneshot_unit_handle_t getAdcHandle() = 0;
-  virtual adc_cali_handle_t getAdcCaliHandle() = 0;
+
   virtual ~BoardDriver() {}
 };
 

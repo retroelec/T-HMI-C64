@@ -17,6 +17,7 @@ Contact: retroelec42@gmail.com
 - Support for ESP32-S3-LCD-2.8 from Waveshare
 - Simple SID emulation
 - Code refactoring
+- Arduino ESP32 core 3.2.0
 
 ## Hardware
 
@@ -138,7 +139,7 @@ You may have installed already a specfic Arduino core for other projects (e.g. A
 For this situation you can use a prepared docker image to compile the code:
 
 - install podman
-- get prepared docker image: podman pull docker.io/retroelec42/arduino-cli:latest
+- get prepared docker image: podman pull docker.io/retroelec42/arduino-cli-thmic64:latest
 - compile using docker image: make podcompile
 
 ### Upload C64 Emulator to the development board
@@ -279,7 +280,6 @@ All hardware ports not explicitly mentioned including their corresponding regist
 - simple SID emulation, some SID registers are not or only partly implemented yet: $d415 - $d41c
 - no tape/disk drive emulation (and no plans to do this)
 - "illegal instructions" test suite fails
-- rarly CPU is blocked after loading a game
 - some games have graphic errors
 - some games are not working at all
 - no "FLI border removal" / "sideborder removal"

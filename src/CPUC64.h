@@ -44,8 +44,7 @@ private:
 
   bool nmiAck;
 
-  inline void vTaskDelayUntilUS(int64_t lastMeasuredTime,
-                                uint32_t timeIncrement);
+  inline void vTaskDelayUntilUS(int64_t nominalTime);
   inline void adaptVICBaseAddrs(bool fromcia) __attribute__((always_inline));
   inline void decodeRegister1(uint8_t val) __attribute__((always_inline));
   inline void checkciatimers(uint8_t cycles) __attribute__((always_inline));
@@ -58,7 +57,7 @@ public:
   CIA cia2;
   SID sid;
   ExternalCmds *externalCmds;
-  ConfigKeyboard configKeyboard;
+  ConfigKeyboard keyboard;
 
   CPUC64() : cia1(true), cia2(false) {}
 
@@ -73,7 +72,7 @@ public:
   std::atomic<uint32_t> numofcyclespersecond;
   std::atomic<uint32_t> numofburnedcyclespersecond;
   std::atomic<bool> perf;
-  std::atomic<uint32_t> batteryVoltage;
+  std::atomic<uint16_t> batteryVoltage;
   std::atomic<bool> poweroff;
 
   // set by class ExternalCmds

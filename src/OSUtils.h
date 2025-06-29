@@ -22,62 +22,23 @@
 
 #include <cstdarg>
 #include <cstdint>
-#include <esp_cpu.h>
+#include <esp_adc/adc_cali.h>
+#include <esp_adc/adc_cali_scheme.h>
+#include <esp_adc/adc_oneshot.h>
 #include <esp_log.h>
-#include <esp_random.h>
-#include <esp_timer.h>
 
 enum LogLevel { LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, LOG_VERBOSE };
 
 class OSUtils {
 public:
-  static void log(LogLevel level, const char *tag, const char *format, ...) {
-    va_list args;
-    va_start(args, format);
-    char msg[256];
-    vsnprintf(msg, sizeof(msg), format, args);
-    va_end(args);
-    const char *levelStr = "";
-    esp_log_level_t espLevel = ESP_LOG_NONE;
-    switch (level) {
-    case LOG_ERROR:
-      levelStr = "E";
-      espLevel = ESP_LOG_ERROR;
-      break;
-    case LOG_WARN:
-      levelStr = "W";
-      espLevel = ESP_LOG_WARN;
-      break;
-    case LOG_INFO:
-      levelStr = "I";
-      espLevel = ESP_LOG_INFO;
-      break;
-    case LOG_DEBUG:
-      levelStr = "D";
-      espLevel = ESP_LOG_DEBUG;
-      break;
-    case LOG_VERBOSE:
-      levelStr = "V";
-      espLevel = ESP_LOG_VERBOSE;
-      break;
-    }
-    char fullmsg[300];
-    snprintf(fullmsg, sizeof(fullmsg), "[%s][%s] %s\n", levelStr, tag, msg);
-    esp_log_write(espLevel, tag, fullmsg);
-  }
+  static void log(LogLevel level, const char *tag, const char *format, ...);
+  static uint8_t getRandomByte();
+  static int64_t getTimeUS();
+  static void pauseExecutionUS(int64_t pause);
+  static uint32_t getCPUCycleCount();
 
-  inline static uint8_t getRandomByte() {
-    return (uint8_t)(esp_random() & 0xff);
-  }
-
-  inline static int64_t getTimeUS() { return esp_timer_get_time(); }
-
-  inline static void pauseExecutionUS(uint32_t pause) {
-    return esp_rom_delay_us(pause);
-  }
-
-  inline static uint32_t getCPUCycleCount() {
-    return esp_cpu_get_cycle_count();
-  }
+  adc_oneshot_unit_handle_t adc_handle;
+  adc_cali_handle_t adc_cali_handle;
+  void calibrateBattery();
 };
 #endif // OSUTILS_H

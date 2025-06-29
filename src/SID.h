@@ -32,7 +32,6 @@ private:
   float decayAdd;
   float releaseAdd;
   ADSRState adsrState;
-  float envelope;
   float noiseValue;
   uint32_t lfsr;
   bool syncNextVoice;
@@ -44,7 +43,8 @@ private:
 public:
   uint8_t control;
   uint8_t voice;
-  float v3env;
+  float sample;
+  float envelope;
   SIDVoice *nextVoice;
   SIDVoice *prevVoice;
 
@@ -64,25 +64,23 @@ class SID {
 private:
   static const uint16_t NUMSAMPLESPERFRAME = Config::AUDIO_SAMPLE_RATE / 50;
   int16_t samples[NUMSAMPLESPERFRAME];
-  ConfigSound configSound;
-  bool bufferfilled;
-  bool buffer0filled;
+  ConfigSound sound;
+  uint16_t actSampleIdx;
+  bool voice2silent;
 
   int16_t generateSample();
-  bool isVoiceActive();
 
 public:
   SIDVoice sidVoice[3];
   float c64Volume;
   float emuVolume;
   uint8_t sidreg[0x20];
-  float v3envs[NUMSAMPLESPERFRAME];
 
   SID();
   void init();
   void startSound(uint8_t voice, uint8_t val);
   void stopSound(uint8_t voice);
-  void fillBuffer();
+  void fillBuffer(uint16_t rasterline);
   void playAudio();
 };
 #endif // SID_H

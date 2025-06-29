@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -564,7 +564,7 @@ void VIC::initVarsAndRegs() {
   vertborder = true;
 }
 
-void VIC::initLCDController() { configDisplay.displayDriver->init(); }
+void VIC::initLCDController() { display.displayDriver->init(); }
 
 void VIC::init(uint8_t *ram, uint8_t *charrom) {
   if (bitmap != nullptr) {
@@ -575,11 +575,11 @@ void VIC::init(uint8_t *ram, uint8_t *charrom) {
   this->chrom = charrom;
 
   // allocate bitmap memory to be transfered to LCD
-  bitmap = new uint16_t[320 * (200 + 8)]();
+  bitmap = new uint16_t[320 * 200]();
 
   // div init
   colormap = new uint8_t[1024]();
-  tftColorFromC64ColorArr = configDisplay.displayDriver->getC64Colors();
+  tftColorFromC64ColorArr = display.displayDriver->getC64Colors();
   initVarsAndRegs();
 }
 
@@ -587,12 +587,12 @@ void VIC::checkFrameColor() {
   uint8_t framecol = vicreg[0x20] & 15;
   if (framecol != syncd020) {
     syncd020 = framecol;
-    configDisplay.displayDriver->drawFrame(tftColorFromC64ColorArr[framecol]);
+    display.displayDriver->drawFrame(tftColorFromC64ColorArr[framecol]);
   }
 }
 
 void VIC::refresh() {
-  configDisplay.displayDriver->drawBitmap(bitmap);
+  display.displayDriver->drawBitmap(bitmap);
   checkFrameColor();
   cntRefreshs.fetch_add(1, std::memory_order_release);
 }

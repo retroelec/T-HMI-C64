@@ -32,31 +32,18 @@ void IRAM_ATTR C64Emu::interruptProfilingBatteryCheckFunc() {
   cntSecondsForBatteryCheck++;
   if (cntSecondsForBatteryCheck >= 300) { // each 5 minutes
     // get battery voltage
-    int raw_value = 0;
-    if (configBoard.boardDriver->getAdcHandle()) {
-      adc_oneshot_read(configBoard.boardDriver->getAdcHandle(), Config::BAT_ADC,
-                       &raw_value);
-      int voltage = 0;
-      if (configBoard.boardDriver->getAdcCaliHandle()) {
-        adc_cali_raw_to_voltage(configBoard.boardDriver->getAdcCaliHandle(),
-                                raw_value, &voltage);
-        voltage *= 2;
-      } else {
-        // fallback if calibration was not successful
-        voltage = raw_value * 2;
-      }
-      cpu.batteryVoltage.store(voltage, std::memory_order_release);
-      // if battery voltage is too low, then power off device
-      if (cpu.batteryVoltage.load(std::memory_order_acquire) < 3550) {
-        configBoard.boardDriver->powerOff();
-      }
+    uint16_t voltage = board.boardDriver->getBatteryVoltage();
+    cpu.batteryVoltage.store(voltage, std::memory_order_release);
+    // if battery voltage is too low, then power off device
+    if (voltage < 3400) {
+      board.boardDriver->powerOff();
     }
     // reset "timer"
     cntSecondsForBatteryCheck = 0;
   }
   // power off?
   if (cpu.poweroff.load(std::memory_order_acquire)) {
-    configBoard.boardDriver->powerOff();
+    board.boardDriver->powerOff();
   }
   // profiling (if activated)
   if (!cpu.perf.load(std::memory_order_acquire)) {
@@ -86,7 +73,7 @@ void IRAM_ATTR C64Emu::interruptTODFunc() {
 }
 
 void IRAM_ATTR C64Emu::interruptScanKeyboardFunc() {
-  cpu.configKeyboard.keyboardDriver->scanKeyboard();
+  cpu.keyboard.keyboardDriver->scanKeyboard();
 }
 
 void C64Emu::cpuCode(void *parameter) {
@@ -111,7 +98,7 @@ void C64Emu::setup() {
   instance = this;
 
   // init board
-  configBoard.boardDriver->init();
+  board.boardDriver->init();
 
   // init. instance variables
   cntSecondsForBatteryCheck =
@@ -154,5 +141,7 @@ void C64Emu::loop() {
     OSUtils::log(LOG_INFO, TAG, "noc: %lu, nbc: %lu",
                  numofcyclespersecond.load(std::memory_order_acquire),
                  numofburnedcyclespersecond.load(std::memory_order_acquire));
+    OSUtils::log(LOG_INFO, TAG, "voltage: %d",
+                 cpu.batteryVoltage.load(std::memory_order_acquire));
   }
 }

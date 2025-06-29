@@ -46,7 +46,7 @@ private:
   }
 
   uint8_t *ram;
-  ConfigBoard configBoard;
+  ConfigBoard board;
   VIC vic;
 
   uint16_t cntSecondsForBatteryCheck;

@@ -16,7 +16,6 @@
 */
 
 #include "src/C64Emu.h"
-#include "src/Config.h"
 #include "src/OSUtils.h"
 
 static const char *TAG = "T-HMI-C64";
