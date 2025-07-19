@@ -16,7 +16,7 @@
 */
 #include "VIC.h"
 #include "Config.h"
-#include "DisplayDriver.h"
+#include "display/DisplayFactory.h"
 #include <cstring>
 
 static const uint16_t *tftColorFromC64ColorArr;
@@ -564,8 +564,6 @@ void VIC::initVarsAndRegs() {
   vertborder = true;
 }
 
-void VIC::initLCDController() { display.displayDriver->init(); }
-
 void VIC::init(uint8_t *ram, uint8_t *charrom) {
   if (bitmap != nullptr) {
     // init method must be called only once
@@ -577,9 +575,13 @@ void VIC::init(uint8_t *ram, uint8_t *charrom) {
   // allocate bitmap memory to be transfered to LCD
   bitmap = new uint16_t[320 * 200]();
 
+  // init display
+  display = Display::create();
+  display->init();
+
   // div init
   colormap = new uint8_t[1024]();
-  tftColorFromC64ColorArr = display.displayDriver->getC64Colors();
+  tftColorFromC64ColorArr = display->getC64Colors();
   initVarsAndRegs();
 }
 
@@ -587,12 +589,12 @@ void VIC::checkFrameColor() {
   uint8_t framecol = vicreg[0x20] & 15;
   if (framecol != syncd020) {
     syncd020 = framecol;
-    display.displayDriver->drawFrame(tftColorFromC64ColorArr[framecol]);
+    display->drawFrame(tftColorFromC64ColorArr[framecol]);
   }
 }
 
 void VIC::refresh() {
-  display.displayDriver->drawBitmap(bitmap);
+  display->drawBitmap(bitmap);
   checkFrameColor();
   cntRefreshs.fetch_add(1, std::memory_order_release);
 }

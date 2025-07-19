@@ -30,10 +30,13 @@ src/listactions.h:	src/listactions.asm
 
 compile:	default
 
+clean:
+	rm -rf build$(BOARD)
+
 compileAll:
 	@for board in $(ALLBOARDS); do \
 		echo "\ncompiling for $$board"; \
-		$(MAKE) compile BOARD=$$board || exit $$?; \
+		$(MAKE) clean compile BOARD=$$board || exit $$?; \
 	done
 
 # first you have to get the docker image:
@@ -51,7 +54,8 @@ monitor:
 	minicom -D $(PORT) -b 115200
 
 format:
-	@clang-format -i *.ino src/*.cpp src/*.h
+	@find src -name "*.cpp" -o -name "*.h" | xargs clang-format -i
+	@clang-format -i *.ino
 
 # see https://arduino.github.io/arduino-cli/1.0/getting-started/
 install:	check_install

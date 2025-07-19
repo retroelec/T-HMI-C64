@@ -17,7 +17,8 @@
 #ifndef SID_H
 #define SID_H
 
-#include "ConfigSound.h"
+#include "Config.h"
+#include "sound/SoundDriver.h"
 #include <cstdint>
 
 class SIDVoice {
@@ -64,7 +65,7 @@ class SID {
 private:
   static const uint16_t NUMSAMPLESPERFRAME = Config::AUDIO_SAMPLE_RATE / 50;
   int16_t samples[NUMSAMPLESPERFRAME];
-  ConfigSound sound;
+  SoundDriver *sound;
   uint16_t actSampleIdx;
   bool voice2silent;
 

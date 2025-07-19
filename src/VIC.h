@@ -17,7 +17,7 @@
 #ifndef VIC_H
 #define VIC_H
 
-#include "ConfigDisplay.h"
+#include "display/DisplayDriver.h"
 #include <atomic>
 #include <cstdint>
 
@@ -28,7 +28,7 @@ private:
   uint8_t spritespritecoll[320];
   bool spritedatacoll[320];
   uint8_t startbyte;
-  ConfigDisplay display;
+  DisplayDriver *display;
   bool badlinecond;
   bool vertborder;
   uint8_t lineC64map;
@@ -114,7 +114,6 @@ public:
 
   VIC();
   void initVarsAndRegs();
-  void initLCDController();
   void init(uint8_t *ram, uint8_t *charrom);
   void refresh();
   uint8_t nextRasterline();

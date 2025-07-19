@@ -11,64 +11,102 @@ interface BoardDriver
 interface DisplayDriver
 interface SoundDriver
 interface KeyboardDriver
+interface FSDriver
+interface JoystickDriver
 
 class C64Emu
-class CPUC64
+class C64Sys
 class VIC
-class T_HMI
-class T_DISPLAY_S3
-class Waveshare
-class BLEKB
 class ExternalCmds
 class CIA
 class CPU6502
-class Joystick
 class SID
-class SDCard
-class ST7789V
-class RM67162
-class ST7789VSerial
-class I2SSound
+
+package "board impl" {
+class T_HMI <<hw_specific>>
+class T_DISPLAY_S3 <<hw_specific>>
+class Waveshare <<hw_specific>>
+}
+
+package "keyboard impl" {
+class BLEKB <<hw_specific>>
+}
+
+package "display impl" {
+class ST7789V <<hw_specific>>
+class RM67162 <<hw_specific>>
+class ST7789VSerial <<hw_specific>>
+}
+
+package "sound impl" {
+class I2SSound <<hw_specific>>
 class NoSound
-class ConfigBoard
-class ConfigDisplay
-class ConfigSound
-class ConfigKeyboard
+}
+
+package "fs impl" {
+class SDCard <<hw_specific>>
+class NoFS
+}
+
+package "joystick impl" {
+class ArduinoJoystick <<hw_specific>>
+class NoJoystick
+}
+
+class BoardFactory <<factory>>
+class DisplayFactory <<factory>>
+class SoundFactory <<factory>>
+class KeyboardFactory <<factory>>
+class FSFactory <<factory>>
+class JoystickFactory <<factory>>
 
 T_HMI ..|> BoardDriver
 T_DISPLAY_S3 ..|> BoardDriver
 Waveshare ..|> BoardDriver
-ConfigBoard o-- BoardDriver
 
-C64Emu *-- CPUC64
+C64Emu *-- BoardDriver
+C64Emu --> BoardFactory
+BoardFactory ..> BoardDriver
+C64Emu *-- C64Sys
 C64Emu *-- VIC
-C64Emu *-- ConfigBoard
 
 BLEKB ..|> KeyboardDriver
-ConfigKeyboard o-- KeyboardDriver
 
-CPUC64 --|> CPU6502
-CPUC64 o-- ExternalCmds
-ExternalCmds --> CPUC64
-CPUC64 o-- VIC
-CPUC64 *-- CIA : 2
-CPUC64 *-- Joystick
-CPUC64 *-- SID
-CPUC64 *-- ConfigKeyboard
+ArduinoJoystick ..|> JoystickDriver
+NoJoystick ..|> JoystickDriver
+
+C64Sys *-- KeyboardDriver
+C64Sys --> KeyboardFactory
+KeyboardFactory ..> KeyboardDriver
+C64Sys *-- JoystickDriver
+C64Sys --> JoystickFactory
+JoystickFactory ..> JoystickDriver
+C64Sys --|> CPU6502
+C64Sys o-- ExternalCmds
+C64Sys o-- VIC
+C64Sys *-- CIA : 2
+C64Sys *-- SID
+
+SDCard ..|> FSDriver
+NoFS ..|> FSDriver
+
+ExternalCmds *-- FSDriver
+ExternalCmds --> FSFactory
+FSFactory ..> FSDriver
+ExternalCmds --> C64Sys
 
 ST7789V ..|> DisplayDriver
 RM67162 ..|> DisplayDriver
 ST7789VSerial ..|> DisplayDriver
-ConfigDisplay o-- DisplayDriver
 
-VIC o-- ConfigDisplay
+VIC *-- DisplayDriver
+VIC --> DisplayFactory
+DisplayFactory ..> DisplayDriver
 
 I2SSound ..|> SoundDriver
 NoSound ..|> SoundDriver
-ConfigSound o-- SoundDriver
 
-SID *-- ConfigSound
-
-ExternalCmds *-- SDCard
+SID *-- SoundDriver
+SID --> SoundFactory
+SoundFactory ..> SoundDriver
 @enduml
-

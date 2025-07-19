@@ -104,7 +104,7 @@ Switch voltage to 3.3V on the Arduino joystick module.
 
 - build\*/\*.bin : Binary files of the C64 emulator to be uploaded to the respective development board
 - THMIC64KB/thmic64kb.apk : Android APK file to be uploaded to your Android smartphone
-- T-HMI-C64.ino : Arduino .ino file of the C64 emulator, use in the Arduino IDE to upload the emulator
+- T-HMI-C64.ino : Arduino .ino file of the C64 emulator
 - src/* : C64 emulator source code
 - THMIC64KB/app/src/ : source code of Android app
 - Makefile : used to install development environment and to compile + upload code
@@ -133,7 +133,8 @@ First adapt the file Makefile and choose the board you want the code to be compi
 
 If you installed the required Arduino core and libraries on your system (see also previous chapter),
 you can compile the code using the following command:  
-make
+make  
+(you may need to use ‘make clean’ beforehand if classes have been renamed)
 
 You may have installed already a specfic Arduino core for other projects (e.g. Arduino core 2.0.x) and you don't want to change this setup.
 For this situation you can use a prepared docker image to compile the code:
@@ -259,7 +260,7 @@ You can also send a programm from your Android device to the emulator (DIV scree
 
 ### Keyboard
 
-Keyboard inputs are sent to the ESP32 via BLE. Three bytes must be sent for each key press:
+Keyboard inputs are sent to the ESP32-S3 via BLE. Three bytes must be sent for each key press:
 
 - Value for the $DC00 register
 - Value for the $DC01 register
@@ -268,6 +269,15 @@ Keyboard inputs are sent to the ESP32 via BLE. Three bytes must be sent for each
   - Bit 1 is set when the ctrl key is pressed
   - Bit 2 is set when the commodore key is pressed
   - Bit 7 is set when an "external command" is sent
+
+### Porting to other ESP32-S3 development boards
+
+To support a different ESP32-S3 based development board, follow these steps:
+
+- Add a new configuration entry in Config.h to identify the new board.
+- Implement any missing drivers: If your board requires custom implementations of the provided driver interfaces (e.g. board, display, sound),
+  create new driver classes accordingly.
+- Extend the corresponding driver factory to return the appropriate driver implementations for your new board.
 
 ### Emulation status
 

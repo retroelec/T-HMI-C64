@@ -23,9 +23,15 @@
 #include <cstdarg>
 #include <cstdint>
 #include <esp_adc/adc_cali.h>
-#include <esp_adc/adc_cali_scheme.h>
 #include <esp_adc/adc_oneshot.h>
 #include <esp_log.h>
+#include <functional>
+
+#ifdef ESP_PLATFORM
+#define PLATFORM_ATTR_ISR IRAM_ATTR
+#else
+#define PLATFORM_ATTR_ISR
+#endif
 
 enum LogLevel { LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, LOG_VERBOSE };
 
@@ -36,6 +42,11 @@ public:
   static int64_t getTimeUS();
   static void pauseExecutionUS(int64_t pause);
   static uint32_t getCPUCycleCount();
+  static void startIntervalTimer(std::function<void()> timerFunction,
+                                 uint64_t interval_us);
+  static void startTask(std::function<void(void *)> taskFunction, uint8_t core,
+                        uint8_t prio);
+  static void taskDelay(uint8_t delay);
 
   adc_oneshot_unit_handle_t adc_handle;
   adc_cali_handle_t adc_cali_handle;

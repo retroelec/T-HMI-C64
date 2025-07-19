@@ -19,11 +19,12 @@
 #include <cstdarg>
 #include <cstdint>
 #include <esp_adc/adc_cali.h>
-#include <esp_adc/adc_cali_scheme.h>
 #include <esp_adc/adc_oneshot.h>
 #include <esp_cpu.h>
 #include <esp_random.h>
 #include <esp_timer.h>
+#include <freertos/FreeRTOS.h>
+#include <memory>
 
 static const char *TAG = "OSUtils";
 
@@ -75,6 +76,50 @@ void OSUtils::pauseExecutionUS(int64_t pause) {
 }
 
 uint32_t OSUtils::getCPUCycleCount() { return esp_cpu_get_cycle_count(); }
+
+struct TimerContext {
+  std::function<void()> func;
+};
+
+static void PLATFORM_ATTR_ISR genericCallback(void *arg) {
+  auto *ctx = static_cast<TimerContext *>(arg);
+  if (ctx && ctx->func) {
+    ctx->func();
+  }
+}
+
+void OSUtils::startIntervalTimer(std::function<void()> timerFunction,
+                                 uint64_t interval_us) {
+  auto *ctx = new TimerContext{timerFunction};
+  esp_timer_create_args_t timerArgs = {.callback = &genericCallback,
+                                       .arg = ctx,
+                                       .dispatch_method = ESP_TIMER_TASK,
+                                       .name = "osutilsTimer",
+                                       .skip_unhandled_events = false};
+  esp_timer_handle_t handle;
+  ESP_ERROR_CHECK(esp_timer_create(&timerArgs, &handle));
+  ESP_ERROR_CHECK(esp_timer_start_periodic(handle, interval_us));
+}
+
+struct TaskContext {
+  std::function<void(void *)> func;
+};
+
+static void taskEntryPoint(void *arg) {
+  std::unique_ptr<TaskContext> ctx(static_cast<TaskContext *>(arg));
+  if (ctx && ctx->func) {
+    ctx->func(nullptr);
+  }
+}
+
+void OSUtils::startTask(std::function<void(void *)> taskFunction, uint8_t core,
+                        uint8_t prio) {
+  auto *ctx = new TaskContext{std::move(taskFunction)};
+  xTaskCreatePinnedToCore(taskEntryPoint, "genericTask", 10000, ctx, prio,
+                          nullptr, core);
+}
+
+void OSUtils::taskDelay(uint8_t delay) { vTaskDelay(delay); }
 
 void OSUtils::calibrateBattery() {
   // initialize ADC unit 1 in one-shot mode with default RTC clock source

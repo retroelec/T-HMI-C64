@@ -15,11 +15,14 @@
  http://www.gnu.org/licenses/.
 */
 #include "ExternalCmds.h"
-#include "CPUC64.h"
+
+#include "C64Sys.h"
 #include "OSUtils.h"
+#include "fs/FSFactory.h"
 #include "listactions.h"
 #include "loadactions.h"
 #include "saveactions.h"
+#include <cstring>
 
 static const char *TAG = "ExternalCmds";
 
@@ -49,11 +52,12 @@ enum class ExtCmd {
   LIST = 32
 };
 
-void ExternalCmds::init(uint8_t *ram, CPUC64 *cpu) {
+void ExternalCmds::init(uint8_t *ram, C64Sys *cpu) {
   this->ram = ram;
   this->cpu = cpu;
   sendrawkeycodes = false;
   liststartflag = true;
+  filesys = FileSys::create();
 }
 
 void ExternalCmds::setType1Notification() {
@@ -112,19 +116,51 @@ void ExternalCmds::setVarTab(uint16_t addr) {
   cpu->setPC(0xa52a);
 }
 
+void getPath(char *path, uint8_t *ram) {
+  uint8_t cury = ram[0xd6];
+  uint8_t curx = ram[0xd3];
+  uint8_t *cursorpos = ram + 0x0400 + cury * 40 + curx;
+  cursorpos--; // char may be 160
+  while (*cursorpos == 32) {
+    cursorpos--;
+  }
+  while ((*cursorpos != 32) && (cursorpos >= ram + 0x0400)) {
+    cursorpos--;
+  }
+  cursorpos++;
+  path[0] = '/';
+  uint8_t i = 1;
+  uint8_t p;
+  while (((p = *cursorpos++) != 32) && (p != 160) && (i < 17)) {
+    if ((p >= 1) && (p <= 26)) {
+      path[i] = p + 96;
+    } else if ((p >= 33) && (p <= 63)) {
+      path[i] = p;
+    }
+    i++;
+  }
+  path[i++] = '.';
+  path[i++] = 'p';
+  path[i++] = 'r';
+  path[i++] = 'g';
+  path[i] = '\0';
+}
+
 uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   ExtCmd cmd = static_cast<ExtCmd>(buffer[0]);
   switch (cmd) {
   case ExtCmd::NOEXTCMD:
     return 0;
   case ExtCmd::LOAD: {
-    OSUtils::log(LOG_INFO, TAG, "load from sdcard...");
+    OSUtils::log(LOG_INFO, TAG, "load from file system");
     cpu->cpuhalted = true;
     bool fileloaded = false;
     bool error = false;
     uint16_t addr;
-    if (sdcard.init()) {
-      addr = sdcard.load(ram);
+    if (filesys->init()) {
+      char path[22];
+      getPath(path, ram);
+      addr = filesys->load(path, ram);
       if (addr == 0) {
         OSUtils::log(LOG_INFO, TAG, "file not found");
       } else {
@@ -133,7 +169,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       }
     } else {
       error = true;
-      OSUtils::log(LOG_INFO, TAG, "error init sdcard");
+      OSUtils::log(LOG_INFO, TAG, "error init file system");
     }
     addr = src_loadactions_prg[0] + (src_loadactions_prg[1] << 8);
     memcpy(ram + addr, src_loadactions_prg + 2, src_loadactions_prg_len - 2);
@@ -148,16 +184,20 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   }
   case ExtCmd::SAVE: {
-    OSUtils::log(LOG_INFO, TAG, "save to sdcard...");
+    OSUtils::log(LOG_INFO, TAG, "save to file system");
     cpu->cpuhalted = true;
     bool filesaved = false;
-    if (sdcard.init()) {
-      filesaved = sdcard.save(ram);
+    if (filesys->init()) {
+      char path[22];
+      getPath(path, ram);
+      uint16_t startaddr = ram[43] + ram[44] * 256;
+      uint16_t endaddr = ram[45] + ram[46] * 256;
+      filesaved = filesys->save(path, ram, startaddr, endaddr);
       if (!filesaved) {
         OSUtils::log(LOG_INFO, TAG, "error saving file");
       }
     } else {
-      OSUtils::log(LOG_INFO, TAG, "error init sdcard");
+      OSUtils::log(LOG_INFO, TAG, "error init file system");
     }
     uint16_t addr = src_saveactions_prg[0] + (src_saveactions_prg[1] << 8);
     memcpy(ram + addr, src_saveactions_prg + 2, src_saveactions_prg_len - 2);
@@ -170,9 +210,9 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   }
   case ExtCmd::LIST: {
-    OSUtils::log(LOG_INFO, TAG, "list sdcard...");
+    OSUtils::log(LOG_INFO, TAG, "list file system");
     cpu->cpuhalted = true;
-    if (sdcard.init()) {
+    if (filesys->init()) {
       uint16_t addr = src_listactions_prg[0] + (src_listactions_prg[1] << 8);
       memcpy(ram + addr, src_listactions_prg + 2, src_listactions_prg_len - 2);
       if (liststartflag) {
@@ -183,7 +223,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       uint8_t filename[17];
       int cnt = 0;
       while (cnt < 23) {
-        bool success = sdcard.listnextentry(filename, liststartflag);
+        bool success = filesys->listnextentry(filename, liststartflag);
         liststartflag = false;
         if (success && (filename[0] != '\0')) {
           // copy filename to c64 ram (0x0342)
@@ -202,7 +242,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
         cnt++;
       }
     } else {
-      OSUtils::log(LOG_ERROR, TAG, "error init sdcard");
+      OSUtils::log(LOG_ERROR, TAG, "error init file system");
     }
     cpu->cpuhalted = false;
     return 0;

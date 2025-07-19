@@ -14,36 +14,28 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef C64EMU_H
-#define C64EMU_H
+#ifndef SDCARD_H
+#define SDCARD_H
 
-#include "C64Sys.h"
-#include "VIC.h"
-#include "board/BoardDriver.h"
-#include <atomic>
+#include "../Config.h"
+#ifdef USE_SDCARD
+#include "FSDriver.h"
+#include <FS.h>
+#include <cstdint>
 
-class C64Emu {
+class SDCard : public FSDriver {
 private:
-  uint8_t *ram;
-  BoardDriver *board;
-  VIC vic;
-  uint16_t cntSecondsForBatteryCheck;
-
-  void intervalTimerTODFunc();
-  void intervalTimerScanKeyboardFunc();
-  void intervalTimerProfilingBatteryCheckFunc();
-  void cpuCode(void *parameter);
-  void calibrateBattery();
+  bool initalized;
+  File root;
 
 public:
-  C64Sys cpu;
-  std::atomic<bool> showperfvalues = false;
-  std::atomic<uint8_t> cntRefreshs = 0;
-  std::atomic<uint32_t> numofcyclespersecond = 0;
-  std::atomic<uint32_t> numofburnedcyclespersecond = 0;
-
-  void setup();
-  void loop();
+  SDCard();
+  bool init() override;
+  uint16_t load(char *path, uint8_t *ram) override;
+  bool save(char *path, uint8_t *ram, uint16_t startaddr,
+            uint16_t endaddr) override;
+  bool listnextentry(uint8_t *nextentry, bool start) override;
 };
+#endif
 
-#endif // C64EMU_H
+#endif // SDCARD_H

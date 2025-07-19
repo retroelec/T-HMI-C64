@@ -16,6 +16,7 @@
 */
 
 #include "SID.h"
+#include "sound/SoundFactory.h"
 #include <cmath>
 
 static const float attackLUT[16] = {
@@ -238,7 +239,8 @@ void SID::init() {
 }
 
 SID::SID() {
-  sound.soundDriver->init();
+  sound = Sound::create();
+  sound->init();
   init();
 }
 
@@ -277,6 +279,6 @@ void SID::fillBuffer(uint16_t rasterline) {
 }
 
 void SID::playAudio() {
-  sound.soundDriver->playAudio(samples, NUMSAMPLESPERFRAME * sizeof(int16_t));
+  sound->playAudio(samples, NUMSAMPLESPERFRAME * sizeof(int16_t));
   actSampleIdx = 0;
 }

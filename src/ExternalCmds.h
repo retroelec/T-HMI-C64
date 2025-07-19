@@ -17,7 +17,7 @@
 #ifndef EXTERNALCMDS_H
 #define EXTERNALCMDS_H
 
-#include "SDCard.h"
+#include "fs/FSDriver.h"
 #include <cstdint>
 
 // notifications may be not larger than 20 bytes
@@ -70,13 +70,13 @@ struct BLENotificationStruct5 : NotificationStruct {
   uint8_t batteryVolHi;
 };
 
-class CPUC64; // forward declaration
+class C64Sys; // forward declaration
 
 class ExternalCmds {
 private:
   uint8_t *ram;
-  CPUC64 *cpu;
-  SDCard sdcard;
+  C64Sys *cpu;
+  FSDriver *filesys;
   bool sendrawkeycodes;
   uint16_t actaddrreceivecmd;
 
@@ -96,7 +96,7 @@ public:
   BLENotificationStruct4 type4notification;
   BLENotificationStruct5 type5notification;
 
-  void init(uint8_t *ram, CPUC64 *cpu);
+  void init(uint8_t *ram, C64Sys *cpu);
   uint8_t executeExternalCmd(uint8_t *buffer);
 };
 

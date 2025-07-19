@@ -18,18 +18,17 @@
 #define CONFIG_H
 
 #include <cstdint>
+#include <driver/gpio.h>
 #include <esp_adc/adc_oneshot.h>
 
 struct Config {
 
-#define USE_BLE_KEYBOARD
-
 #if defined(BOARD_T_HMI)
 #define USE_ST7789V
 #define USE_SDCARD
-#define USE_JOYSTICK
+#define USE_ARDUINOJOYSTICK
 #define USE_NOSOUND
-
+  // power
   static const uint8_t PWR_EN = 10;
   static const uint8_t PWR_ON = 14;
   static const adc_channel_t BAT_ADC = ADC_CHANNEL_4; // GPIO5
@@ -68,8 +67,10 @@ struct Config {
   static constexpr float HEURISTIC_PERFORMANCE_FACTOR = 1.0;
 #elif defined(BOARD_T_DISPLAY_S3)
 #define USE_RM67162
+#define USE_NOFS
+#define USE_NOJOYSTICK
 #define USE_NOSOUND
-
+  // power
   static const adc_channel_t BAT_ADC = ADC_CHANNEL_3; // GPIO4
 
   // DisplayDriver (considering a possible rotation)
@@ -82,9 +83,11 @@ struct Config {
 #elif defined(BOARD_WAVESHARE)
 #define USE_ST7789VSERIAL
 #define USE_SDCARD
-#define USE_JOYSTICK
+#define USE_ARDUINOJOYSTICK
 #define USE_I2SSOUND
-
+  // power
+  static const gpio_num_t PWR_KEY_INPUT_PIN = GPIO_NUM_6;
+  static const gpio_num_t PWR_CONTROL_PIN = GPIO_NUM_7;
   static const adc_channel_t BAT_ADC = ADC_CHANNEL_7; // GPIO8
 
   // DisplayDriver (considering a possible rotation)
@@ -98,6 +101,7 @@ struct Config {
   static const uint8_t I2S_LRC = 38;
 
   // SDCard
+  static const gpio_num_t SD_D3_PIN = GPIO_NUM_21;
   static const uint8_t SD_MISO_PIN = 16;
   static const uint8_t SD_MOSI_PIN = 17;
   static const uint8_t SD_SCLK_PIN = 14;
@@ -111,6 +115,8 @@ struct Config {
   // "heuristic performance factor"
   static constexpr float HEURISTIC_PERFORMANCE_FACTOR = 0.7;
 #endif
+
+#define USE_BLE_KEYBOARD
 
   // BLEKB
   static constexpr const char *SERVICE_UUID =

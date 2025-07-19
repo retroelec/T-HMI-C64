@@ -16,34 +16,31 @@
 */
 #include "C64Emu.h"
 #include "Config.h"
-#include "HardwareInitializationException.h"
 #include "OSUtils.h"
 #include "VIC.h"
+#include "board/BoardFactory.h"
 #include "roms/charset.h"
 #include <cstdint>
-#include <driver/gpio.h>
 
 static const char *TAG = "C64Emu";
 
-C64Emu *C64Emu::instance = nullptr;
-
-void IRAM_ATTR C64Emu::interruptProfilingBatteryCheckFunc() {
+void PLATFORM_ATTR_ISR C64Emu::intervalTimerProfilingBatteryCheckFunc() {
   // battery check
   cntSecondsForBatteryCheck++;
   if (cntSecondsForBatteryCheck >= 300) { // each 5 minutes
     // get battery voltage
-    uint16_t voltage = board.boardDriver->getBatteryVoltage();
+    uint16_t voltage = board->getBatteryVoltage();
     cpu.batteryVoltage.store(voltage, std::memory_order_release);
     // if battery voltage is too low, then power off device
     if (voltage < 3400) {
-      board.boardDriver->powerOff();
+      board->powerOff();
     }
     // reset "timer"
     cntSecondsForBatteryCheck = 0;
   }
   // power off?
   if (cpu.poweroff.load(std::memory_order_acquire)) {
-    board.boardDriver->powerOff();
+    board->powerOff();
   }
   // profiling (if activated)
   if (!cpu.perf.load(std::memory_order_acquire)) {
@@ -67,38 +64,32 @@ void IRAM_ATTR C64Emu::interruptProfilingBatteryCheckFunc() {
   showperfvalues.store(true, std::memory_order_release);
 }
 
-void IRAM_ATTR C64Emu::interruptTODFunc() {
+void PLATFORM_ATTR_ISR C64Emu::intervalTimerTODFunc() {
   cpu.cia1.updateTOD();
   cpu.cia2.updateTOD();
 }
 
-void IRAM_ATTR C64Emu::interruptScanKeyboardFunc() {
-  cpu.keyboard.keyboardDriver->scanKeyboard();
+void PLATFORM_ATTR_ISR C64Emu::intervalTimerScanKeyboardFunc() {
+  cpu.keyboard->scanKeyboard();
 }
 
 void C64Emu::cpuCode(void *parameter) {
-  OSUtils::log(LOG_INFO, TAG, "cpuTask running on core %d", xPortGetCoreID());
+  // timer interrupts each 8 ms to scan keyboard
+  OSUtils::startIntervalTimer(
+      std::bind(&C64Emu::intervalTimerScanKeyboardFunc, this), 8000);
 
-  // interrupt each 8 ms to scan keyboard
-  interruptScanKeyboard = timerBegin(1000000);
-  timerAttachInterrupt(interruptScanKeyboard,
-                       &interruptScanKeyboardFuncWrapper);
-  timerAlarm(interruptScanKeyboard, 8000, true, 0);
-
-  // interrupt each 100 ms to increment CIA real time clock (TOD)
-  interruptTOD = timerBegin(1000000);
-  timerAttachInterrupt(interruptTOD, &C64Emu::interruptTODFuncWrapper);
-  timerAlarm(interruptTOD, 100000, true, 0);
+  // timer interrupts each 100 ms to increment CIA real time clock (TOD)
+  OSUtils::startIntervalTimer(std::bind(&C64Emu::intervalTimerTODFunc, this),
+                              100000);
 
   cpu.run();
   // cpu runs forever -> no vTaskDelete(NULL);
 }
 
 void C64Emu::setup() {
-  instance = this;
-
   // init board
-  board.boardDriver->init();
+  board = Board::create();
+  board->init();
 
   // init. instance variables
   cntSecondsForBatteryCheck =
@@ -109,25 +100,24 @@ void C64Emu::setup() {
 
   // init VIC
   vic.init(ram, charset_rom);
-  // init LCD driver
-  vic.initLCDController();
 
   // init CPU
   cpu.init(ram, charset_rom, &vic);
 
   // start cpu task
-  xTaskCreatePinnedToCore(cpuCodeWrapper, "CPU", 10000, NULL, 19, &cpuTask, 1);
+  using namespace std::placeholders;
+  OSUtils::startTask(std::bind(&C64Emu::cpuCode, this, _1), 1, 19);
 
-  // profiling + battery check: interrupt each second
-  interruptProfilingBatteryCheck = timerBegin(1000000);
-  timerAttachInterrupt(interruptProfilingBatteryCheck,
-                       &interruptProfilingBatteryCheckFuncWrapper);
-  timerAlarm(interruptProfilingBatteryCheck, 1000000, true, 0);
+  // profiling + battery check: timer interrupts each second
+  // using namespace std::placeholders;
+  OSUtils::startIntervalTimer(
+      std::bind(&C64Emu::intervalTimerProfilingBatteryCheckFunc, this),
+      1000000);
 }
 
 void C64Emu::loop() {
   vic.refresh();
-  vTaskDelay(Config::REFRESHDELAY);
+  OSUtils::taskDelay(Config::REFRESHDELAY);
   if (cpu.perf.load(std::memory_order_acquire) &&
       showperfvalues.load(std::memory_order_acquire)) {
     showperfvalues.store(false, std::memory_order_release);
