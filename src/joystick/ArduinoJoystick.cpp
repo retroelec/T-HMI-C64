@@ -17,7 +17,7 @@
 #include "ArduinoJoystick.h"
 #include "../Config.h"
 #ifdef USE_ARDUINOJOYSTICK
-#include "../OSUtils.h"
+#include "../platform/PlatformManager.h"
 #include "JoystickInitializationException.h"
 #include <driver/gpio.h>
 #include <esp_adc/adc_oneshot.h>
@@ -53,13 +53,13 @@ void ArduinoJoystick::init() {
   }
   // init other attributes
   lastjoystickvalue = 0xff;
-  lastMeasuredTime = OSUtils::getCPUCycleCount();
+  lastMeasuredTime = PlatformManager::getInstance().getTimeUS();
 }
 
 uint8_t ArduinoJoystick::getValue() {
-  // do not check joystick value too often (max only each 2 ms)
-  uint32_t actMeasuredTime = OSUtils::getCPUCycleCount();
-  if ((actMeasuredTime - lastMeasuredTime) < 480000) {
+  // do not check joystick value too often (max only each 10 ms)
+  int64_t actMeasuredTime = PlatformManager::getInstance().getTimeUS();
+  if ((actMeasuredTime - lastMeasuredTime) < 10000) {
     return lastjoystickvalue;
   }
   lastMeasuredTime = actMeasuredTime;

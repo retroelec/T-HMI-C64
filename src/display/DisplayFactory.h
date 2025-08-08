@@ -25,6 +25,8 @@
 #include "RM67162.h"
 #elif defined(USE_ST7789VSERIAL)
 #include "ST7789VSerial.h"
+#elif defined(USE_SDL_DISPLAY)
+#include "SDLDisplay.h"
 #else
 #error "no valid display driver defined"
 #endif
@@ -37,6 +39,8 @@ DisplayDriver *create() {
   return new RM67162();
 #elif defined(USE_ST7789VSERIAL)
   return new ST7789VSerial();
+#elif defined(USE_SDL_DISPLAY)
+  return new SDLDisplay();
 #endif
 }
 } // namespace Display

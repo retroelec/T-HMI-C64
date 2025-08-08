@@ -1,7 +1,7 @@
 ALLBOARDS := T_HMI T_DISPLAY_S3 WAVESHARE
 #BOARD := T_HMI
-#BOARD := T_DISPLAY_S3
-BOARD := WAVESHARE
+BOARD := T_DISPLAY_S3
+#BOARD := WAVESHARE
 
 PORT := /dev/ttyACM0
 
@@ -11,9 +11,12 @@ else
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info
 endif
 
-SOURCEFILES=$(wildcard src/*.cpp src/rm67162/*.cpp src/st7789vserial/*.cpp)
+SOURCEFILES := $(shell find src -name '*.cpp')
+HEADERFILES := $(shell find src -name '*.h')
 
-default:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h src/saveactions.h src/listactions.h
+TARGET := build$(BOARD)/T-HMI-C64.ino.elf
+
+$(TARGET):	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES)
 	arduino-cli compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD)" --build-path build$(BOARD) T-HMI-C64.ino
 
 src/loadactions.h:	src/loadactions.asm
@@ -28,7 +31,7 @@ src/listactions.h:	src/listactions.asm
 	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/listactions.asm -o src/listactions.prg
 	xxd -i src/listactions.prg > src/listactions.h
 
-compile:	default
+compile:	$(TARGET)
 
 clean:
 	rm -rf build$(BOARD)
@@ -65,4 +68,29 @@ install:	check_install
 
 check_install:
 	@echo -n "Are you sure? [y/N] " && read ans && [ $${ans:-N} = y ]
+
+# Linux
+
+SRCDIR := src
+BUILDDIRLINUX := buildlinux
+TARGETLINUX := c64linux
+
+OBJFILESLINUX := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRLINUX)/%.o,$(SOURCEFILES))
+
+CXX := g++
+CXXFLAGS := -Wall -MMD -MP -DPLATFORM_LINUX -Isrc
+
+$(TARGETLINUX): $(OBJFILESLINUX)
+	$(CXX) $(OBJFILESLINUX) -o $@ -lSDL2
+
+$(BUILDDIRLINUX)/%.o: $(SRCDIR)/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+-include $(OBJFILESLINUX:.o=.d)
+
+cleanlinux:
+	rm -rf $(BUILDDIRLINUX) $(TARGETLINUX)
+
+.PHONY: cleanlinux
 

@@ -33,7 +33,7 @@ private:
   adc_oneshot_unit_handle_t adc2_handle;
 
   // read joystick value only each x rasterlines
-  uint32_t lastMeasuredTime;
+  int64_t lastMeasuredTime;
   uint8_t lastjoystickvalue;
 
 public:

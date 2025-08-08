@@ -17,7 +17,7 @@
 #include "SDCard.h"
 #include "../Config.h"
 #ifdef USE_SDCARD
-#include "../OSUtils.h"
+#include "../platform/PlatformManager.h"
 #include <SD_MMC.h>
 
 static const char *TAG = "SDCard";
@@ -28,7 +28,7 @@ bool SDCard::init() {
   if (initalized) {
     return true;
   }
-  vTaskDelay(500 / portTICK_PERIOD_MS);
+  PlatformManager::getInstance().waitMS(500);
   SD_MMC.setPins(Config::SD_SCLK_PIN, Config::SD_MOSI_PIN, Config::SD_MISO_PIN);
   bool rlst = SD_MMC.begin("/sdcard", true);
   if (!rlst) {
@@ -38,11 +38,14 @@ bool SDCard::init() {
   return true;
 }
 
-uint16_t SDCard::load(char *path, uint8_t *ram) {
+uint16_t SDCard::load(char *filename, uint8_t *ram) {
   if (!initalized) {
     return 0;
   }
-  OSUtils::log(LOG_INFO, TAG, "load file %s", path);
+  char path[22];
+  path[0] = '/';
+  strcpy(path + 1, filename);
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "load file %s", path);
   File file = SD_MMC.open(path);
   if (!file) {
     return 0;
@@ -65,12 +68,15 @@ uint16_t SDCard::load(char *path, uint8_t *ram) {
   return addr;
 }
 
-bool SDCard::save(char *path, uint8_t *ram, uint16_t startaddr,
+bool SDCard::save(char *filename, uint8_t *ram, uint16_t startaddr,
                   uint16_t endaddr) {
   if (!initalized) {
     return false;
   }
-  OSUtils::log(LOG_INFO, TAG, "save file %s", path);
+  char path[22];
+  path[0] = '/';
+  strcpy(path + 1, filename);
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "save file %s", path);
   File file = SD_MMC.open(path, FILE_WRITE);
   if (!file) {
     return false;
@@ -95,7 +101,7 @@ bool SDCard::listnextentry(uint8_t *nextentry, bool start) {
     }
     root = SD_MMC.open("/");
     if (!root || !root.isDirectory()) {
-      OSUtils::log(LOG_INFO, TAG, "cannot open root dir");
+      PlatformManager::getInstance().log(LOG_INFO, TAG, "cannot open root dir");
       return false;
     }
     file = root.openNextFile();

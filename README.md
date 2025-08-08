@@ -1,12 +1,15 @@
 # C64 Emulator for ESP32-S3 with "Android keyboard" (BLE) (Lilygo T-HMI, Lilygo T-Display S3 AMOLED, Waveshare ESP32-S3-LCD-2.8)
 
-C64 emulator for the development board [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7)
-equipped with an ESP32-S3 chip, a 2.8 inch touch display LCD screen (ST7789V driver) and an SD card slot.
-The emulator was later expanded to also support the boards
-[Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI) and
+A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD (ST7789V driver), and an SD card slot.
+The emulator was later expanded to support the
+[Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI) and the
 [ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm).
 
-The keyboard for the emulator is simulated by an Android app, communication between the app and the emulator is realized using BLE (Bluetooth Low Energy).
+Keyboard input is simulated via a custom Android app, communicating with the emulator over Bluetooth Low Energy (BLE).
+
+After extensive refactoring, the code should now be easily portable to other ESP32-S3 boards (and even other platforms).
+
+The emulator is also available as a Linux application using SDL for graphics, input, and sound.
 
 [![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
 
@@ -14,10 +17,8 @@ Contact: retroelec42@gmail.com
 
 ## News
 
-- Support for ESP32-S3-LCD-2.8 from Waveshare
-- Simple SID emulation
+- Emulator for Linux using SDL
 - Code refactoring
-- Arduino ESP32 core 3.2.0
 
 ## Hardware
 
@@ -48,8 +49,9 @@ If you do not use an Arduino joystick, you may have to adapt the following const
 
 ### Battery
 
-You can also operate your board with a battery. The T-HMI development board allows you to switch on the board by pressing
-the On/Off switch (next to the SD card slot). However, it does not appear to be possible to turn the board off with this switch.
+You can also operate your board with a battery. The T-HMI and Waveshare development boards allow you to switch on the board by pressing
+the On/Off switch (next to the SD card slot).
+However, it does not appear to be possible to turn the board off with this switch.
 Therefore, the Android app allows the board to be switched off by pressing the Off switch in the top right-hand corner.
 
 ### Lilygo T-HMI development board
@@ -170,6 +172,18 @@ You may follow these steps to install the app on your Android device (there may 
 3. After the app has been downloaded, a message appears which allows you to open the file.
    Click on open and follow the on-screen instructions to complete the installation.
 
+### Install Emulator for Linux
+
+To build the Linux version, you need to have the GNU C++ compiler and GNU Make installed.
+You also need the SDL2 development libraries, which can be installed with:  
+sudo apt install libsdl2-dev
+
+Once the dependencies are installed, you can compile the emulator using:  
+make c64linux
+
+To start the emulator, run ./c64linux in a shell.
+Press Alt + h in the emulator window to display a simple help page in the shell.
+
 ## Usage
 
 ### Android keyboard
@@ -256,7 +270,9 @@ You can also send a programm from your Android device to the emulator (DIV scree
 
 ### Class diagram of the emulator
 
-<img src="doc/classdiagram.png" alt="class diagram" width="1000"/>
+<img src="doc/classdiagram.png" alt="class diagram" width="1200"/>
+
+<img src="doc/classdiagram_001.png" alt="class diagram" width="600"/>
 
 ### Keyboard
 

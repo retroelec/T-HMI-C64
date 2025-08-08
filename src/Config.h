@@ -18,16 +18,87 @@
 #define CONFIG_H
 
 #include <cstdint>
+#ifdef ESP_PLATFORM
 #include <driver/gpio.h>
 #include <esp_adc/adc_oneshot.h>
+#endif
 
-struct Config {
+#if defined(PLATFORM_LINUX)
+
+#define BOARD_LINUX
+#define USE_SDL_DISPLAY
+#define USE_SDL_KEYBOARD
+#define USE_LINUXFS
+#define USE_NOJOYSTICK
+#define USE_SDLSOUND
+
+#elif defined(ESP_PLATFORM)
 
 #if defined(BOARD_T_HMI)
 #define USE_ST7789V
+#define USE_BLE_KEYBOARD
 #define USE_SDCARD
 #define USE_ARDUINOJOYSTICK
 #define USE_NOSOUND
+#elif defined(BOARD_T_DISPLAY_S3)
+#define USE_RM67162
+#define USE_BLE_KEYBOARD
+#define USE_NOFS
+#define USE_NOJOYSTICK
+#define USE_NOSOUND
+#elif defined(BOARD_WAVESHARE)
+#define USE_ST7789VSERIAL
+#define USE_BLE_KEYBOARD
+#define USE_SDCARD
+#define USE_ARDUINOJOYSTICK
+#define USE_I2SSOUND
+#endif
+
+#endif
+
+#if defined(PLATFORM_LINUX)
+
+struct Config {
+  // --- constants to be defined for each board ---
+
+  // delay until next display refresh
+  static const uint8_t REFRESHDELAY = 20;
+
+  // "heuristic performance factor"
+  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
+
+  // audio
+  static const uint16_t AUDIO_SAMPLE_RATE = 44100;
+
+  // --- driver specific constants ---
+
+  // display driver
+  static const uint16_t LCDWIDTH = 320;
+  static const uint16_t LCDHEIGHT = 200;
+  static const uint16_t LCDSCALE = 4;
+
+  // filesystem
+  static constexpr const char *PATH = "c64prgs/";
+};
+
+#elif defined(ESP_PLATFORM)
+
+#if defined(BOARD_T_HMI)
+
+struct Config {
+  // --- constants to be defined for each board ---
+
+  // delay until next display refresh
+  static const uint8_t REFRESHDELAY = 0;
+
+  // "heuristic performance factor"
+  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
+
+  // audio
+  static const uint16_t AUDIO_SAMPLE_RATE = 44100;
+
+  // --- driver specific constants ---
+
   // power
   static const uint8_t PWR_EN = 10;
   static const uint8_t PWR_ON = 14;
@@ -47,10 +118,9 @@ struct Config {
   static const uint8_t D6 = 45;
   static const uint8_t D7 = 46;
 
-  // DisplayDriver (considering a possible rotation)
+  // display driver
   static const uint16_t LCDWIDTH = 320;
   static const uint16_t LCDHEIGHT = 240;
-  static const uint8_t REFRESHDELAY = 1;
 
   // SDCard
   static const uint8_t SD_MISO_PIN = 13;
@@ -63,37 +133,67 @@ struct Config {
   static const uint8_t JOYSTICK_FIRE_PIN = 18;
   static const uint8_t JOYSTICK_FIRE2_PIN = 17;
 
-  // "heuristic performance factor"
-  static constexpr float HEURISTIC_PERFORMANCE_FACTOR = 1.0;
-#elif defined(BOARD_T_DISPLAY_S3)
-#define USE_RM67162
-#define USE_NOFS
-#define USE_NOJOYSTICK
-#define USE_NOSOUND
-  // power
-  static const adc_channel_t BAT_ADC = ADC_CHANNEL_3; // GPIO4
+  // BLEKB
+  static constexpr const char *SERVICE_UUID =
+      "695ba701-a48c-43f6-9028-3c885771f19f";
+  static constexpr const char *CHARACTERISTIC_UUID =
+      "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
+};
 
-  // DisplayDriver (considering a possible rotation)
-  static const uint16_t LCDWIDTH = 536;
-  static const uint16_t LCDHEIGHT = 240;
+#elif defined(BOARD_T_DISPLAY_S3)
+
+struct Config {
+  // --- constants to be defined for each board ---
+
+  // delay until next display refresh
   static const uint8_t REFRESHDELAY = 13;
 
   // "heuristic performance factor"
-  static constexpr float HEURISTIC_PERFORMANCE_FACTOR = 1.0;
+  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
+
+  // audio
+  static const uint16_t AUDIO_SAMPLE_RATE = 44100;
+
+  // --- driver specific constants ---
+
+  // power
+  static const adc_channel_t BAT_ADC = ADC_CHANNEL_3; // GPIO4
+
+  // display driver
+  static const uint16_t LCDWIDTH = 536;
+  static const uint16_t LCDHEIGHT = 240;
+
+  // BLEKB
+  static constexpr const char *SERVICE_UUID =
+      "695ba701-a48c-43f6-9028-3c885771f19f";
+  static constexpr const char *CHARACTERISTIC_UUID =
+      "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
+};
+
 #elif defined(BOARD_WAVESHARE)
-#define USE_ST7789VSERIAL
-#define USE_SDCARD
-#define USE_ARDUINOJOYSTICK
-#define USE_I2SSOUND
+
+struct Config {
+  // --- constants to be defined for each board ---
+
+  // delay until next display refresh
+  static const uint8_t REFRESHDELAY = 11;
+
+  // "heuristic performance factor"
+  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 0.7;
+
+  // audio
+  static const uint16_t AUDIO_SAMPLE_RATE = 44100;
+
+  // --- driver specific constants ---
+
   // power
   static const gpio_num_t PWR_KEY_INPUT_PIN = GPIO_NUM_6;
   static const gpio_num_t PWR_CONTROL_PIN = GPIO_NUM_7;
   static const adc_channel_t BAT_ADC = ADC_CHANNEL_7; // GPIO8
 
-  // DisplayDriver (considering a possible rotation)
+  // display driver
   static const uint16_t LCDWIDTH = 320;
   static const uint16_t LCDHEIGHT = 240;
-  static const uint8_t REFRESHDELAY = 11;
 
   // Sound
   static const uint8_t I2S_DOUT = 47;
@@ -112,21 +212,23 @@ struct Config {
   static const uint8_t JOYSTICK_FIRE_PIN = 11;
   static const uint8_t JOYSTICK_FIRE2_PIN = 10;
 
-  // "heuristic performance factor"
-  static constexpr float HEURISTIC_PERFORMANCE_FACTOR = 0.7;
-#endif
-
-#define USE_BLE_KEYBOARD
-
   // BLEKB
   static constexpr const char *SERVICE_UUID =
       "695ba701-a48c-43f6-9028-3c885771f19f";
   static constexpr const char *CHARACTERISTIC_UUID =
       "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
+};
 
-  // audio
-  static const uint16_t AUDIO_SAMPLE_RATE = 44100;
-  static const uint16_t AUDIO_FILLBUFFER_RASTERLINE = 10;
-}; // namespace Config
+#else
+
+#error "no valid board defined"
+
+#endif
+
+#else
+
+#error "no valid platform defined"
+
+#endif
 
 #endif // CONFIG_H

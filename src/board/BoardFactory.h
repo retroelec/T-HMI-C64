@@ -25,6 +25,8 @@
 #include "T_DISPLAY_S3.h"
 #elif defined(BOARD_WAVESHARE)
 #include "Waveshare.h"
+#elif defined(BOARD_LINUX)
+#include "Linux.h"
 #else
 #error "no valid board defined"
 #endif
@@ -37,6 +39,8 @@ BoardDriver *create() {
   return new T_DISPLAY_S3();
 #elif defined(BOARD_WAVESHARE)
   return new Waveshare();
+#elif defined(BOARD_LINUX)
+  return new Linux();
 #endif
 }
 } // namespace Board

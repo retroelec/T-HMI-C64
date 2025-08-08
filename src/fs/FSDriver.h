@@ -44,28 +44,29 @@ public:
    * Reads the specified file and loads it into emulated memory. The file is
    * expected to begin with a 2-byte little-endian load address (low byte
    * first), followed by the actual program data. The data is written starting
-   * at that load address.
+   * at that load address. The path to the file name is implementation specific.
    *
-   * @param path Null-terminated string specifying the file path.
+   * @param filename Null-terminated string specifying the file name.
    * @param ram Pointer to the base address of the emulated RAM.
    * @return uint16_t The end address of the loaded program in memory.
    */
-  virtual uint16_t load(char *path, uint8_t *ram) = 0;
+  virtual uint16_t load(char *filename, uint8_t *ram) = 0;
 
   /**
    * @brief Saves a memory region to a C64-style program file (.prg).
    *
    * Writes a program from emulated RAM to the specified file. The file begins
    * with a 2-byte little-endian start address (low byte first), followed by the
-   * memory content from start address to end address.
+   * memory content from start address to end address. The path to the file name
+   * is implementation specific.
    *
-   * @param path Null-terminated string specifying the file path.
+   * @param filename Null-terminated string specifying the file name.
    * @param ram Pointer to the base address of the emulated RAM.
    * @param startaddr Start address of the memory region to be saved.
    * @param endaddr End address of the memory region to be saved.
    * @return true if the file was saved successfully, false otherwise.
    */
-  virtual bool save(char *path, uint8_t *ram, uint16_t startaddr,
+  virtual bool save(char *filename, uint8_t *ram, uint16_t startaddr,
                     uint16_t endaddr) = 0;
 
   /**

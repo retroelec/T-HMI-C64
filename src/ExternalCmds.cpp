@@ -17,40 +17,15 @@
 #include "ExternalCmds.h"
 
 #include "C64Sys.h"
-#include "OSUtils.h"
+#include "ExtCmd.h"
 #include "fs/FSFactory.h"
 #include "listactions.h"
 #include "loadactions.h"
+#include "platform/PlatformManager.h"
 #include "saveactions.h"
 #include <cstring>
 
 static const char *TAG = "ExternalCmds";
-
-enum class ExtCmd {
-  NOEXTCMD = 0,
-  JOYSTICKMODE1 = 1,
-  JOYSTICKMODE2 = 2,
-  KBJOYSTICKMODE1 = 3,
-  KBJOYSTICKMODE2 = 4,
-  JOYSTICKMODEOFF = 5,
-  KBJOYSTICKMODEOFF = 6,
-  LOAD = 11,
-  RECEIVEDATA = 12,
-  SHOWREG = 13,
-  SHOWMEM = 14,
-  RESTORE = 15,
-  RESET = 20,
-  GETSTATUS = 21,
-  SWITCHFRAMECOLORREFRESH = 22,
-  SENDRAWKEYS = 24,
-  SWITCHDEBUG = 25,
-  SWITCHPERF = 26,
-  SWITCHDETECTRELEASEKEY = 27,
-  GETBATTERYVOLTAGE = 29,
-  POWEROFF = 30,
-  SAVE = 31,
-  LIST = 32
-};
 
 void ExternalCmds::init(uint8_t *ram, C64Sys *cpu) {
   this->ram = ram;
@@ -116,7 +91,7 @@ void ExternalCmds::setVarTab(uint16_t addr) {
   cpu->setPC(0xa52a);
 }
 
-void getPath(char *path, uint8_t *ram) {
+void getFilename(char *path, uint8_t *ram) {
   uint8_t cury = ram[0xd6];
   uint8_t curx = ram[0xd3];
   uint8_t *cursorpos = ram + 0x0400 + cury * 40 + curx;
@@ -128,8 +103,7 @@ void getPath(char *path, uint8_t *ram) {
     cursorpos--;
   }
   cursorpos++;
-  path[0] = '/';
-  uint8_t i = 1;
+  uint8_t i = 0;
   uint8_t p;
   while (((p = *cursorpos++) != 32) && (p != 160) && (i < 17)) {
     if ((p >= 1) && (p <= 26)) {
@@ -152,24 +126,25 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::NOEXTCMD:
     return 0;
   case ExtCmd::LOAD: {
-    OSUtils::log(LOG_INFO, TAG, "load from file system");
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "load from file system");
     cpu->cpuhalted = true;
     bool fileloaded = false;
     bool error = false;
     uint16_t addr;
     if (filesys->init()) {
-      char path[22];
-      getPath(path, ram);
-      addr = filesys->load(path, ram);
+      char filename[21];
+      getFilename(filename, ram);
+      addr = filesys->load(filename, ram);
       if (addr == 0) {
-        OSUtils::log(LOG_INFO, TAG, "file not found");
+        PlatformManager::getInstance().log(LOG_INFO, TAG, "file not found");
       } else {
         setVarTab(addr);
         fileloaded = true;
       }
     } else {
       error = true;
-      OSUtils::log(LOG_INFO, TAG, "error init file system");
+      PlatformManager::getInstance().log(LOG_INFO, TAG,
+                                         "error init file system");
     }
     addr = src_loadactions_prg[0] + (src_loadactions_prg[1] << 8);
     memcpy(ram + addr, src_loadactions_prg + 2, src_loadactions_prg_len - 2);
@@ -184,20 +159,21 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   }
   case ExtCmd::SAVE: {
-    OSUtils::log(LOG_INFO, TAG, "save to file system");
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "save to file system");
     cpu->cpuhalted = true;
     bool filesaved = false;
     if (filesys->init()) {
-      char path[22];
-      getPath(path, ram);
+      char filename[21];
+      getFilename(filename, ram);
       uint16_t startaddr = ram[43] + ram[44] * 256;
       uint16_t endaddr = ram[45] + ram[46] * 256;
-      filesaved = filesys->save(path, ram, startaddr, endaddr);
+      filesaved = filesys->save(filename, ram, startaddr, endaddr);
       if (!filesaved) {
-        OSUtils::log(LOG_INFO, TAG, "error saving file");
+        PlatformManager::getInstance().log(LOG_INFO, TAG, "error saving file");
       }
     } else {
-      OSUtils::log(LOG_INFO, TAG, "error init file system");
+      PlatformManager::getInstance().log(LOG_INFO, TAG,
+                                         "error init file system");
     }
     uint16_t addr = src_saveactions_prg[0] + (src_saveactions_prg[1] << 8);
     memcpy(ram + addr, src_saveactions_prg + 2, src_saveactions_prg_len - 2);
@@ -210,7 +186,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   }
   case ExtCmd::LIST: {
-    OSUtils::log(LOG_INFO, TAG, "list file system");
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "list file system");
     cpu->cpuhalted = true;
     if (filesys->init()) {
       uint16_t addr = src_listactions_prg[0] + (src_listactions_prg[1] << 8);
@@ -234,7 +210,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
           cpu->exeSubroutine(addr, 0, 0, 0);
         } else {
           if (!success) {
-            OSUtils::log(LOG_ERROR, TAG, "error reading entry");
+            PlatformManager::getInstance().log(LOG_ERROR, TAG,
+                                               "error reading entry");
           }
           liststartflag = true;
           break;
@@ -242,13 +219,14 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
         cnt++;
       }
     } else {
-      OSUtils::log(LOG_ERROR, TAG, "error init file system");
+      PlatformManager::getInstance().log(LOG_ERROR, TAG,
+                                         "error init file system");
     }
     cpu->cpuhalted = false;
     return 0;
   }
   case ExtCmd::RECEIVEDATA: {
-    OSUtils::log(LOG_INFO, TAG, "enter receivedata");
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "enter receivedata");
     cpu->cpuhalted = true;
     // simple "protocol":
     // - byte 0: cmd (as usual)
@@ -260,7 +238,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     uint8_t cmddetail = buffer[1];
     if (cmddetail == 0) {
       // next block
-      OSUtils::log(LOG_INFO, TAG, "next block: %x", actaddrreceivecmd);
+      PlatformManager::getInstance().log(LOG_INFO, TAG, "next block: %x",
+                                         actaddrreceivecmd);
       for (uint8_t i = 3; i < 253; i++) {
         ram[actaddrreceivecmd + i - 3] = buffer[i];
       }
@@ -269,7 +248,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       // first block
       uint16_t addr = buffer[3] + (buffer[4] << 8);
       actaddrreceivecmd = addr;
-      OSUtils::log(LOG_INFO, TAG, "first block: %x", actaddrreceivecmd);
+      PlatformManager::getInstance().log(LOG_INFO, TAG, "first block: %x",
+                                         actaddrreceivecmd);
       for (uint8_t i = 5; i < 253; i++) {
         ram[actaddrreceivecmd + i - 5] = buffer[i];
       }
@@ -277,7 +257,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     } else if (cmddetail == 2) {
       // last block
       uint8_t len = buffer[3];
-      OSUtils::log(LOG_INFO, TAG, "last block: %x", actaddrreceivecmd);
+      PlatformManager::getInstance().log(LOG_INFO, TAG, "last block: %x",
+                                         actaddrreceivecmd);
       for (uint8_t i = 4; i < (len + 4); i++) {
         ram[actaddrreceivecmd + i - 4] = buffer[i];
       }
@@ -285,7 +266,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       setVarTab(actaddrreceivecmd);
     }
     cpu->cpuhalted = false;
-    OSUtils::log(LOG_INFO, TAG, "leave receivedata");
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "leave receivedata");
     setType4Notification();
     return 4;
   }
@@ -299,37 +280,41 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   case ExtCmd::SHOWREG:
     setType2Notification();
-    OSUtils::log(LOG_INFO, TAG, "cpuRunning %s",
-                 type2notification.cpuRunning ? "true" : "false");
-    OSUtils::log(LOG_INFO, TAG, "pc = %x, a = %x, x = %x, y = %x, sr = %x",
-                 type2notification.pc, type2notification.a, type2notification.x,
-                 type2notification.y, type2notification.sr);
-    OSUtils::log(LOG_INFO, TAG, "d011 = %x, d016 = %x, d018 = %x",
-                 type2notification.d011, type2notification.d016,
-                 type2notification.d018);
-    OSUtils::log(LOG_INFO, TAG, "d019 = %x, d01a = %x, register1 = %x",
-                 type2notification.d019, type2notification.d01a,
-                 type2notification.register1);
-    OSUtils::log(LOG_INFO, TAG, "dc0d = %x, dc0e = %x, dc0f = %x",
-                 type2notification.dc0d, type2notification.dc0e,
-                 type2notification.dc0f);
-    OSUtils::log(LOG_INFO, TAG, "dd0d = %x, dd0e = %x, dd0f = %x",
-                 type2notification.dd0d, type2notification.dd0e,
-                 type2notification.dd0f);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "cpuRunning %s",
+                                       type2notification.cpuRunning ? "true"
+                                                                    : "false");
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "pc = %x, a = %x, x = %x, y = %x, sr = %x",
+        type2notification.pc, type2notification.a, type2notification.x,
+        type2notification.y, type2notification.sr);
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "d011 = %x, d016 = %x, d018 = %x",
+        type2notification.d011, type2notification.d016, type2notification.d018);
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "d019 = %x, d01a = %x, register1 = %x",
+        type2notification.d019, type2notification.d01a,
+        type2notification.register1);
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "dc0d = %x, dc0e = %x, dc0f = %x",
+        type2notification.dc0d, type2notification.dc0e, type2notification.dc0f);
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "dd0d = %x, dd0e = %x, dd0f = %x",
+        type2notification.dd0d, type2notification.dd0e, type2notification.dd0f);
     return 2;
   case ExtCmd::SHOWMEM: {
     uint16_t addr = buffer[3] + (buffer[4] << 8);
     // use addr also as debugging start address
     cpu->debugstartaddr = addr;
-    OSUtils::log(LOG_INFO, TAG, "addr: %x", addr);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "addr: %x", addr);
     setType3Notification(addr);
     for (uint8_t i = 0; i < BLENOTIFICATIONTYPE3NUMOFBYTES / 8; i++) {
       uint8_t j = i * 8;
-      OSUtils::log(LOG_INFO, TAG, "mem[%d]: %d %d %d %d %d %d %d %d", j,
-                   type3notification.mem[j], type3notification.mem[j + 1],
-                   type3notification.mem[j + 2], type3notification.mem[j + 3],
-                   type3notification.mem[j + 4], type3notification.mem[j + 5],
-                   type3notification.mem[j + 6], type3notification.mem[j + 7]);
+      PlatformManager::getInstance().log(
+          LOG_INFO, TAG, "mem[%d]: %d %d %d %d %d %d %d %d", j,
+          type3notification.mem[j], type3notification.mem[j + 1],
+          type3notification.mem[j + 2], type3notification.mem[j + 3],
+          type3notification.mem[j + 4], type3notification.mem[j + 5],
+          type3notification.mem[j + 6], type3notification.mem[j + 7]);
     }
     return 3;
   }
@@ -345,65 +330,75 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::JOYSTICKMODE1:
     cpu->joystickmode = 1;
     cpu->kbjoystickmode = 0;
-    OSUtils::log(LOG_INFO, TAG, "joystickmode = %x", cpu->joystickmode);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
+                                       cpu->joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::JOYSTICKMODE2:
     cpu->joystickmode = 2;
     cpu->kbjoystickmode = 0;
-    OSUtils::log(LOG_INFO, TAG, "joystickmode = %x", cpu->joystickmode);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
+                                       cpu->joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::JOYSTICKMODEOFF:
     cpu->joystickmode = 0;
-    OSUtils::log(LOG_INFO, TAG, "joystickmode = %x", cpu->joystickmode);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
+                                       cpu->joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::KBJOYSTICKMODE1:
     cpu->kbjoystickmode = 1;
     cpu->joystickmode = 0;
-    OSUtils::log(LOG_INFO, TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
+                                       cpu->kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODE2:
     cpu->kbjoystickmode = 2;
     cpu->joystickmode = 0;
-    OSUtils::log(LOG_INFO, TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
+                                       cpu->kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODEOFF:
     cpu->kbjoystickmode = 0;
-    OSUtils::log(LOG_INFO, TAG, "kbjoystickmode = %x", cpu->kbjoystickmode);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
+                                       cpu->kbjoystickmode);
     return 0;
   case ExtCmd::GETSTATUS:
     // just send type 1 notification
-    OSUtils::log(LOG_INFO, TAG, "send status to BLE client");
+    PlatformManager::getInstance().log(LOG_INFO, TAG,
+                                       "send status to BLE client");
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHFRAMECOLORREFRESH:
     cpu->deactivateTemp = !cpu->deactivateTemp;
-    OSUtils::log(LOG_INFO, TAG, "deactivateTemp = %x", cpu->deactivateTemp);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "deactivateTemp = %x",
+                                       cpu->deactivateTemp);
     setType1Notification();
     return 1;
   case ExtCmd::SENDRAWKEYS:
     sendrawkeycodes = !sendrawkeycodes;
-    OSUtils::log(LOG_INFO, TAG, "sendrawkeycodes = %x", sendrawkeycodes);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "sendrawkeycodes = %x",
+                                       sendrawkeycodes);
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHDEBUG:
     cpu->debug = !cpu->debug;
     cpu->debuggingstarted = false;
-    OSUtils::log(LOG_INFO, TAG, "debug = %x", cpu->debug);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "debug = %x", cpu->debug);
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHPERF:
     cpu->perf.store(!cpu->perf.load(std::memory_order_acquire),
                     std::memory_order_release);
-    OSUtils::log(LOG_INFO, TAG, "perf = %x",
-                 cpu->perf.load(std::memory_order_acquire));
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "perf = %x", cpu->perf.load(std::memory_order_acquire));
     setType1Notification();
     return 1;
   case ExtCmd::SWITCHDETECTRELEASEKEY:
     cpu->detectreleasekey = !cpu->detectreleasekey;
-    OSUtils::log(LOG_INFO, TAG, "detectreleasekey = %x", cpu->detectreleasekey);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "detectreleasekey = %x",
+                                       cpu->detectreleasekey);
     setType1Notification();
     return 1;
   case ExtCmd::GETBATTERYVOLTAGE: {

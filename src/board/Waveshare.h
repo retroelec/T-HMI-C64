@@ -19,18 +19,13 @@
 
 #include "../Config.h"
 #ifdef BOARD_WAVESHARE
-#include "../OSUtils.h"
 #include "BoardDriver.h"
+#include "CalibrateBattery.h"
 #include <driver/gpio.h>
-#include <esp_adc/adc_cali.h>
-#include <esp_adc/adc_oneshot.h>
 #include <esp_sleep.h>
 #include <freertos/FreeRTOS.h>
 
-class Waveshare : public BoardDriver {
-private:
-  OSUtils osUtils;
-
+class Waveshare : public BoardDriver, CalibrateBattery {
 public:
   void init() override {
     // SD MMC
@@ -40,7 +35,7 @@ public:
     vTaskDelay(pdMS_TO_TICKS(10));
 
     // calibrate battery
-    osUtils.calibrateBattery();
+    calibrateBattery();
 
     // activate display
     gpio_reset_pin(Config::PWR_CONTROL_PIN);
@@ -51,12 +46,12 @@ public:
   uint16_t getBatteryVoltage() override {
     // get battery voltage
     int voltage = 0;
-    if (osUtils.adc_handle) {
+    if (adc_handle) {
       int raw_value = 0;
-      adc_oneshot_read(osUtils.adc_handle, Config::BAT_ADC, &raw_value);
-      if (osUtils.adc_cali_handle) {
-        if (adc_cali_raw_to_voltage(osUtils.adc_cali_handle, raw_value,
-                                    &voltage) != ESP_OK) {
+      adc_oneshot_read(adc_handle, Config::BAT_ADC, &raw_value);
+      if (adc_cali_handle) {
+        if (adc_cali_raw_to_voltage(adc_cali_handle, raw_value, &voltage) !=
+            ESP_OK) {
           voltage = raw_value; // fallback
         }
       } else {

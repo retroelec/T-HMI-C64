@@ -21,6 +21,8 @@
 #include "KeyboardDriver.h"
 #if defined(USE_BLE_KEYBOARD)
 #include "BLEKB.h"
+#elif defined(USE_SDL_KEYBOARD)
+#include "SDLKB.h"
 #else
 #error "no valid keyboard driver defined"
 #endif
@@ -29,6 +31,8 @@ namespace Keyboard {
 KeyboardDriver *create() {
 #if defined(USE_BLE_KEYBOARD)
   return new BLEKB();
+#elif defined(USE_SDL_KEYBOARD)
+  return new SDLKB();
 #endif
 }
 } // namespace Keyboard

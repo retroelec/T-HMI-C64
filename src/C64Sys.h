@@ -44,7 +44,7 @@ private:
 
   bool nmiAck;
 
-  inline void vTaskDelayUntilUS(int64_t nominalTime);
+  uint8_t getDC01(uint8_t dc00, bool xchgports);
   inline void adaptVICBaseAddrs(bool fromcia) __attribute__((always_inline));
   inline void decodeRegister1(uint8_t val) __attribute__((always_inline));
   inline void checkciatimers(uint8_t cycles) __attribute__((always_inline));

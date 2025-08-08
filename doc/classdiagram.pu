@@ -22,33 +22,38 @@ class CIA
 class CPU6502
 class SID
 
-package "board impl" {
+together {
 class T_HMI <<hw_specific>>
 class T_DISPLAY_S3 <<hw_specific>>
 class Waveshare <<hw_specific>>
+class Linux <<hw_specific>>
 }
 
-package "keyboard impl" {
+together {
 class BLEKB <<hw_specific>>
+class SDLKB <<hw_specific>>
 }
 
-package "display impl" {
+together {
 class ST7789V <<hw_specific>>
 class RM67162 <<hw_specific>>
 class ST7789VSerial <<hw_specific>>
+class SDLDisplay <<hw_specific>>
 }
 
-package "sound impl" {
+together {
 class I2SSound <<hw_specific>>
+class SDLSound <<hw_specific>>
 class NoSound
 }
 
-package "fs impl" {
+together {
 class SDCard <<hw_specific>>
+class LinuxFS <<hw_specific>>
 class NoFS
 }
 
-package "joystick impl" {
+together {
 class ArduinoJoystick <<hw_specific>>
 class NoJoystick
 }
@@ -63,6 +68,7 @@ class JoystickFactory <<factory>>
 T_HMI ..|> BoardDriver
 T_DISPLAY_S3 ..|> BoardDriver
 Waveshare ..|> BoardDriver
+Linux ..|> BoardDriver
 
 C64Emu *-- BoardDriver
 C64Emu --> BoardFactory
@@ -71,6 +77,7 @@ C64Emu *-- C64Sys
 C64Emu *-- VIC
 
 BLEKB ..|> KeyboardDriver
+SDLKB ..|> KeyboardDriver
 
 ArduinoJoystick ..|> JoystickDriver
 NoJoystick ..|> JoystickDriver
@@ -88,6 +95,7 @@ C64Sys *-- CIA : 2
 C64Sys *-- SID
 
 SDCard ..|> FSDriver
+LinuxFS ..|> FSDriver
 NoFS ..|> FSDriver
 
 ExternalCmds *-- FSDriver
@@ -98,15 +106,48 @@ ExternalCmds --> C64Sys
 ST7789V ..|> DisplayDriver
 RM67162 ..|> DisplayDriver
 ST7789VSerial ..|> DisplayDriver
+SDLDisplay ..|> DisplayDriver
 
 VIC *-- DisplayDriver
 VIC --> DisplayFactory
 DisplayFactory ..> DisplayDriver
 
 I2SSound ..|> SoundDriver
+SDLSound ..|> SoundDriver
 NoSound ..|> SoundDriver
 
 SID *-- SoundDriver
 SID --> SoundFactory
 SoundFactory ..> SoundDriver
+@enduml
+
+@startuml
+title platform specific
+
+skinparam class {
+  BackgroundColor #f3f3f3
+  ArrowColor Black
+  BorderColor Black
+}
+
+interface Platform
+class PlatformESP32 <<os_specific>>
+class PlatformLinux <<os_specific>>
+
+class Config
+note right of Config
+Globally used platform- and
+board-specific constants
+end note
+class PlatformManager <<singleton>>
+note right of PlatformManager
+Globally used singleton providing
+platform-specific services
+(logging, timers, etc.)
+end note
+class PlatformFactory <<factory>>
+PlatformESP32 ..|> Platform
+PlatformLinux ..|> Platform
+PlatformManager --> Platform
+PlatformFactory ..> Platform
 @enduml

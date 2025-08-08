@@ -112,7 +112,7 @@ void ST7789V::init() {
   GPIO.out_w1tc = CSVAL;
 
   writeCmd(dispoff);
-  vTaskDelay(100);
+  vTaskDelay(pdMS_TO_TICKS(100));
 
   writeCmd(slpout);
   writeCmd(noron);

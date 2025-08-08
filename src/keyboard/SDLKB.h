@@ -14,32 +14,38 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef BLEKB_H
-#define BLEKB_H
+#ifndef SDLKB_H
+#define SDLKB_H
 
 #include "../Config.h"
-#ifdef USE_BLE_KEYBOARD
+#ifdef USE_SDL_KEYBOARD
+#include "../ExtCmd.h"
 #include "KeyboardDriver.h"
-#include <BLEServer.h>
-#include <atomic>
+#include <SDL2/SDL.h>
 #include <cstdint>
 
-class BLEKB : public KeyboardDriver {
+class SDLKB : public KeyboardDriver {
 private:
-  BLECharacteristic *pCharacteristic;
-  std::atomic<uint8_t> sentdc01;
-  std::atomic<uint8_t> sentdc00;
-  std::atomic<bool> detectreleasekey;
+  bool gotExternalCmd = false;
+  uint8_t extCmdBuffer[3];
+
+  bool joystickActive = false;
+  uint8_t joystickval;
+  ExtCmd joystickmode = ExtCmd::KBJOYSTICKMODEOFF;
+  bool keyRight = false;
+  bool keyLeft = false;
+  bool keyUp = false;
+  bool keyDown = false;
+  bool keyFire = false;
+
+  uint8_t kbcode1;
+  uint8_t kbcode2;
+  uint8_t shiftctrlcode;
+
+  void char2codes(uint8_t code1, uint8_t code2, uint8_t ctrlcode);
+  void handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed);
 
 public:
-  uint8_t *buffer;
-  std::atomic<bool> deviceConnected;
-  std::atomic<uint8_t> shiftctrlcode;
-  std::atomic<uint8_t> keypresseddowncnt;
-  std::atomic<uint8_t> virtjoystickvalue;
-  std::atomic<bool> keypresseddown;
-
-  BLEKB();
   void init() override;
   uint8_t *getExtCmdData() override;
   void sendExtCmdNotification(uint8_t *data, size_t size) override;
@@ -51,25 +57,6 @@ public:
   void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) override;
   void setDetectReleasekey(bool detectreleasekey) override;
 };
-
-class BLEKBServerCallback : public BLEServerCallbacks {
-private:
-  BLEKB &blekb;
-
-public:
-  BLEKBServerCallback(BLEKB &blekb);
-  void onConnect(BLEServer *pServer);
-  void onDisconnect(BLEServer *pServer);
-};
-
-class BLEKBCharacteristicCallback : public BLECharacteristicCallbacks {
-private:
-  BLEKB &blekb;
-
-public:
-  BLEKBCharacteristicCallback(BLEKB &blekb);
-  void onWrite(BLECharacteristic *pCharacteristic);
-};
 #endif
 
-#endif // BLEKB_H
+#endif // SDLKB_H

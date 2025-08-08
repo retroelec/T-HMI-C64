@@ -9,7 +9,7 @@ GENERATE_LATEX         = NO
 
 # Source files
 RECURSIVE              = YES
-FILE_PATTERNS          = *Driver.h
+FILE_PATTERNS          = *Driver.h Platform.h
 
 # Documentation style
 #EXTRACT_ALL            = YES

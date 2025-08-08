@@ -14,31 +14,21 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef SOUNDFACTORY_H
-#define SOUNDFACTORY_H
+#ifndef LINUX_H
+#define LINUX_H
 
 #include "../Config.h"
-#include "SoundDriver.h"
-#if defined(USE_I2SSOUND)
-#include "I2SSound.h"
-#elif defined(USE_SDLSOUND)
-#include "SDLSound.h"
-#elif defined(USE_NOSOUND)
-#include "NoSound.h"
-#else
-#error "no valid sound driver defined"
+#ifdef BOARD_LINUX
+#include "BoardDriver.h"
+
+class Linux : public BoardDriver {
+public:
+  void init() override {}
+
+  uint16_t getBatteryVoltage() override { return 4000; }
+
+  void powerOff() override {}
+};
 #endif
 
-namespace Sound {
-SoundDriver *create() {
-#if defined(USE_I2SSOUND)
-  return new I2SSound();
-#elif defined(USE_SDLSOUND)
-  return new SDLSound();
-#elif defined(USE_NOSOUND)
-  return new NoSound();
-#endif
-}
-} // namespace Sound
-
-#endif // SOUNDFACTORY_H
+#endif // LINUX_H

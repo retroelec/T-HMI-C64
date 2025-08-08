@@ -18,10 +18,10 @@
 
 #include "Config.h"
 #include "ExternalCmds.h"
-#include "OSUtils.h"
 #include "joystick/JoystickFactory.h"
 #include "joystick/JoystickInitializationException.h"
 #include "keyboard/KeyboardFactory.h"
+#include "platform/PlatformManager.h"
 #include "roms/basic.h"
 #include "roms/kernal.h"
 
@@ -39,6 +39,60 @@ static const char *TAG = "CPUC64";
 // low.
 // => use "(cia1.ciareg[0x00] | ~ddra) & input;" instead of
 // "(cia1.ciareg[0x00] & ddra) | (input & ~ddra);"
+
+uint8_t C64Sys::getDC01(uint8_t dc00, bool xchgports) {
+  if (dc00 == 0) {
+    return keyboard->getKBCodeDC01();
+  }
+  // special case "shift" + "commodore"
+  if ((keyboard->getShiftctrlcode() & 5) == 5) {
+    if (dc00 == keyboard->getKBCodeDC00()) {
+      return keyboard->getKBCodeDC01();
+    } else {
+      return 0xff;
+    }
+  }
+  // key combined with a "special key" (shift, ctrl, commodore)?
+  if ((~dc00 & 2) &&
+      (keyboard->getShiftctrlcode() & 1)) { // *query* left shift key?
+    if (keyboard->getKBCodeDC00() == 0xfd) {
+      // handle scan of key codes in the same "row"
+      return keyboard->getKBCodeDC01() & 0x7f;
+    } else {
+      return 0x7f;
+    }
+  } else if ((~dc00 & 0x40) &&
+             (keyboard->getShiftctrlcode() & 1)) { // *query* right shift key?
+    if (keyboard->getKBCodeDC00() == 0xbf) {
+      // handle scan of key codes in the same "row"
+      return keyboard->getKBCodeDC01() & 0xef;
+    } else {
+      return 0xef;
+    }
+  } else if ((~dc00 & 0x80) &&
+             (keyboard->getShiftctrlcode() & 2)) { // *query* ctrl key?
+    if (keyboard->getKBCodeDC00() == 0x7f) {
+      // handle scan of key codes in the same "row"
+      return keyboard->getKBCodeDC01() & 0xfb;
+    } else {
+      return 0xfb;
+    }
+  } else if ((~dc00 & 0x80) &&
+             (keyboard->getShiftctrlcode() & 4)) { // *query* commodore key?
+    if (keyboard->getKBCodeDC00() == 0x7f) {
+      // handle scan of key codes in the same "row"
+      return keyboard->getKBCodeDC01() & 0xdf;
+    } else {
+      return 0xdf;
+    }
+  }
+  // query "main" key press
+  if (dc00 == keyboard->getKBCodeDC00()) {
+    return keyboard->getKBCodeDC01();
+  } else {
+    return 0xff;
+  }
+}
 
 uint8_t C64Sys::getMem(uint16_t addr) {
   if ((!bankARAM) && ((addr >= 0xa000) && (addr <= 0xbfff))) {
@@ -66,7 +120,7 @@ uint8_t C64Sys::getMem(uint16_t addr) {
     else if (addr <= 0xd7ff) {
       uint8_t sididx = (addr - 0xd400) % 0x20;
       if (sididx == 0x1b) {
-        return OSUtils::getRandomByte();
+        return PlatformManager::getInstance().getRandomByte();
       } else if (sididx == 0x1c) {
         return static_cast<uint8_t>(sid.sidVoice[2].envelope) * 255.0f;
       } else {
@@ -85,21 +139,21 @@ uint8_t C64Sys::getMem(uint16_t addr) {
         uint8_t input = 0xff;
         if (joystickmode == 2) {
           // real joystick, but still check for keyboard input
-          input = keyboard->getDC01(cia1.ciareg[0x01], true);
+          input = getDC01(cia1.ciareg[0x01], true);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             input = joystick->getValue();
           }
         } else if (kbjoystickmode == 2) {
           // keyboard joystick, but still check for keyboard input
-          input = keyboard->getDC01(cia1.ciareg[0x01], true);
+          input = getDC01(cia1.ciareg[0x01], true);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
             input = keyboard->getKBJoyValue();
           }
         } else {
           // keyboard
-          input = keyboard->getDC01(cia1.ciareg[0x01], true);
+          input = getDC01(cia1.ciareg[0x01], true);
         }
         return (cia1.ciareg[0x00] | ~ddra) & input;
       } else if (ciaidx == 0x01) {
@@ -113,21 +167,21 @@ uint8_t C64Sys::getMem(uint16_t addr) {
         }
         if (joystickmode == 1) {
           // real joystick, but still check for keyboard input
-          input = keyboard->getDC01(cia1.ciareg[0x00], false);
+          input = getDC01(cia1.ciareg[0x00], false);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             input = joystick->getValue();
           }
         } else if (kbjoystickmode == 1) {
           // keyboard joystick, but still check for keyboard input
-          input = keyboard->getDC01(cia1.ciareg[0x00], false);
+          input = getDC01(cia1.ciareg[0x00], false);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
             input = keyboard->getKBJoyValue();
           }
         } else {
           // keyboard
-          input = keyboard->getDC01(cia1.ciareg[0x00], false);
+          input = getDC01(cia1.ciareg[0x00], false);
         }
         return (cia1.ciareg[0x01] | ~ddrb) & input;
       }
@@ -363,12 +417,13 @@ void C64Sys::setMem(uint16_t addr, uint8_t val) {
 
 void C64Sys::cmd6502halt() {
   cpuhalted = true;
-  OSUtils::log(LOG_ERROR, TAG, "illegal code, cpu halted, pc = %x", pc - 1);
+  PlatformManager::getInstance().log(
+      LOG_ERROR, TAG, "illegal code, cpu halted, pc = %x", pc - 1);
 }
 
 /*
 void CPUC64::cmd6502nop1a() {
-  OSUtils::log(LOG_INFO, TAG, "nop: %d", micros());
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "nop: %d", micros());
   numofcycles += 2;
 }
 */
@@ -440,19 +495,9 @@ void C64Sys::logDebugInfo() {
   if (debug &&
       (debuggingstarted || (debugstartaddr == 0) || (pc == debugstartaddr))) {
     debuggingstarted = true;
-    OSUtils::log(LOG_INFO, TAG,
-                 "pc: %2x, cmd: %s, a: %x, x: %x, y: %x, sp: %x, sr: %x", pc,
-                 cmdName[getMem(pc)], a, x, y, sp, sr);
-  }
-}
-
-void C64Sys::vTaskDelayUntilUS(int64_t nominalTime) {
-  int64_t now = OSUtils::getTimeUS();
-  if (now < nominalTime) {
-    int64_t pause = nominalTime - now;
-    numofburnedcyclespersecond.fetch_add((uint32_t)pause,
-                                         std::memory_order_release);
-    OSUtils::pauseExecutionUS(pause);
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "pc: %2x, cmd: %s, a: %x, x: %x, y: %x, sp: %x, sr: %x",
+        pc, cmdName[getMem(pc)], a, x, y, sp, sr);
   }
 }
 
@@ -491,7 +536,7 @@ void C64Sys::check4extcmd() {
     }
     if (type > 0) {
       keyboard->sendExtCmdNotification(data, size);
-      OSUtils::log(LOG_INFO, TAG, "notification sent");
+      PlatformManager::getInstance().log(LOG_INFO, TAG, "notification sent");
     }
   }
 }
@@ -505,8 +550,12 @@ void C64Sys::run() {
   detectreleasekey = true;
   numofcycles = 0;
   uint8_t badlinecycles = 0;
-  int64_t lastMeasuredTime = OSUtils::getTimeUS();
+  int64_t lastMeasuredTime = PlatformManager::getInstance().getTimeUS();
   while (true) {
+    // check for "external commands" once per frame
+    check4extcmd();
+
+    // cpu halted?
     if (cpuhalted) {
       continue;
     }
@@ -569,8 +618,6 @@ void C64Sys::run() {
       restorenmi = false;
       setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
     }
-    // check for "external commands" once per frame
-    check4extcmd();
     // fill audio buffer
     sid.fillBuffer(vic->rasterline);
     // "throttle"
@@ -578,17 +625,22 @@ void C64Sys::run() {
     int64_t nominaltime =
         lastMeasuredTime + Config::HEURISTIC_PERFORMANCE_FACTOR *
                                ((vic->rasterline + 1) * 1000000 / 50 / 312);
-    vTaskDelayUntilUS(nominaltime);
+    int64_t now = PlatformManager::getInstance().getTimeUS();
+    if (nominaltime > now) {
+      int64_t us = nominaltime - now;
+      numofburnedcyclespersecond.fetch_add(us, std::memory_order_release);
+      PlatformManager::getInstance().waitUS(us);
+    }
     // get start time of frame, play audio
     if (vic->rasterline == 311) {
-      lastMeasuredTime = OSUtils::getTimeUS();
+      lastMeasuredTime = PlatformManager::getInstance().getTimeUS();
       sid.playAudio();
     }
   }
 }
 
 void C64Sys::initMemAndRegs() {
-  OSUtils::log(LOG_INFO, TAG, "CPUC64::initMemAndRegs");
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "CPUC64::initMemAndRegs");
   setMem(0, 0x2f);
   setMem(1, 0x37);
   setMem(0x8004, 0);
@@ -603,7 +655,7 @@ void C64Sys::initMemAndRegs() {
 }
 
 void C64Sys::init(uint8_t *ram, uint8_t *charrom, VIC *vic) {
-  OSUtils::log(LOG_INFO, TAG, "CPUC64::init");
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "CPUC64::init");
   this->ram = ram;
   this->charrom = charrom;
   this->vic = vic;
@@ -623,8 +675,9 @@ void C64Sys::init(uint8_t *ram, uint8_t *charrom, VIC *vic) {
   try {
     joystick->init();
   } catch (const JoystickInitializationException &e) {
-    OSUtils::log(LOG_INFO, TAG,
-                 "error in init. of joystick: %s - continue anyway", e.what());
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "error in init. of joystick: %s - continue anyway",
+        e.what());
   }
   initMemAndRegs();
   externalCmds->init(ram, this);

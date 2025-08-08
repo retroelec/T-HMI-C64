@@ -17,6 +17,7 @@
 #ifndef SOUNDDRIVER_H
 #define SOUNDDRIVER_H
 
+#include <cstddef>
 #include <cstdint>
 
 /**
@@ -47,19 +48,12 @@ public:
    * @param samples Pointer to an array of signed 16-bit PCM audio samples.
    * @param size Size of the data in bytes (not the number of samples).
    *
-   * Implementations of this method **must** ensure that the provided audio data
-   * is fully copied into an internal buffer or transmitted to the audio
-   * hardware before the function returns.
+   * Must block until all provided data has been safely queued or copied
+   * into the internal audio buffer.
    *
-   * The function **must block** execution until *all* provided data has been
-   * successfully transferred into the internal or hardware-managed buffer.
-   *
-   * After the function returns, the memory pointed to by `samples` may be
-   * reused or overwritten by the caller without affecting audio playback.
-   *
-   * @note It is the responsibility of the implementation to handle any
-   * necessary buffering, synchronization, or hardware interfacing to achieve
-   * reliable audio playback.
+   * The function does not need to wait for the data to be fully played
+   * on the hardware, but must ensure that the caller can reuse or overwrite
+   * the provided memory after the function returns.
    */
   virtual void playAudio(int16_t *samples, size_t size) = 0;
 

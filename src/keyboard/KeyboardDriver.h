@@ -17,6 +17,7 @@
 #ifndef KEYBOARDDRIVER_H
 #define KEYBOARDDRIVER_H
 
+#include <cstddef>
 #include <cstdint>
 
 /**
@@ -43,14 +44,30 @@ public:
   virtual void scanKeyboard() = 0;
 
   /**
-   * @brief Returns the current CIA1 port B ($DC01) or CIA1 port A ($DC00)
-   * value.
+   * @brief Retrieves the current keyboard code stored in the register dc01.
    *
-   * @param dc00 Value written to CIA1 port A ($DC00), selecting active columns.
-   * @param xchgports If true, swaps port A/B handling to support port reversal.
-   * @return Current value representing key states for the selected rows.
+   * @return 8-bit value of register dc01.
    */
-  virtual uint8_t getDC01(uint8_t dc00, bool xchgports) = 0;
+  virtual uint8_t getKBCodeDC01() = 0;
+
+  /**
+   * @brief Retrieves the current keyboard code stored in the register dc00.
+   *
+   * @return 8-bit value of register dc00.
+   */
+  virtual uint8_t getKBCodeDC00() = 0;
+
+  /**
+   * @brief Retrieves the current "shift control code".
+   *
+   * shiftctrlcode: bit 0 -> shift
+   *                bit 1 -> ctrl
+   *                bit 2 -> commodore
+   *                bit 7 -> external command
+   *
+   * @return 8-bit value of "shift control code".
+   */
+  virtual uint8_t getShiftctrlcode() = 0;
 
   /**
    * @brief Retrieves the current joystick emulation value.

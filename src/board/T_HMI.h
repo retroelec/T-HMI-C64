@@ -20,17 +20,12 @@
 #include "../Config.h"
 #ifdef BOARD_T_HMI
 #include "../HardwareInitializationException.h"
-#include "../OSUtils.h"
 #include "BoardDriver.h"
+#include "CalibrateBattery.h"
 #include <driver/gpio.h>
-#include <esp_adc/adc_cali.h>
-#include <esp_adc/adc_oneshot.h>
 #include <soc/gpio_struct.h>
 
-class T_HMI : public BoardDriver {
-private:
-  OSUtils osUtils;
-
+class T_HMI : public BoardDriver, CalibrateBattery {
 public:
   void init() override {
     gpio_config_t io_conf;
@@ -46,17 +41,17 @@ public:
     }
     GPIO.out_w1ts = (1 << Config::PWR_ON);
     GPIO.out_w1ts = (1 << Config::PWR_EN);
-    osUtils.calibrateBattery();
+    calibrateBattery();
   }
 
   uint16_t getBatteryVoltage() override {
     // get battery voltage
     int voltage = 0;
-    if (osUtils.adc_handle) {
+    if (adc_handle) {
       int raw_value = 0;
-      adc_oneshot_read(osUtils.adc_handle, Config::BAT_ADC, &raw_value);
-      if (osUtils.adc_cali_handle) {
-        adc_cali_raw_to_voltage(osUtils.adc_cali_handle, raw_value, &voltage);
+      adc_oneshot_read(adc_handle, Config::BAT_ADC, &raw_value);
+      if (adc_cali_handle) {
+        adc_cali_raw_to_voltage(adc_cali_handle, raw_value, &voltage);
         voltage *= 2;
       } else {
         // fallback if calibration was not successful

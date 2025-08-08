@@ -21,6 +21,8 @@
 #include "FSDriver.h"
 #if defined(USE_SDCARD)
 #include "SDCard.h"
+#elif defined(USE_LINUXFS)
+#include "LinuxFS.h"
 #elif defined(USE_NOFS)
 #include "NoFS.h"
 #else
@@ -31,6 +33,8 @@ namespace FileSys {
 FSDriver *create() {
 #if defined(USE_SDCARD)
   return new SDCard();
+#elif defined(USE_LINUXFS)
+  return new LinuxFS();
 #elif defined(USE_NOFS)
   return new NoFS();
 #endif

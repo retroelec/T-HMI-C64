@@ -17,7 +17,7 @@
 #include "BLEKB.h"
 #include "../Config.h"
 #ifdef USE_BLE_KEYBOARD
-#include "../OSUtils.h"
+#include "../platform/PlatformManager.h"
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -38,12 +38,13 @@ BLEKBServerCallback::BLEKBServerCallback(BLEKB &blekb) : blekb(blekb) {}
 
 void BLEKBServerCallback::onConnect(BLEServer *pServer) {
   blekb.deviceConnected.store(true, std::memory_order_release);
-  OSUtils::log(LOG_INFO, TAG, "BLE device connected");
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "BLE device connected");
 };
 
 void BLEKBServerCallback::onDisconnect(BLEServer *pServer) {
   blekb.deviceConnected.store(false, std::memory_order_release);
-  OSUtils::log(LOG_INFO, TAG, "BLE device disconnected, try to connect...");
+  PlatformManager::getInstance().log(
+      LOG_INFO, TAG, "BLE device disconnected, try to connect...");
   pServer->getAdvertising()->start();
 }
 
@@ -86,8 +87,9 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
     blekb.virtjoystickvalue.store(virt, std::memory_order_release);
   } else if (len >= 3) { // keyboard codes or external commands
     // BLE client sends 3 codes for each key press: dc00, dc01, "shiftctrlcode"
-    // BLE client sends at least 3 codes for each external command: extCmd,
-    // detail, 128, {data} shiftctrlcode: bit 0 -> shift
+    // BLE client sends at least 3 codes for each external command:
+    // extCmd, detail, 128, {data}
+    // shiftctrlcode: bit 0 -> shift
     //                bit 1 -> ctrl
     //                bit 2 -> commodore
     //                bit 7 -> external command
@@ -164,7 +166,7 @@ uint8_t *BLEKB::getExtCmdData() {
 void BLEKB::sendExtCmdNotification(uint8_t *data, size_t size) {
   pCharacteristic->setValue(data, size);
   pCharacteristic->notify();
-  OSUtils::log(LOG_INFO, TAG, "notification sent");
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "notification sent");
 }
 
 void BLEKB::scanKeyboard() {
@@ -187,58 +189,11 @@ void BLEKB::scanKeyboard() {
   }
 }
 
-uint8_t BLEKB::getDC01(uint8_t querydc00, bool xchgports) {
-  uint8_t kbcode1 = xchgports ? sentdc01.load(std::memory_order_acquire)
-                              : sentdc00.load(std::memory_order_acquire);
-  uint8_t kbcode2 = xchgports ? sentdc00.load(std::memory_order_acquire)
-                              : sentdc01.load(std::memory_order_acquire);
-  if (querydc00 == 0) {
-    return kbcode2;
-  }
-  // special case "shift" + "commodore"
-  if ((shiftctrlcode.load(std::memory_order_acquire) & 5) == 5) {
-    return (querydc00 == kbcode1) ? kbcode2 : 0xff;
-  }
-  // key combined with a "special key" (shift, ctrl, commodore)?
-  if ((~querydc00 & 2) && (shiftctrlcode.load(std::memory_order_acquire) &
-                           1)) { // *query* left shift key?
-    if (kbcode1 == 0xfd) {
-      // handle scan of key codes in the same "row"
-      return kbcode2 & 0x7f;
-    } else {
-      return 0x7f;
-    }
-  } else if ((~querydc00 & 0x40) &&
-             (shiftctrlcode.load(std::memory_order_acquire) &
-              1)) { // *query* right shift key?
-    if (kbcode1 == 0xbf) {
-      // handle scan of key codes in the same "row"
-      return kbcode2 & 0xef;
-    } else {
-      return 0xef;
-    }
-  } else if ((~querydc00 & 0x80) &&
-             (shiftctrlcode.load(std::memory_order_acquire) &
-              2)) { // *query* ctrl key?
-    if (kbcode1 == 0x7f) {
-      // handle scan of key codes in the same "row"
-      return kbcode2 & 0xfb;
-    } else {
-      return 0xfb;
-    }
-  } else if ((~querydc00 & 0x80) &&
-             (shiftctrlcode.load(std::memory_order_acquire) &
-              4)) { // *query* commodore key?
-    if (kbcode1 == 0x7f) {
-      // handle scan of key codes in the same "row"
-      return kbcode2 & 0xdf;
-    } else {
-      return 0xdf;
-    }
-  }
-  // query key press
-  return (querydc00 == kbcode1) ? kbcode2 : 0xff;
-}
+uint8_t BLEKB::getKBCodeDC01() { return sentdc01; }
+
+uint8_t BLEKB::getKBCodeDC00() { return sentdc00; }
+
+uint8_t BLEKB::getShiftctrlcode() { return shiftctrlcode; }
 
 uint8_t BLEKB::getKBJoyValue() {
   return virtjoystickvalue.load(std::memory_order_acquire);

@@ -15,8 +15,11 @@
  http://www.gnu.org/licenses/.
 */
 
+#undef CONFIG_LOG_MAXIMUM_LEVEL
+#define CONFIG_LOG_MAXIMUM_LEVEL 5
+
 #include "src/C64Emu.h"
-#include "src/OSUtils.h"
+#include "src/platform/PlatformManager.h"
 
 static const char *TAG = "T-HMI-C64";
 
@@ -25,16 +28,17 @@ TaskHandle_t core0TaskHandle;
 C64Emu c64Emu;
 
 void core0Task(void *param) {
-  OSUtils::log(LOG_INFO, TAG, "setup() running on core %d", xPortGetCoreID());
   try {
     c64Emu.setup();
   } catch (...) {
-    OSUtils::log(LOG_ERROR, TAG, "setup() failed");
+    PlatformManager::getInstance().log(LOG_ERROR, TAG, "setup() failed");
     while (true) {
     }
   }
   vTaskDelay(pdMS_TO_TICKS(1000));
-  OSUtils::log(LOG_INFO, TAG, "setup done");
+  PlatformManager::getInstance().log(
+      LOG_INFO, TAG, "setup() running on core %d", xPortGetCoreID());
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "setup done");
 
   while (true) {
     c64Emu.loop();
@@ -44,8 +48,6 @@ void core0Task(void *param) {
 void setup() {
   Serial.begin(115200);
   vTaskDelay(pdMS_TO_TICKS(500));
-  esp_log_level_set("*", ESP_LOG_INFO);
-  OSUtils::log(LOG_INFO, TAG, "start setup...");
   xTaskCreatePinnedToCore(core0Task, "core0Task", 8192, nullptr, 1,
                           &core0TaskHandle, 0);
 }

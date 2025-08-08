@@ -18,6 +18,7 @@
 #define ST7789VSERIAL_H
 
 #include "../Config.h"
+#ifdef USE_ST7789VSERIAL
 #include "DisplayDriver.h"
 #include <cstdint>
 
@@ -61,5 +62,6 @@ public:
   void drawBitmap(uint16_t *bitmap) override;
   const uint16_t *getC64Colors() const override;
 };
+#endif
 
 #endif // ST7789VSERIAL_H

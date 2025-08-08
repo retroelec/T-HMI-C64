@@ -14,31 +14,33 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef SOUNDFACTORY_H
-#define SOUNDFACTORY_H
+#ifndef EXTCMD_H
+#define EXTCMD_H
 
-#include "../Config.h"
-#include "SoundDriver.h"
-#if defined(USE_I2SSOUND)
-#include "I2SSound.h"
-#elif defined(USE_SDLSOUND)
-#include "SDLSound.h"
-#elif defined(USE_NOSOUND)
-#include "NoSound.h"
-#else
-#error "no valid sound driver defined"
-#endif
+enum class ExtCmd {
+  NOEXTCMD = 0,
+  JOYSTICKMODE1 = 1,
+  JOYSTICKMODE2 = 2,
+  KBJOYSTICKMODE1 = 3,
+  KBJOYSTICKMODE2 = 4,
+  JOYSTICKMODEOFF = 5,
+  KBJOYSTICKMODEOFF = 6,
+  LOAD = 11,
+  RECEIVEDATA = 12,
+  SHOWREG = 13,
+  SHOWMEM = 14,
+  RESTORE = 15,
+  RESET = 20,
+  GETSTATUS = 21,
+  SWITCHFRAMECOLORREFRESH = 22,
+  SENDRAWKEYS = 24,
+  SWITCHDEBUG = 25,
+  SWITCHPERF = 26,
+  SWITCHDETECTRELEASEKEY = 27,
+  GETBATTERYVOLTAGE = 29,
+  POWEROFF = 30,
+  SAVE = 31,
+  LIST = 32
+};
 
-namespace Sound {
-SoundDriver *create() {
-#if defined(USE_I2SSOUND)
-  return new I2SSound();
-#elif defined(USE_SDLSOUND)
-  return new SDLSound();
-#elif defined(USE_NOSOUND)
-  return new NoSound();
-#endif
-}
-} // namespace Sound
-
-#endif // SOUNDFACTORY_H
+#endif // EXTCMD_H

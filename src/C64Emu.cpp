@@ -16,9 +16,10 @@
 */
 #include "C64Emu.h"
 #include "Config.h"
-#include "OSUtils.h"
 #include "VIC.h"
 #include "board/BoardFactory.h"
+#include "platform/PlatformFactory.h"
+#include "platform/PlatformManager.h"
 #include "roms/charset.h"
 #include <cstdint>
 
@@ -75,18 +76,22 @@ void PLATFORM_ATTR_ISR C64Emu::intervalTimerScanKeyboardFunc() {
 
 void C64Emu::cpuCode(void *parameter) {
   // timer interrupts each 8 ms to scan keyboard
-  OSUtils::startIntervalTimer(
+  PlatformManager::getInstance().startIntervalTimer(
       std::bind(&C64Emu::intervalTimerScanKeyboardFunc, this), 8000);
 
   // timer interrupts each 100 ms to increment CIA real time clock (TOD)
-  OSUtils::startIntervalTimer(std::bind(&C64Emu::intervalTimerTODFunc, this),
-                              100000);
+  PlatformManager::getInstance().startIntervalTimer(
+      std::bind(&C64Emu::intervalTimerTODFunc, this), 100000);
 
   cpu.run();
   // cpu runs forever -> no vTaskDelete(NULL);
 }
 
 void C64Emu::setup() {
+  // init platform
+  PlatformManager::initialize(PlatformNS::create());
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "start setup...");
+
   // init board
   board = Board::create();
   board->init();
@@ -106,32 +111,37 @@ void C64Emu::setup() {
 
   // start cpu task
   using namespace std::placeholders;
-  OSUtils::startTask(std::bind(&C64Emu::cpuCode, this, _1), 1, 19);
+  PlatformManager::getInstance().startTask(
+      std::bind(&C64Emu::cpuCode, this, _1), 1, 19);
 
   // profiling + battery check: timer interrupts each second
   // using namespace std::placeholders;
-  OSUtils::startIntervalTimer(
+  PlatformManager::getInstance().startIntervalTimer(
       std::bind(&C64Emu::intervalTimerProfilingBatteryCheckFunc, this),
       1000000);
 }
 
 void C64Emu::loop() {
   vic.refresh();
-  OSUtils::taskDelay(Config::REFRESHDELAY);
+  PlatformManager::getInstance().feedWDT();
+  PlatformManager::getInstance().waitMS(Config::REFRESHDELAY);
   if (cpu.perf.load(std::memory_order_acquire) &&
       showperfvalues.load(std::memory_order_acquire)) {
     showperfvalues.store(false, std::memory_order_release);
     // frames per second
     if (cntRefreshs.load(std::memory_order_acquire) != 0) {
-      OSUtils::log(LOG_INFO, TAG, "fps: %d",
-                   cntRefreshs.load(std::memory_order_acquire));
+      PlatformManager::getInstance().log(
+          LOG_INFO, TAG, "fps: %d",
+          cntRefreshs.load(std::memory_order_acquire));
     }
     cntRefreshs.store(0, std::memory_order_release);
     // number of cycles per second
-    OSUtils::log(LOG_INFO, TAG, "noc: %lu, nbc: %lu",
-                 numofcyclespersecond.load(std::memory_order_acquire),
-                 numofburnedcyclespersecond.load(std::memory_order_acquire));
-    OSUtils::log(LOG_INFO, TAG, "voltage: %d",
-                 cpu.batteryVoltage.load(std::memory_order_acquire));
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "noc: %lu, nbc: %lu",
+        numofcyclespersecond.load(std::memory_order_acquire),
+        numofburnedcyclespersecond.load(std::memory_order_acquire));
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "voltage: %d",
+        cpu.batteryVoltage.load(std::memory_order_acquire));
   }
 }

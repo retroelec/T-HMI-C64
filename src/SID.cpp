@@ -16,6 +16,7 @@
 */
 
 #include "SID.h"
+#include "platform/PlatformManager.h"
 #include "sound/SoundFactory.h"
 #include <cmath>
 

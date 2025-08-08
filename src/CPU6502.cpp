@@ -238,20 +238,27 @@ void CPU6502::bitBase() {
 
 void CPU6502::srfromflags() {
   sr = 32;
-  if (cflag)
+  if (cflag) {
     sr |= 1;
-  if (zflag)
+  }
+  if (zflag) {
     sr |= 2;
-  if (iflag)
+  }
+  if (iflag) {
     sr |= 4;
-  if (dflag)
+  }
+  if (dflag) {
     sr |= 8;
-  if (bflag)
+  }
+  if (bflag) {
     sr |= 16;
-  if (vflag)
+  }
+  if (vflag) {
     sr |= 64;
-  if (nflag)
+  }
+  if (nflag) {
     sr |= 128;
+  }
 }
 
 void CPU6502::flagsfromsr() {

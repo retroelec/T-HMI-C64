@@ -14,31 +14,26 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef SOUNDFACTORY_H
-#define SOUNDFACTORY_H
+#ifndef PLATFORMFACTORY_H
+#define PLATFORMFACTORY_H
 
-#include "../Config.h"
-#include "SoundDriver.h"
-#if defined(USE_I2SSOUND)
-#include "I2SSound.h"
-#elif defined(USE_SDLSOUND)
-#include "SDLSound.h"
-#elif defined(USE_NOSOUND)
-#include "NoSound.h"
+#include "Platform.h"
+#if defined(ESP_PLATFORM)
+#include "PlatformESP32.h"
+#elif defined(PLATFORM_LINUX)
+#include "PlatformLinux.h"
 #else
-#error "no valid sound driver defined"
+#error "no valid platform defined"
 #endif
 
-namespace Sound {
-SoundDriver *create() {
-#if defined(USE_I2SSOUND)
-  return new I2SSound();
-#elif defined(USE_SDLSOUND)
-  return new SDLSound();
-#elif defined(USE_NOSOUND)
-  return new NoSound();
+namespace PlatformNS {
+Platform *create() {
+#if defined(ESP_PLATFORM)
+  return new PlatformESP32();
+#elif defined(PLATFORM_LINUX)
+  return new PlatformLinux();
 #endif
 }
-} // namespace Sound
+} // namespace PlatformNS
 
-#endif // SOUNDFACTORY_H
+#endif // PLATFORMFACTORY_H

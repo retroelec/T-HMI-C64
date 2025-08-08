@@ -31,8 +31,8 @@ private:
 public:
   SDCard();
   bool init() override;
-  uint16_t load(char *path, uint8_t *ram) override;
-  bool save(char *path, uint8_t *ram, uint16_t startaddr,
+  uint16_t load(char *filename, uint8_t *ram) override;
+  bool save(char *filename, uint8_t *ram, uint16_t startaddr,
             uint16_t endaddr) override;
   bool listnextentry(uint8_t *nextentry, bool start) override;
 };

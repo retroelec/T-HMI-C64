@@ -14,31 +14,21 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef SOUNDFACTORY_H
-#define SOUNDFACTORY_H
+#ifndef LINUXFS_H
+#define LINUXFS_H
 
 #include "../Config.h"
-#include "SoundDriver.h"
-#if defined(USE_I2SSOUND)
-#include "I2SSound.h"
-#elif defined(USE_SDLSOUND)
-#include "SDLSound.h"
-#elif defined(USE_NOSOUND)
-#include "NoSound.h"
-#else
-#error "no valid sound driver defined"
+#ifdef USE_LINUXFS
+#include "FSDriver.h"
+
+class LinuxFS : public FSDriver {
+public:
+  bool init() override;
+  uint16_t load(char *filename, uint8_t *ram) override;
+  bool save(char *filename, uint8_t *ram, uint16_t startaddr,
+            uint16_t endaddr) override;
+  bool listnextentry(uint8_t *nextentry, bool start) override;
+};
 #endif
 
-namespace Sound {
-SoundDriver *create() {
-#if defined(USE_I2SSOUND)
-  return new I2SSound();
-#elif defined(USE_SDLSOUND)
-  return new SDLSound();
-#elif defined(USE_NOSOUND)
-  return new NoSound();
-#endif
-}
-} // namespace Sound
-
-#endif // SOUNDFACTORY_H
+#endif // LINUXFS_H

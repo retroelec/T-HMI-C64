@@ -18,6 +18,7 @@
 #define RM67162_H
 
 #include "../Config.h"
+#ifdef USE_RM67162
 #include "DisplayDriver.h"
 #include <cstdint>
 
@@ -61,5 +62,6 @@ public:
   void drawBitmap(uint16_t *bitmap) override;
   const uint16_t *getC64Colors() const override;
 };
+#endif
 
 #endif // RM67162_H
