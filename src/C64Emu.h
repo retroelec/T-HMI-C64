@@ -26,7 +26,6 @@ class C64Emu {
 private:
   uint8_t *ram;
   BoardDriver *board;
-  VIC vic;
   uint16_t cntSecondsForBatteryCheck;
 
   void intervalTimerTODFunc();

@@ -52,7 +52,7 @@ private:
   void check4extcmd();
 
 public:
-  VIC *vic;
+  VIC vic;
   CIA cia1;
   CIA cia2;
   SID sid;
@@ -93,7 +93,7 @@ public:
   void run() override;
 
   void initMemAndRegs();
-  void init(uint8_t *ram, uint8_t *charrom, VIC *vic);
+  void init(uint8_t *ram, uint8_t *charrom);
   void setPC(uint16_t pc);
   void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
   void setKeycodes(uint8_t keycode1, uint8_t keycode2);

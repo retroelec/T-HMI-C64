@@ -17,58 +17,9 @@
 #ifndef EXTERNALCMDS_H
 #define EXTERNALCMDS_H
 
+#include "NotificationStruct.h"
 #include "fs/FSDriver.h"
 #include <cstdint>
-
-// notifications may be not larger than 20 bytes
-
-struct NotificationStruct {
-  uint8_t type;
-};
-
-struct BLENotificationStruct1 : NotificationStruct {
-  uint8_t joymode;
-  uint8_t deactivateTemp;
-  uint8_t sendrawkeycodes;
-  uint8_t switchdebug;
-  uint8_t switchperf;
-  uint8_t switchdetectreleasekey;
-};
-
-struct BLENotificationStruct2 : NotificationStruct {
-  uint8_t cpuRunning;
-  uint16_t pc;
-  uint8_t a;
-  uint8_t x;
-  uint8_t y;
-  uint8_t sr;
-  uint8_t d011;
-  uint8_t d016;
-  uint8_t d018;
-  uint8_t d019;
-  uint8_t d01a;
-  uint8_t register1;
-  uint8_t dc0d;
-  uint8_t dc0e;
-  uint8_t dc0f;
-  uint8_t dd0d;
-  uint8_t dd0e;
-  uint8_t dd0f;
-};
-
-static const uint8_t BLENOTIFICATIONTYPE3NUMOFBYTES =
-    16; // must be divisible by 8
-
-struct BLENotificationStruct3 : NotificationStruct {
-  uint8_t mem[BLENOTIFICATIONTYPE3NUMOFBYTES];
-};
-
-struct BLENotificationStruct4 : NotificationStruct {};
-
-struct BLENotificationStruct5 : NotificationStruct {
-  uint8_t batteryVolLow;
-  uint8_t batteryVolHi;
-};
 
 class C64Sys; // forward declaration
 
@@ -86,15 +37,19 @@ private:
   void setType3Notification(uint16_t addr);
   void setType4Notification();
   void setType5Notification(uint8_t batteryVolLow, uint8_t batteryVolHi);
+  void setType6Notification(uint8_t value);
+  bool isBasicInputMode();
+  void dispVolume();
 
 public:
   bool liststartflag;
 
-  BLENotificationStruct1 type1notification;
-  BLENotificationStruct2 type2notification;
-  BLENotificationStruct3 type3notification;
-  BLENotificationStruct4 type4notification;
-  BLENotificationStruct5 type5notification;
+  NotificationStruct1 type1notification;
+  NotificationStruct2 type2notification;
+  NotificationStruct3 type3notification;
+  NotificationStruct4 type4notification;
+  NotificationStruct5 type5notification;
+  NotificationStruct6 type6notification;
 
   void init(uint8_t *ram, C64Sys *cpu);
   uint8_t executeExternalCmd(uint8_t *buffer);

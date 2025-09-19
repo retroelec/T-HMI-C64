@@ -50,8 +50,7 @@ void SIDVoice::init() {
 bool SIDVoice::isActive() { return adsrState != IDLE; }
 
 void SIDVoice::updVarFrequency(uint16_t freq) {
-  phaseIncrement =
-      (float)(freq) * 985248.0f / 16777216.0f / Config::AUDIO_SAMPLE_RATE;
+  phaseIncrement = (float)(freq) * 985248.0f / 16777216.0f / AUDIO_SAMPLE_RATE;
 }
 
 void SIDVoice::updVarPulseWidth(uint16_t pw) {
@@ -59,9 +58,9 @@ void SIDVoice::updVarPulseWidth(uint16_t pw) {
 }
 
 void SIDVoice::updVarEnvelopeAD(uint8_t val) {
-  attackAdd = 1.0f / (attackLUT[(val >> 4) & 0x0f] * Config::AUDIO_SAMPLE_RATE);
+  attackAdd = 1.0f / (attackLUT[(val >> 4) & 0x0f] * AUDIO_SAMPLE_RATE);
   decayAdd = (1.0f - sustainVolume) /
-             (releaseDecayLUT[val & 0x0f] * Config::AUDIO_SAMPLE_RATE);
+             (releaseDecayLUT[val & 0x0f] * AUDIO_SAMPLE_RATE);
 }
 
 void SIDVoice::updVarEnvelopeSR(uint8_t val) {
@@ -69,9 +68,8 @@ void SIDVoice::updVarEnvelopeSR(uint8_t val) {
   float time = releaseDecayLUT[val & 0x0f];
   // special case: sustainVolume may be 0 -> enforce some reasonable value for
   // releaseAdd
-  releaseAdd = sustainVolume > 0.0f
-                   ? sustainVolume / (time * Config::AUDIO_SAMPLE_RATE)
-                   : 1.0f / (time * Config::AUDIO_SAMPLE_RATE);
+  releaseAdd = sustainVolume > 0.0f ? sustainVolume / (time * AUDIO_SAMPLE_RATE)
+                                    : 1.0f / (time * AUDIO_SAMPLE_RATE);
 }
 
 void SIDVoice::updVarControl(uint8_t val) {
@@ -216,7 +214,11 @@ float SIDVoice::generateSample() {
 }
 
 void SID::init() {
-  emuVolume = 30000.0f;
+#ifdef HAS_DEFAULT_VOLUME
+  setEmuVolume(Config::DEFAULT_VOLUME);
+#else
+  setEmuVolume(128);
+#endif
   c64Volume = 0.0f;
   actSampleIdx = 0;
   for (uint16_t i = 0; i < NUMSAMPLESPERFRAME; i++) {
@@ -282,4 +284,11 @@ void SID::fillBuffer(uint16_t rasterline) {
 void SID::playAudio() {
   sound->playAudio(samples, NUMSAMPLESPERFRAME * sizeof(int16_t));
   actSampleIdx = 0;
+}
+
+uint8_t SID::getEmuVolume() { return emuVolumeScaled; }
+
+void SID::setEmuVolume(uint8_t volume) {
+  emuVolumeScaled = volume;
+  emuVolume = (float)(emuVolumeScaled * VOLUME_MULTIPLICATOR);
 }

@@ -25,8 +25,6 @@
 #include "roms/basic.h"
 #include "roms/kernal.h"
 
-static const uint8_t NUMCIACHECKS = 2;
-
 static const char *TAG = "CPUC64";
 
 // read dc00 / dc01:
@@ -106,14 +104,14 @@ uint8_t C64Sys::getMem(uint16_t addr) {
     if (addr <= 0xd3ff) {
       uint8_t vicidx = (addr - 0xd000) % 0x40;
       if ((vicidx == 0x1e) || (vicidx == 0x1f)) {
-        uint8_t val = vic->vicreg[vicidx];
-        vic->vicreg[vicidx] = 0;
+        uint8_t val = vic.vicreg[vicidx];
+        vic.vicreg[vicidx] = 0;
         return val;
       } else if (vicidx == 0x11) {
-        uint8_t raster8 = (vic->rasterline >= 256) ? 0x80 : 0;
-        return (vic->vicreg[0x11] & 0x7f) | raster8;
+        uint8_t raster8 = (vic.rasterline >= 256) ? 0x80 : 0;
+        return (vic.vicreg[0x11] & 0x7f) | raster8;
       } else {
-        return vic->vicreg[vicidx];
+        return vic.vicreg[vicidx];
       }
     }
     // ** SID **
@@ -129,36 +127,29 @@ uint8_t C64Sys::getMem(uint16_t addr) {
     }
     // ** Colorram **
     else if (addr <= 0xdbff) {
-      return vic->colormap[addr - 0xd800];
+      return vic.colormap[addr - 0xd800];
     }
     // ** CIA 1 **
     else if (addr <= 0xdcff) {
       uint8_t ciaidx = (addr - 0xdc00) % 0x10;
       if (ciaidx == 0x00) {
         uint8_t ddra = cia1.ciareg[0x02];
-        uint8_t input = 0xff;
+        uint8_t input = getDC01(cia1.ciareg[0x01], true);
         if (joystickmode == 2) {
-          // real joystick, but still check for keyboard input
-          input = getDC01(cia1.ciareg[0x01], true);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             input = joystick->getValue();
           }
         } else if (kbjoystickmode == 2) {
-          // keyboard joystick, but still check for keyboard input
-          input = getDC01(cia1.ciareg[0x01], true);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
             input = keyboard->getKBJoyValue();
           }
-        } else {
-          // keyboard
-          input = getDC01(cia1.ciareg[0x01], true);
         }
         return (cia1.ciareg[0x00] | ~ddra) & input;
       } else if (ciaidx == 0x01) {
         uint8_t ddrb = cia1.ciareg[0x03];
-        uint8_t input = 0xff;
+        uint8_t input = getDC01(cia1.ciareg[0x00], false);
         if (joystickmode == 2) {
           // special case: handle fire2 button -> space key
           if ((cia1.ciareg[0x00] == 0x7f) && joystick->getFire2()) {
@@ -166,22 +157,15 @@ uint8_t C64Sys::getMem(uint16_t addr) {
           }
         }
         if (joystickmode == 1) {
-          // real joystick, but still check for keyboard input
-          input = getDC01(cia1.ciareg[0x00], false);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             input = joystick->getValue();
           }
         } else if (kbjoystickmode == 1) {
-          // keyboard joystick, but still check for keyboard input
-          input = getDC01(cia1.ciareg[0x00], false);
           if (input == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
             input = keyboard->getKBJoyValue();
           }
-        } else {
-          // keyboard
-          input = getDC01(cia1.ciareg[0x00], false);
         }
         return (cia1.ciareg[0x01] | ~ddrb) & input;
       }
@@ -260,17 +244,17 @@ void C64Sys::decodeRegister1(uint8_t val) {
 }
 
 void C64Sys::adaptVICBaseAddrs(bool fromcia) {
-  uint8_t val = vic->vicreg[0x18];
+  uint8_t val = vic.vicreg[0x18];
   uint16_t val1 = (val & 0xf0) << 6;
-  uint16_t vicmem = vic->vicmem;
+  uint16_t vicmem = vic.vicmem;
   // screenmem is used for text mode and bitmap mode
-  vic->screenmemstart = vicmem + val1;
-  bool bmm = vic->vicreg[0x11] & 32;
+  vic.screenmemstart = vicmem + val1;
+  bool bmm = vic.vicreg[0x11] & 32;
   if ((bmm) || fromcia) {
     if ((val & 8) == 0) {
-      vic->bitmapstart = vicmem;
+      vic.bitmapstart = vicmem;
     } else {
-      vic->bitmapstart = vicmem + 0x2000;
+      vic.bitmapstart = vicmem + 0x2000;
     }
   }
   uint16_t charmemstart;
@@ -279,11 +263,11 @@ void C64Sys::adaptVICBaseAddrs(bool fromcia) {
     val1 = (val & 0x0e) << 10;
     charmemstart = vicmem + val1;
     if ((charmemstart == 0x1800) || (charmemstart == 0x9800)) {
-      vic->charset = vic->chrom + 0x0800;
+      vic.charset = vic.chrom + 0x0800;
     } else if ((charmemstart == 0x1000) || (charmemstart == 0x9000)) {
-      vic->charset = vic->chrom;
+      vic.charset = vic.chrom;
     } else {
-      vic->charset = ram + charmemstart;
+      vic.charset = ram + charmemstart;
     }
   }
 }
@@ -295,37 +279,33 @@ void C64Sys::setMem(uint16_t addr, uint8_t val) {
       uint8_t vicidx = (addr - 0xd000) % 0x40;
       if (vicidx == 0x11) {
         // only bit 7 of latch register d011 is used
-        vic->latchd011 = val;
-        vic->vicreg[vicidx] = val & 0x7f;
+        vic.latchd011 = val;
+        vic.vicreg[vicidx] = val & 0x7f;
         adaptVICBaseAddrs(false);
-        vic->badlinecond0 = false;
-        if ((vic->rasterline == 0x30) && (val & 0x10)) {
-          vic->badlinecond0 = true;
-        }
       } else if (vicidx == 0x12) {
-        vic->latchd012 = val;
+        vic.latchd012 = val;
       } else if (vicidx == 0x16) {
-        vic->vicreg[vicidx] = val;
+        vic.vicreg[vicidx] = val;
         adaptVICBaseAddrs(false);
       } else if (vicidx == 0x18) {
-        vic->vicreg[vicidx] = val;
+        vic.vicreg[vicidx] = val;
         adaptVICBaseAddrs(false);
       } else if (vicidx == 0x19) {
         // clear given bits
         /*
         // does not work for all games, e.g. bubble bobble
-        uint8_t act = vic->vicreg[vicidx];
+        uint8_t act = vic.vicreg[vicidx];
         act &= ~val;
         if ((act & 7) == 0) {
           act &= ~0x80;
         }
-        vic->vicreg[vicidx] = val;
+        vic.vicreg[vicidx] = val;
         */
-        vic->vicreg[vicidx] = 0;
+        vic.vicreg[vicidx] = 0;
       } else if ((vicidx == 0x1e) || (vicidx == 0x1f)) {
-        vic->vicreg[vicidx] = 0;
+        vic.vicreg[vicidx] = 0;
       } else {
-        vic->vicreg[vicidx] = val;
+        vic.vicreg[vicidx] = val;
       }
     }
     // ** SID **
@@ -362,7 +342,7 @@ void C64Sys::setMem(uint16_t addr, uint8_t val) {
     }
     // ** Colorram **
     else if (addr <= 0xdbff) {
-      vic->colormap[addr - 0xd800] = val;
+      vic.colormap[addr - 0xd800] = val;
     }
     // ** CIA 1 **
     else if (addr <= 0xdcff) {
@@ -384,16 +364,16 @@ void C64Sys::setMem(uint16_t addr, uint8_t val) {
         uint8_t bank = val & 3;
         switch (bank) {
         case 0:
-          vic->vicmem = 0xc000;
+          vic.vicmem = 0xc000;
           break;
         case 1:
-          vic->vicmem = 0x8000;
+          vic.vicmem = 0x8000;
           break;
         case 2:
-          vic->vicmem = 0x4000;
+          vic.vicmem = 0x4000;
           break;
         case 3:
-          vic->vicmem = 0x0000;
+          vic.vicmem = 0x0000;
           break;
         }
         cia2.ciareg[ciaidx] = 0x94 | bank;
@@ -531,6 +511,10 @@ void C64Sys::check4extcmd() {
       data = reinterpret_cast<uint8_t *>(&(externalCmds->type5notification));
       size = sizeof(externalCmds->type5notification);
       break;
+    case 6:
+      data = reinterpret_cast<uint8_t *>(&(externalCmds->type6notification));
+      size = sizeof(externalCmds->type6notification);
+      break;
     default:
       type = 0;
     }
@@ -550,6 +534,7 @@ void C64Sys::run() {
   detectreleasekey = true;
   numofcycles = 0;
   uint8_t badlinecycles = 0;
+  uint8_t adjustcycles = 0;
   int64_t lastMeasuredTime = PlatformManager::getInstance().getTimeUS();
   while (true) {
     // check for "external commands" once per frame
@@ -561,78 +546,79 @@ void C64Sys::run() {
     }
 
     // prepare next rasterline
-    badlinecycles = vic->nextRasterline();
-
+    badlinecycles = vic.nextRasterline();
     if (deactivateTemp) {
       badlinecycles = 0;
     }
+
+    // calculate number of cycles to execute
     numofcycles = 0;
-    int8_t numofcyclestoexe = 63 - badlinecycles;
+    int8_t numofcyclestoexe = 63 - badlinecycles - adjustcycles;
     if (numofcyclestoexe < 0) {
       numofcyclestoexe = 0;
     }
-    uint8_t n = 1;
-    if (numofcyclestoexe > NUMCIACHECKS * 20) {
-      n = NUMCIACHECKS;
-    }
-    // raster line interrupt?
-    if ((vic->vicreg[0x19] & 0x81) && (vic->vicreg[0x1a] & 1) && (!iflag)) {
-      // execute one command to simulate "finish execution of actual command"
+
+    // execute CPU cycles and check CIA timers
+    while (numofcycles < numofcyclestoexe / 2) {
+      if (cpuhalted) {
+        break;
+      }
       logDebugInfo();
       execute(getMem(pc++));
-      // set pc to interrupt vector and start to execute interrupt routine
-      setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
-    }
-    // execute CPU cycles and check CIA timers
-    uint8_t tmp = numofcyclestoexe / n;
-    uint8_t sumtmp = tmp;
-    for (uint8_t i = 0; i < n - 1; i++) {
-      while (numofcycles < sumtmp) {
-        if (cpuhalted) {
-          break;
-        }
-        logDebugInfo();
-        execute(getMem(pc++));
+      // check interrupt request (VIC or CIA) nach jedem Befehl
+      if ((vic.vicreg[0x19] & 0x81) && (vic.vicreg[0x1a] & 1) && (!iflag)) {
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
       }
-      checkciatimers(tmp);
-      sumtmp += tmp;
     }
-    tmp = numofcycles;
+    checkciatimers(31);
+
+    // draw rasterline
+    vic.drawRasterline();
+
+    // execute CPU cycles and check CIA timers
     while (numofcycles < numofcyclestoexe) {
       if (cpuhalted) {
         break;
       }
       logDebugInfo();
       execute(getMem(pc++));
+      // check interrupt request (VIC or CIA) nach jedem Befehl
+      if ((vic.vicreg[0x19] & 0x81) && (vic.vicreg[0x1a] & 1) && (!iflag)) {
+        setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
+      }
     }
-    checkciatimers(numofcycles - tmp);
-    // draw rasterline
-    vic->drawRasterline();
+    checkciatimers(32);
+    adjustcycles = numofcycles - numofcyclestoexe;
+
     // sprite collision interrupt?
-    if ((vic->vicreg[0x19] & 0x86) && (vic->vicreg[0x1a] & 6) && (!iflag)) {
+    if ((vic.vicreg[0x19] & 0x86) && (vic.vicreg[0x1a] & 6) && (!iflag)) {
       setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
     }
+
     // restore key pressed?
     if (restorenmi && nmiAck) {
       nmiAck = false;
       restorenmi = false;
       setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
     }
+
     // fill audio buffer
-    sid.fillBuffer(vic->rasterline);
+    sid.fillBuffer(vic.rasterline);
+
     // "throttle"
     numofcyclespersecond.fetch_add(numofcycles, std::memory_order_release);
     int64_t nominaltime =
         lastMeasuredTime + Config::HEURISTIC_PERFORMANCE_FACTOR *
-                               ((vic->rasterline + 1) * 1000000 / 50 / 312);
+                               ((vic.rasterline + 1) * 1000000 / 50 / 312);
     int64_t now = PlatformManager::getInstance().getTimeUS();
     if (nominaltime > now) {
       int64_t us = nominaltime - now;
       numofburnedcyclespersecond.fetch_add(us, std::memory_order_release);
       PlatformManager::getInstance().waitUS(us);
     }
+
     // get start time of frame, play audio
-    if (vic->rasterline == 311) {
+    if (vic.rasterline == 311) {
       lastMeasuredTime = PlatformManager::getInstance().getTimeUS();
       sid.playAudio();
     }
@@ -654,11 +640,11 @@ void C64Sys::initMemAndRegs() {
   pc = kernal_rom[addr] + (kernal_rom[addr + 1] << 8);
 }
 
-void C64Sys::init(uint8_t *ram, uint8_t *charrom, VIC *vic) {
+void C64Sys::init(uint8_t *ram, uint8_t *charrom) {
   PlatformManager::getInstance().log(LOG_INFO, TAG, "CPUC64::init");
+  vic.init(ram, charrom);
   this->ram = ram;
   this->charrom = charrom;
-  this->vic = vic;
   this->externalCmds = new ExternalCmds();
   joystickmode = 0;
   kbjoystickmode = 0;

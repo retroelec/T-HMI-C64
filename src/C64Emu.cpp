@@ -16,7 +16,6 @@
 */
 #include "C64Emu.h"
 #include "Config.h"
-#include "VIC.h"
 #include "board/BoardFactory.h"
 #include "platform/PlatformFactory.h"
 #include "platform/PlatformManager.h"
@@ -48,11 +47,11 @@ void PLATFORM_ATTR_ISR C64Emu::intervalTimerProfilingBatteryCheckFunc() {
     return;
   }
   // frames per second
-  if (vic.cntRefreshs.load(std::memory_order_acquire) != 0) {
-    cntRefreshs.store(vic.cntRefreshs.load(std::memory_order_acquire),
+  if (cpu.vic.cntRefreshs.load(std::memory_order_acquire) != 0) {
+    cntRefreshs.store(cpu.vic.cntRefreshs.load(std::memory_order_acquire),
                       std::memory_order_release);
   }
-  vic.cntRefreshs.store(0, std::memory_order_release);
+  cpu.vic.cntRefreshs.store(0, std::memory_order_release);
   // number of cycles per second
   numofcyclespersecond.store(
       cpu.numofcyclespersecond.load(std::memory_order_acquire),
@@ -103,11 +102,8 @@ void C64Emu::setup() {
   // allocate ram
   ram = new uint8_t[1 << 16];
 
-  // init VIC
-  vic.init(ram, charset_rom);
-
   // init CPU
-  cpu.init(ram, charset_rom, &vic);
+  cpu.init(ram, charset_rom);
 
   // start cpu task
   using namespace std::placeholders;
@@ -122,7 +118,8 @@ void C64Emu::setup() {
 }
 
 void C64Emu::loop() {
-  vic.refresh();
+  cpu.vic.refresh();
+  cpu.keyboard->feedEvents();
   PlatformManager::getInstance().feedWDT();
   PlatformManager::getInstance().waitMS(Config::REFRESHDELAY);
   if (cpu.perf.load(std::memory_order_acquire) &&

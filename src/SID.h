@@ -63,7 +63,8 @@ public:
 
 class SID {
 private:
-  static const uint16_t NUMSAMPLESPERFRAME = Config::AUDIO_SAMPLE_RATE / 50;
+  static constexpr uint8_t VOLUME_MULTIPLICATOR = 120;
+  static const uint16_t NUMSAMPLESPERFRAME = AUDIO_SAMPLE_RATE / 50;
   int16_t samples[NUMSAMPLESPERFRAME];
   SoundDriver *sound;
   uint16_t actSampleIdx;
@@ -75,6 +76,7 @@ public:
   SIDVoice sidVoice[3];
   float c64Volume;
   float emuVolume;
+  uint8_t emuVolumeScaled;
   uint8_t sidreg[0x20];
 
   SID();
@@ -83,5 +85,7 @@ public:
   void stopSound(uint8_t voice);
   void fillBuffer(uint16_t rasterline);
   void playAudio();
+  uint8_t getEmuVolume();
+  void setEmuVolume(uint8_t volume);
 };
 #endif // SID_H

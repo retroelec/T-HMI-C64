@@ -18,12 +18,11 @@
 #include "../Config.h"
 #ifdef USE_SDL_KEYBOARD
 #include "../ExtCmd.h"
-#include "../platform/PlatformManager.h"
 #include "SDLKeymap.h"
 #include <SDL2/SDL.h>
 #include <cstdint>
-
-static const char *TAG = "SDLKB";
+#include <mutex>
+#include <queue>
 
 void SDLKB::char2codes(uint8_t code1, uint8_t code2, uint8_t ctrlcode) {
   kbcode1 = code1;
@@ -54,72 +53,115 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
     joystickval = 0xff;
     if (keyRight) {
       joystickval &= ~(1 << 3);
-    }
-    if (keyLeft) {
+    } else if (keyLeft) {
       joystickval &= ~(1 << 2);
     }
     if (keyDown) {
       joystickval &= ~(1 << 1);
-    }
-    if (keyUp) {
+    } else if (keyUp) {
       joystickval &= ~(1 << 0);
     }
     if (keyFire) {
       joystickval &= ~(1 << 4);
     }
   }
+  if (key == SDLK_TAB) {
+    if (pressed) {
+      commodoreKeyPressed = true;
+    } else {
+      commodoreKeyPressed = false;
+    }
+  }
   if (pressed) {
     if (mod & KMOD_LALT) {
       // help + quit
       if (key == SDLK_h) {
-        PlatformManager::getInstance().log(LOG_INFO, TAG,
-                                           "press alt-h for this help page");
-        PlatformManager::getInstance().log(LOG_INFO, TAG,
-                                           "press alt-q to quit the emulator");
-        PlatformManager::getInstance().log(
-            LOG_INFO, TAG,
-            "press alt-l to load a program from directory %s, first type in "
-            "the name of the "
-            "program to load (without extension .prg)",
-            Config::PATH);
-        PlatformManager::getInstance().log(LOG_INFO, TAG,
-                                           "press alt-r to reset the emulator");
-        PlatformManager::getInstance().log(
-            LOG_INFO, TAG,
-            "press alt-j to switch between joystick in port 1, joystick in "
-            "port 2, no joystick. Cursor keys and ctrl key are used as "
-            "joystick keys if a joystick port is chosen");
+        extCmdBuffer[0] =
+            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::WRITETEXT);
+        const uint8_t help[] = "\x93\r"
+                               "          **** HELP PAGE ****\r\r"
+                               "ALT-H FOR THIS HELP PAGE\r"
+                               "ALT-Q TO QUIT THE EMULATOR\r"
+                               "ALT-L TO LOAD A PROGRAM\r"
+                               "      (SEE CONFIG::PATH, README.MD)\r"
+                               "ALT-S TO SAVE A PROGRAM\r"
+                               "ALT-R TO RESET THE EMULATOR\r"
+                               "ALT-T FOR KEY COMB. RUN/STOP - RESTORE\r"
+                               "ALT-Z FOR KEY RESTORE\r"
+                               "ALT-, TO DECREMENT SOUND VOLUME\r"
+                               "ALT-. TO INCREMENT SOUND VOLUME\r"
+                               "ALT-J TO SWITCH BETWEEN JOYSTICK\r"
+                               "      IN PORT 1, JOYSTICK IN PORT 2,\r"
+                               "      NO JOYSTICK. CURSOR KEYS AND\r"
+                               "      CTRL ARE USED AS JOYSTICK KEYS\r"
+                               "      IF A JOYSTICK PORT IS CHOSEN\r"
+                               "ALT-N SHOW CONTENT OF CPU REGISTERS\r"
+                               "ALT-D SWITCH TO DEBUG MODE AND BACK\r\0";
+        memcpy(&extCmdBuffer[1], help, sizeof(help));
+        gotExternalCmd = true;
       } else if (key == SDLK_q) {
         exit(0);
       }
       // "external command" keys
       else if (key == SDLK_l) {
-        gotExternalCmd = true;
         extCmdBuffer[0] =
             static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LOAD);
-      } else if (key == SDLK_r) {
         gotExternalCmd = true;
+      } else if (key == SDLK_s) {
+        extCmdBuffer[0] =
+            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::SAVE);
+        gotExternalCmd = true;
+      } else if (key == SDLK_n) {
+        extCmdBuffer[0] =
+            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::SHOWREG);
+        gotExternalCmd = true;
+      } else if (key == SDLK_r) {
         extCmdBuffer[0] =
             static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESET);
+        gotExternalCmd = true;
+      } else if (key == SDLK_t) {
+        extCmdBuffer[0] =
+            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESTORE);
+        extCmdBuffer[1] = 0x01;
+        gotExternalCmd = true;
+      } else if (key == SDLK_z) {
+        extCmdBuffer[0] =
+            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESTORE);
+        extCmdBuffer[1] = 0x00;
+        gotExternalCmd = true;
+      } else if (key == SDLK_d) {
+        extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
+            ExtCmd::SWITCHDEBUG);
+        gotExternalCmd = true;
+      } else if (key == SDLK_COMMA) {
+        extCmdBuffer[0] =
+            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::DECVOLUME);
+        extCmdBuffer[1] = 10;
+        gotExternalCmd = true;
+      } else if (key == SDLK_PERIOD) {
+        extCmdBuffer[0] =
+            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::INCVOLUME);
+        extCmdBuffer[1] = 10;
+        gotExternalCmd = true;
       } else if (key == SDLK_j) {
         switch (joystickmode) {
         case ExtCmd::KBJOYSTICKMODEOFF:
           joystickmode = ExtCmd::KBJOYSTICKMODE1;
-          gotExternalCmd = true;
           extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
               ExtCmd::KBJOYSTICKMODE1);
+          gotExternalCmd = true;
           break;
         case ExtCmd::KBJOYSTICKMODE1:
           joystickmode = ExtCmd::KBJOYSTICKMODE2;
-          gotExternalCmd = true;
           extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
               ExtCmd::KBJOYSTICKMODE2);
+          gotExternalCmd = true;
           break;
         case ExtCmd::KBJOYSTICKMODE2:
           joystickmode = ExtCmd::KBJOYSTICKMODEOFF;
-          gotExternalCmd = true;
           extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
               ExtCmd::KBJOYSTICKMODEOFF);
+          gotExternalCmd = true;
           break;
         default:
           break;
@@ -131,8 +173,19 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         }
       }
     } else {
+      if (joystickActive) {
+        switch (key) {
+        case SDLK_RIGHT:
+        case SDLK_LEFT:
+        case SDLK_DOWN:
+        case SDLK_UP:
+        case SDLK_LCTRL:
+          return;
+        }
+      }
       // C64 keys
-      KeySpec k{key, (mod & KMOD_SHIFT), (mod & KMOD_CTRL)};
+      KeySpec k{key, (mod & KMOD_SHIFT), (mod & KMOD_CTRL),
+                commodoreKeyPressed};
       auto it = keyMap.find(k);
       if (it != keyMap.end()) {
         auto [b1, b2, b3] = it->second;
@@ -146,14 +199,24 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
 
 void SDLKB::init() { SDL_InitSubSystem(SDL_INIT_EVENTS); }
 
+void SDLKB::feedEvents() {
+  SDL_Event ev;
+  while (SDL_PollEvent(&ev)) {
+    std::lock_guard<std::mutex> lock(eventMutex);
+    eventQueue.push(ev);
+  }
+}
+
 void SDLKB::scanKeyboard() {
-  SDL_Event event;
-  while (SDL_PollEvent(&event)) {
-    if (event.type == SDL_QUIT) {
+  std::lock_guard<std::mutex> lock(eventMutex);
+  while (!eventQueue.empty()) {
+    auto ev = eventQueue.front();
+    eventQueue.pop();
+    if (ev.type == SDL_QUIT) {
       exit(0);
-    } else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
-      bool pressed = (event.type == SDL_KEYDOWN);
-      handleKeyEvent(event.key.keysym.sym, SDL_GetModState(), pressed);
+    } else if (ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP) {
+      handleKeyEvent(ev.key.keysym.sym, SDL_GetModState(),
+                     ev.type == SDL_KEYDOWN);
     }
   }
 }
@@ -174,7 +237,12 @@ uint8_t *SDLKB::getExtCmdData() {
   return nullptr;
 }
 
-void SDLKB::sendExtCmdNotification(uint8_t *data, size_t size) {}
+void SDLKB::sendExtCmdNotification(uint8_t *data, size_t size) {
+  // for (uint8_t i = 0; i < size; i++) {
+  //   PlatformManager::getInstance().log(LOG_INFO, TAG, "notification byte %d:
+  //   %d", i, data[i]);
+  // }
+}
 
 void SDLKB::setKBcodes(uint8_t sentdc01, uint8_t sentdc00) {
   kbcode2 = sentdc01;

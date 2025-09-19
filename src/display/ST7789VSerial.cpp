@@ -18,6 +18,7 @@
 #ifdef USE_ST7789VSERIAL
 // files Display_ST7789.cpp and Display_ST7789.h are copied from
 // https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-2.8/ESP32-S3-Touch-LCD-2.8-Demo.zip
+// and slightly adjusted
 #include "ST7789VSerial.h"
 #include "st7789vserial/Display_ST7789.h"
 
@@ -57,7 +58,5 @@ void ST7789VSerial::drawBitmap(uint16_t *bitmap) {
   LCD_addWindow(BORDERWIDTH, BORDERHEIGHT, 319 + BORDERWIDTH,
                 199 + BORDERHEIGHT, bitmap);
 }
-
-const uint16_t *ST7789VSerial::getC64Colors() const { return c64Colors; }
 
 #endif

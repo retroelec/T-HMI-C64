@@ -1,7 +1,7 @@
 ALLBOARDS := T_HMI T_DISPLAY_S3 WAVESHARE
 #BOARD := T_HMI
-BOARD := T_DISPLAY_S3
-#BOARD := WAVESHARE
+#BOARD := T_DISPLAY_S3
+BOARD := WAVESHARE
 
 PORT := /dev/ttyACM0
 
@@ -78,10 +78,10 @@ TARGETLINUX := c64linux
 OBJFILESLINUX := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRLINUX)/%.o,$(SOURCEFILES))
 
 CXX := g++
-CXXFLAGS := -Wall -MMD -MP -DPLATFORM_LINUX -Isrc
+CXXFLAGS := -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc
 
 $(TARGETLINUX): $(OBJFILESLINUX)
-	$(CXX) $(OBJFILESLINUX) -o $@ -lSDL2
+	$(CXX) $(OBJFILESLINUX) -o $@ -lSDL2 -pthread
 
 $(BUILDDIRLINUX)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $@)
@@ -93,4 +93,11 @@ cleanlinux:
 	rm -rf $(BUILDDIRLINUX) $(TARGETLINUX)
 
 .PHONY: cleanlinux
+
+# Windows
+# create image in directory windows using
+# podman build -t sdl2-cross .
+
+c64win.exe:
+	podman run -it --rm -v "$(PWD)":/build sdl2-cross make -f windows/Makefile
 

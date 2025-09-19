@@ -63,7 +63,7 @@ void CPU6502::modeIndirectY() {
   uint16_t q = getMem(pc++);
   zl = getMem(q++);
   zh = getMem(q);
-  z = (y + zl + (zh << 8));
+  z = (y + (zl | (zh << 8)));
 }
 
 void CPU6502::setNZ(uint8_t r) {
@@ -76,6 +76,19 @@ void CPU6502::atestandsetNZ() { setNZ(a); }
 void CPU6502::xtestandsetNZ() { setNZ(x); }
 
 void CPU6502::ytestandsetNZ() { setNZ(y); }
+
+void CPU6502::branchbase(bool flag) {
+  int8_t r = getMem(pc++);
+  if (flag) {
+    uint16_t oldPC = pc;
+    pc += r;
+    numofcycles++;
+    if ((oldPC & 0xFF00) != (pc & 0xFF00)) {
+      numofcycles++;
+    }
+  }
+  numofcycles += 2;
+}
 
 void CPU6502::adcbase(uint8_t r) {
   if (!dflag) {
@@ -348,21 +361,19 @@ void CPU6502::cmd6502aslAbsolute() {
   numofcycles += 6;
 }
 
-void CPU6502::cmd6502bpl() {
-  int8_t r = getMem(pc++);
-  if (!nflag) {
-    pc += r;
-    numofcycles++;
-  }
-  numofcycles += 2;
-}
+void CPU6502::cmd6502bpl() { branchbase(!nflag); }
 
 void CPU6502::cmd6502oraIndirectY() {
+  uint16_t zold = z;
   modeIndirectY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   a |= r;
   atestandsetNZ();
   numofcycles += 5;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502oraZeropageX() {
@@ -385,19 +396,29 @@ void CPU6502::cmd6502clc() {
 }
 
 void CPU6502::cmd6502oraAbsoluteY() {
+  uint16_t zold = z;
   modeAbsoluteY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   a |= r;
   atestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502oraAbsoluteX() {
+  uint16_t zold = z;
   modeAbsoluteX();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   a |= r;
   atestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502aslAbsoluteX() {
@@ -498,21 +519,19 @@ void CPU6502::cmd6502rolAbsolute() {
   numofcycles += 6;
 }
 
-void CPU6502::cmd6502bmi() {
-  int8_t r = getMem(pc++);
-  if (nflag) {
-    pc += r;
-    numofcycles++;
-  }
-  numofcycles += 2;
-}
+void CPU6502::cmd6502bmi() { branchbase(nflag); }
 
 void CPU6502::cmd6502andIndirectY() {
+  uint16_t zold = z;
   modeIndirectY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   a &= r;
   atestandsetNZ();
   numofcycles += 5;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502andZeropageX() {
@@ -535,19 +554,29 @@ void CPU6502::cmd6502sec() {
 }
 
 void CPU6502::cmd6502andAbsoluteY() {
+  uint16_t zold = z;
   modeAbsoluteY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   a &= r;
   atestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502andAbsoluteX() {
+  uint16_t zold = z;
   modeAbsoluteX();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   a &= r;
   atestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502rolAbsoluteX() {
@@ -625,21 +654,19 @@ void CPU6502::cmd6502lsrAbsolute() {
   numofcycles += 6;
 }
 
-void CPU6502::cmd6502bvc() {
-  int8_t r = getMem(pc++);
-  if (!vflag) {
-    pc += r;
-    numofcycles++;
-  }
-  numofcycles += 2;
-}
+void CPU6502::cmd6502bvc() { branchbase(!vflag); }
 
 void CPU6502::cmd6502eorIndirectY() {
+  uint16_t zold = z;
   modeIndirectY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   a ^= r;
   atestandsetNZ();
   numofcycles += 5;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502eorZeropageX() {
@@ -662,19 +689,29 @@ void CPU6502::cmd6502cli() {
 }
 
 void CPU6502::cmd6502eorAbsoluteY() {
+  uint16_t zold = z;
   modeAbsoluteY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   a ^= r;
   atestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502eorAbsoluteX() {
+  uint16_t zold = z;
   modeAbsoluteX();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   a ^= r;
   atestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502lsrAbsoluteX() {
@@ -750,20 +787,18 @@ void CPU6502::cmd6502rorAbsolute() {
   numofcycles += 6;
 }
 
-void CPU6502::cmd6502bvs() {
-  int8_t r = getMem(pc++);
-  if (vflag) {
-    pc += r;
-    numofcycles++;
-  }
-  numofcycles += 2;
-}
+void CPU6502::cmd6502bvs() { branchbase(vflag); }
 
 void CPU6502::cmd6502adcIndirectY() {
+  uint16_t zold = z;
   modeIndirectY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   adcbase(r);
   numofcycles += 5;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502adcZeropageX() {
@@ -785,17 +820,27 @@ void CPU6502::cmd6502sei() {
 }
 
 void CPU6502::cmd6502adcAbsoluteY() {
+  uint16_t zold = z;
   modeAbsoluteY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   adcbase(r);
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502adcAbsoluteX() {
+  uint16_t zold = z;
   modeAbsoluteX();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   adcbase(r);
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502rorAbsoluteX() {
@@ -858,14 +903,7 @@ void CPU6502::cmd6502stxAbsolute() {
   numofcycles += 4;
 }
 
-void CPU6502::cmd6502bcc() {
-  int8_t r = getMem(pc++);
-  if (!cflag) {
-    pc += r;
-    numofcycles++;
-  }
-  numofcycles += 2;
-}
+void CPU6502::cmd6502bcc() { branchbase(!cflag); }
 
 void CPU6502::cmd6502staIndirectY() {
   modeIndirectY();
@@ -1024,20 +1062,18 @@ void CPU6502::cmd6502ldxAbsolute() {
   numofcycles += 4;
 }
 
-void CPU6502::cmd6502bcs() {
-  int8_t r = getMem(pc++);
-  if (cflag) {
-    pc += r;
-    numofcycles++;
-  }
-  numofcycles += 2;
-}
+void CPU6502::cmd6502bcs() { branchbase(cflag); }
 
 void CPU6502::cmd6502ldaIndirectY() {
+  uint16_t zold = z;
   modeIndirectY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   a = getMem(z);
   atestandsetNZ();
   numofcycles += 5;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502laxIndirectY() {
@@ -1083,18 +1119,28 @@ void CPU6502::cmd6502clv() {
 }
 
 void CPU6502::cmd6502ldaAbsoluteY() {
+  uint16_t zold = z;
   modeAbsoluteY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   a = getMem(z);
   atestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502laxAbsoluteY() {
+  uint16_t zold = z;
   modeAbsoluteY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   a = getMem(z);
   x = a;
   atestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502tsx() {
@@ -1104,24 +1150,39 @@ void CPU6502::cmd6502tsx() {
 }
 
 void CPU6502::cmd6502ldyAbsoluteX() {
+  uint16_t zold = z;
   modeAbsoluteX();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   y = getMem(z);
   ytestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502ldaAbsoluteX() {
+  uint16_t zold = z;
   modeAbsoluteX();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   a = getMem(z);
   atestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502ldxAbsoluteY() {
+  uint16_t zold = z;
   modeAbsoluteY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   x = getMem(z);
   xtestandsetNZ();
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502cpyImmediate() {
@@ -1195,20 +1256,18 @@ void CPU6502::cmd6502decAbsolute() {
   numofcycles += 6;
 }
 
-void CPU6502::cmd6502bne() {
-  int8_t r = getMem(pc++);
-  if (!zflag) {
-    pc += r;
-    numofcycles++;
-  }
-  numofcycles += 2;
-}
+void CPU6502::cmd6502bne() { branchbase(!zflag); }
 
 void CPU6502::cmd6502cmpIndirectY() {
+  uint16_t zold = z;
   modeIndirectY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   cmpbase(a, r);
   numofcycles += 5;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502cmpZeropageX() {
@@ -1230,17 +1289,27 @@ void CPU6502::cmd6502cld() {
 }
 
 void CPU6502::cmd6502cmpAbsoluteY() {
+  uint16_t zold = z;
   modeAbsoluteY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   cmpbase(a, r);
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502cmpAbsoluteX() {
+  uint16_t zold = z;
   modeAbsoluteX();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   cmpbase(a, r);
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502decAbsoluteX() {
@@ -1316,20 +1385,18 @@ void CPU6502::cmd6502incAbsolute() {
   numofcycles += 6;
 }
 
-void CPU6502::cmd6502beq() {
-  int8_t r = getMem(pc++);
-  if (zflag) {
-    pc += r;
-    numofcycles++;
-  }
-  numofcycles += 2;
-}
+void CPU6502::cmd6502beq() { branchbase(zflag); }
 
 void CPU6502::cmd6502sbcIndirectY() {
+  uint16_t zold = z;
   modeIndirectY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   sbcbase(r);
   numofcycles += 6;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502sbcZeropageX() {
@@ -1351,17 +1418,27 @@ void CPU6502::cmd6502sed() {
 }
 
 void CPU6502::cmd6502sbcAbsoluteY() {
+  uint16_t zold = z;
   modeAbsoluteY();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   sbcbase(r);
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502sbcAbsoluteX() {
+  uint16_t zold = z;
   modeAbsoluteX();
+  bool pageCrossed = ((zold & 0xFF00) != (z & 0xFF00));
   uint8_t r = getMem(z);
   sbcbase(r);
   numofcycles += 4;
+  if (pageCrossed) {
+    numofcycles++;
+  }
 }
 
 void CPU6502::cmd6502incAbsoluteX() {

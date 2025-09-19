@@ -23,7 +23,7 @@
 #include <esp_adc/adc_oneshot.h>
 #endif
 
-#if defined(PLATFORM_LINUX)
+#if defined(PLATFORM_LINUX) || defined(_WIN32)
 
 #define BOARD_LINUX
 #define USE_SDL_DISPLAY
@@ -56,7 +56,12 @@
 
 #endif
 
-#if defined(PLATFORM_LINUX)
+// global defines
+#define AUDIO_SAMPLE_RATE 44100
+
+#if defined(PLATFORM_LINUX) || defined(_WIN32)
+
+#define HAS_DEFAULT_VOLUME
 
 struct Config {
   // --- constants to be defined for each board ---
@@ -68,14 +73,14 @@ struct Config {
   static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
 
   // audio
-  static const uint16_t AUDIO_SAMPLE_RATE = 44100;
+  static const uint8_t DEFAULT_VOLUME = 10;
 
   // --- driver specific constants ---
 
   // display driver
-  static const uint16_t LCDWIDTH = 320;
-  static const uint16_t LCDHEIGHT = 200;
-  static const uint16_t LCDSCALE = 4;
+  static const uint16_t LCDWIDTH = 404;
+  static const uint16_t LCDHEIGHT = 284;
+  static inline uint16_t LCDSCALE = 3;
 
   // filesystem
   static constexpr const char *PATH = "c64prgs/";
@@ -93,9 +98,6 @@ struct Config {
 
   // "heuristic performance factor"
   static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
-
-  // audio
-  static const uint16_t AUDIO_SAMPLE_RATE = 44100;
 
   // --- driver specific constants ---
 
@@ -151,9 +153,6 @@ struct Config {
   // "heuristic performance factor"
   static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
 
-  // audio
-  static const uint16_t AUDIO_SAMPLE_RATE = 44100;
-
   // --- driver specific constants ---
 
   // power
@@ -172,6 +171,8 @@ struct Config {
 
 #elif defined(BOARD_WAVESHARE)
 
+#define HAS_DEFAULT_VOLUME
+
 struct Config {
   // --- constants to be defined for each board ---
 
@@ -180,9 +181,6 @@ struct Config {
 
   // "heuristic performance factor"
   static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 0.7;
-
-  // audio
-  static const uint16_t AUDIO_SAMPLE_RATE = 44100;
 
   // --- driver specific constants ---
 
@@ -195,7 +193,20 @@ struct Config {
   static const uint16_t LCDWIDTH = 320;
   static const uint16_t LCDHEIGHT = 240;
 
+  // ST7789VSerial
+  static const int8_t MISO = -1;
+  static const uint8_t MOSI = 45;
+  static const uint8_t SCLK = 40;
+  static const uint8_t LCD_CS = 42;
+  static const uint8_t LCD_DC = 41;
+  static const uint8_t LCD_RST = 39;
+  static const uint8_t LCD_BACKLIGHT_PIN = 5;
+  static const uint16_t LCD_BACKLIGHT_FREQUENCY = 20000;
+  static const uint8_t LCD_BACKLIGHT_RESOLUTION = 10;
+  static const uint16_t LCD_BACKLIGHT_DUTYFACTOR = 500;
+
   // Sound
+  static const uint8_t DEFAULT_VOLUME = 200;
   static const uint8_t I2S_DOUT = 47;
   static const uint8_t I2S_BCLK = 48;
   static const uint8_t I2S_LRC = 38;

@@ -1,6 +1,6 @@
 # C64 Emulator for ESP32-S3 with "Android keyboard" (BLE) (Lilygo T-HMI, Lilygo T-Display S3 AMOLED, Waveshare ESP32-S3-LCD-2.8)
 
-A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD (ST7789V driver), and an SD card slot.
+A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD, and an SD card slot.
 The emulator was later expanded to support the
 [Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI) and the
 [ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm).
@@ -9,7 +9,9 @@ Keyboard input is simulated via a custom Android app, communicating with the emu
 
 After extensive refactoring, the code should now be easily portable to other ESP32-S3 boards (and even other platforms).
 
-The emulator is also available as a Linux application using SDL for graphics, input, and sound.
+The emulator is also available as a Linux application using SDL for graphics, input, and sound.  
+On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the available sleep functions are too coarse-grained.
+Probably for the same reason, audio output is also slightly delayed.
 
 [![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
 
@@ -17,14 +19,14 @@ Contact: retroelec42@gmail.com
 
 ## News
 
-- Emulator for Linux using SDL
+- Emulator for Linux (and Windows) using SDL
 - Code refactoring
 
 ## Hardware
 
 ### ESP32-S3
 
-The ESP32-S3 is dual core containing a Protocol CPU (known as CPU 0, core 0 or PRO_CPU) and an Application CPU (known as CPU 1, core 1 or APP_CPU).
+The ESP32-S3 is dual core containing a Protocol CPU (core 0) and an Application CPU (core 1).
 The two cores are identical in practice and share the same memory.
 The tasks responsible for handling wireless networking (Wi-Fi or Bluetooth) are pinned to core 0 by default
 (see [Espressif - Task Priorities](https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-guides/performance/speed.html)).
@@ -39,13 +41,6 @@ The joystick is optional (as there exists also a virtual joystick on the Android
 It has an analog 2-axis thumb joystick and several buttons.
 As there are several games which use the space bar as a second fire button (e.g. Commando), another button of the Arduino joystick
 can be used to simulate the pressing of the space bar.
-
-If you do not use an Arduino joystick, you may have to adapt the following constants in src/Config.h:
-
-- ADC_JOYSTICK_X
-- ADC_JOYSTICK_Y
-- JOYSTICK_FIRE_PIN
-- JOYSTICK_FIRE2_PIN
 
 ### Battery
 
@@ -272,8 +267,6 @@ You can also send a programm from your Android device to the emulator (DIV scree
 
 <img src="doc/classdiagram.png" alt="class diagram" width="1200"/>
 
-<img src="doc/classdiagram_001.png" alt="class diagram" width="600"/>
-
 ### Keyboard
 
 Keyboard inputs are sent to the ESP32-S3 via BLE. Three bytes must be sent for each key press:
@@ -304,97 +297,14 @@ All hardware ports not explicitly mentioned including their corresponding regist
 "Software stuff" not emulated resp. known bugs:
 
 - simple SID emulation, some SID registers are not or only partly implemented yet: $d415 - $d41c
-- no tape/disk drive emulation (and no plans to do this)
+- no tape/disk drive emulation
 - "illegal instructions" test suite fails
-- some games have graphic errors
-- some games are not working at all
 - no "FLI border removal" / "sideborder removal"
-- no FLD
+- synchronization is rasterline-based, not cycle-exact
+- rarly C64 CPU is blocked after loading a game
 
 ### Games
 
 As there is no disk drive emulation, only "onefiled games" can be played.
-Up to now I tested the following games.  
-Note: I do not test all games after every patch - it is therefore possible that some games only work with an earlier patch.
-
-Games that are playable:
-
-- Wizard of Wor
-- Skramble (from Anirog)
-- Galaxy
-- Burnin Rubber
-- Lode Runner
-- Donkey Kong
-- Bubble Bobble
-- Castle Terror
-- Bagitman
-- Krakout
-- Miner 2049er (last line not visible, was visible in an earlier version)
-- Dig Dug
-- Quartet
-- International Soccer
-- Choplifter
-- Pole Position
-- Pole Position 2
-- Pacman
-- Boulder Dash
-- Ghost and Gobblins (graphic errors at bottom)
-- Great Gianas Sister
-- Hyper Sports
-- Blue Max
-- Commando (activate "Ignore Badlines" on DIV screen, graphic errors at bottom)
-- Fort Apocalypse
-- Hero
-- Burger Time 97
-- Burger Time 2023
-- Outrun
-- Q*bert
-- Space Taxi
-- Jupiter Lander
-- Dark Caves
-- Blobber
-- Galaxions
-- BC's Quest for Tires
-- Stunt Car Racer
-- Tapper
-- Starforce
-- 8Midas
-- Acid Runner (wrong colors)
-- Gyroscope
-- International Karate
-- Jumpman
-- Little Computer People
-- Montezuma's Revenge
-- Pooyan
-- Track & Field
-- Wonder Boy
-- Squish'em
-- Thing on a spring
-- Xevious
-- Zalaga
-- Zaxxon
-- Rambo
-- Rick Dangerous
-- David's Midnight Magic (hint: use Android screen KBINP/PINBALL1) 
-- Terra Cresta (activate "Ignore Badlines" on DIV screen)
-- Arkanoid
-- Ghostbusters
-- Bruce Lee
-- 1943 (graphic errors at bottom)
-- Nebulus
-- Drol
-- Paradroid
-- Qix
-- Impossible Mission
-- Microprose Soccer (graphic errors at bottom)
-
-Games not working:
-
-- Westbank (endless loop, worked in an earlier version)
-- Burger Time (crashing)
-- 1942 (no proper scrolling)
-- Lemmings (incomplete graphics)
-- Buggy Boy (endless loop)
-- Uridium (crashing)
-- Wizball (crashing)
+Most of the games tested work well. A few games have minor graphics glitches. Only a small number of the games tested do not work.
 

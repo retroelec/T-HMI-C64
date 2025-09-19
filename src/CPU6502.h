@@ -37,6 +37,7 @@ private:
   inline void atestandsetNZ() __attribute__((always_inline));
   inline void xtestandsetNZ() __attribute__((always_inline));
   inline void ytestandsetNZ() __attribute__((always_inline));
+  inline void branchbase(bool flag) __attribute__((always_inline));
   inline void adcbase(uint8_t r) __attribute__((always_inline));
   inline void sbcbase(uint8_t r) __attribute__((always_inline));
   inline void incbase() __attribute__((always_inline));

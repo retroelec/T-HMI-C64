@@ -28,6 +28,30 @@
  * display, drawing frames and rendering bitmaps.
  */
 class DisplayDriver {
+private:
+  static const uint16_t c64_black = 0x0000;
+  static const uint16_t c64_white = 0xffff;
+  static const uint16_t c64_red = 0x8000;
+  static const uint16_t c64_turquoise = 0xa7fc;
+  static const uint16_t c64_purple = 0xc218;
+  static const uint16_t c64_green = 0x064a;
+  static const uint16_t c64_blue = 0x0014;
+  static const uint16_t c64_yellow = 0xe74e;
+  static const uint16_t c64_orange = 0xd42a;
+  static const uint16_t c64_brown = 0x6200;
+  static const uint16_t c64_lightred = 0xfbae;
+  static const uint16_t c64_grey1 = 0x3186;
+  static const uint16_t c64_grey2 = 0x73ae;
+  static const uint16_t c64_lightgreen = 0xa7ec;
+  static const uint16_t c64_lightblue = 0x043f;
+  static const uint16_t c64_grey3 = 0xb5d6;
+
+  const uint16_t c64Colors[16] = {
+      c64_black,  c64_white,      c64_red,       c64_turquoise,
+      c64_purple, c64_green,      c64_blue,      c64_yellow,
+      c64_orange, c64_brown,      c64_lightred,  c64_grey1,
+      c64_grey2,  c64_lightgreen, c64_lightblue, c64_grey3};
+
 public:
   /**
    * @brief Initializes the display hardware.
@@ -56,12 +80,28 @@ public:
   /**
    * @brief Provides access to the C64 palette in display-native format.
    *
-   * Returns a pointer to an array of 16 color entries corresponding to
-   * the Commodore 64 color palette.
+   * By default, this method returns a pointer to a statically defined
+   * array of 16 entries, representing the Commodore 64 color palette
+   * in RGB565 format.
    *
-   * @return Pointer to a constant array of 16 bit colors.
+   * Derived classes may override this method to provide a custom palette
+   * or a different color format if required by the display backend.
+   *
+   * @return Pointer to a constant array of 16-bit color values (RGB565).
    */
-  virtual const uint16_t *getC64Colors() const = 0;
+  virtual const uint16_t *getC64Colors() const { return c64Colors; }
+
+  /**
+   * @brief Displays two characters as a overlay for a certain time. The method
+   * is intended for SDL displays only.
+   *
+   * The overlay information consists of two optional characters. It can be used
+   * e.g. to display the actual volume or joystick port.
+   *
+   * @param char1 Optional character to be displayed.
+   * @param char2 Optional character to be displayed.
+   */
+  virtual void dispOverlayInfo(char char1, char char2) {}
 
   virtual ~DisplayDriver() {}
 };

@@ -69,7 +69,7 @@ void ExternalCmds::setType2Notification() {
 
 void ExternalCmds::setType3Notification(uint16_t addr) {
   type3notification.type = 3;
-  for (uint8_t i = 0; i < BLENOTIFICATIONTYPE3NUMOFBYTES; i++) {
+  for (uint8_t i = 0; i < NOTIFICATIONTYPE3NUMOFBYTES; i++) {
     type3notification.mem[i] = cpu->getMem(addr + i);
   }
 }
@@ -81,6 +81,11 @@ void ExternalCmds::setType5Notification(uint8_t batteryVolLow,
   type5notification.type = 5;
   type5notification.batteryVolLow = batteryVolLow;
   type5notification.batteryVolHi = batteryVolHi;
+}
+
+void ExternalCmds::setType6Notification(uint8_t value) {
+  type6notification.type = 6;
+  type6notification.value = value;
 }
 
 void ExternalCmds::setVarTab(uint16_t addr) {
@@ -120,12 +125,34 @@ void getFilename(char *path, uint8_t *ram) {
   path[i] = '\0';
 }
 
+bool ExternalCmds::isBasicInputMode() {
+  uint16_t pc = cpu->getPC();
+  if ((cpu->getMem(1) & 7) != 7)
+    return false;
+  uint16_t irqVec = ram[0x0314] | (ram[0x0315] << 8);
+  if (irqVec != 0xea31)
+    return false;
+  if (pc == 0xe5d1 || pc == 0xe5d4 || pc == 0xe5cd || pc == 0xe5cf)
+    return true;
+  if (pc >= 0xea31 && pc < 0xefff)
+    return true;
+  return false;
+}
+
+void ExternalCmds::dispVolume() {
+  uint8_t volume = cpu->sid.getEmuVolume() * 99 / 255;
+  cpu->vic.dispOverlayInfo(volume / 10 + '0', volume % 10 + '0');
+}
+
 uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   ExtCmd cmd = static_cast<ExtCmd>(buffer[0]);
   switch (cmd) {
   case ExtCmd::NOEXTCMD:
     return 0;
   case ExtCmd::LOAD: {
+    if (!isBasicInputMode()) {
+      return 0;
+    }
     PlatformManager::getInstance().log(LOG_INFO, TAG, "load from file system");
     cpu->cpuhalted = true;
     bool fileloaded = false;
@@ -159,6 +186,9 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   }
   case ExtCmd::SAVE: {
+    if (!isBasicInputMode()) {
+      return 0;
+    }
     PlatformManager::getInstance().log(LOG_INFO, TAG, "save to file system");
     cpu->cpuhalted = true;
     bool filesaved = false;
@@ -186,6 +216,9 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   }
   case ExtCmd::LIST: {
+    if (!isBasicInputMode()) {
+      return 0;
+    }
     PlatformManager::getInstance().log(LOG_INFO, TAG, "list file system");
     cpu->cpuhalted = true;
     if (filesys->init()) {
@@ -226,6 +259,9 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   }
   case ExtCmd::RECEIVEDATA: {
+    if (!isBasicInputMode()) {
+      return 0;
+    }
     PlatformManager::getInstance().log(LOG_INFO, TAG, "enter receivedata");
     cpu->cpuhalted = true;
     // simple "protocol":
@@ -307,7 +343,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     cpu->debugstartaddr = addr;
     PlatformManager::getInstance().log(LOG_INFO, TAG, "addr: %x", addr);
     setType3Notification(addr);
-    for (uint8_t i = 0; i < BLENOTIFICATIONTYPE3NUMOFBYTES / 8; i++) {
+    for (uint8_t i = 0; i < NOTIFICATIONTYPE3NUMOFBYTES / 8; i++) {
       uint8_t j = i * 8;
       PlatformManager::getInstance().log(
           LOG_INFO, TAG, "mem[%d]: %d %d %d %d %d %d %d %d", j,
@@ -321,7 +357,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::RESET:
     cpu->cpuhalted = true;
     cpu->initMemAndRegs();
-    cpu->vic->initVarsAndRegs();
+    cpu->vic.initVarsAndRegs();
     cpu->cia1.init(true);
     cpu->cia2.init(false);
     cpu->sid.init();
@@ -366,11 +402,10 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 0;
   case ExtCmd::GETSTATUS:
     // just send type 1 notification
-    PlatformManager::getInstance().log(LOG_INFO, TAG,
-                                       "send status to BLE client");
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "send status to client");
     setType1Notification();
     return 1;
-  case ExtCmd::SWITCHFRAMECOLORREFRESH:
+  case ExtCmd::SWITCHDEACTIVATETEMP:
     cpu->deactivateTemp = !cpu->deactivateTemp;
     PlatformManager::getInstance().log(LOG_INFO, TAG, "deactivateTemp = %x",
                                        cpu->deactivateTemp);
@@ -409,6 +444,50 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::POWEROFF:
     cpu->poweroff.store(true, std::memory_order_release);
     return 0;
+  case ExtCmd::SETVOLUME:
+    cpu->sid.setEmuVolume(buffer[1]);
+    return 0;
+  case ExtCmd::INCVOLUME: {
+    int16_t newVolume = cpu->sid.getEmuVolume() + buffer[1];
+    if (newVolume > 255) {
+      newVolume = 255;
+    }
+    cpu->sid.setEmuVolume(newVolume);
+    dispVolume();
+    setType6Notification((uint8_t)newVolume);
+    return 6;
+  }
+  case ExtCmd::DECVOLUME: {
+    int16_t newVolume = cpu->sid.getEmuVolume() - buffer[1];
+    if (newVolume < 0) {
+      newVolume = 0;
+    }
+    cpu->sid.setEmuVolume(newVolume);
+    dispVolume();
+    setType6Notification((uint8_t)newVolume);
+    return 6;
+  }
+  case ExtCmd::WRITETEXT: {
+    if (!isBasicInputMode()) {
+      return 0;
+    }
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "execute writetext");
+    uint16_t addr = 0xc000;
+    int16_t sizebuffer = strlen((const char *)&(buffer[1]));
+    memcpy(&ram[addr], &(buffer[1]), sizebuffer);
+    while (sizebuffer > 0) {
+      uint16_t oldaddr = addr;
+      uint8_t inc = sizebuffer > 250 ? 250 : sizebuffer;
+      addr += inc;
+      uint8_t ch = ram[addr];
+      ram[addr] = '\0';
+      cpu->exeSubroutine(0xab1e, (uint8_t)(oldaddr & 0xff), 0,
+                         (uint8_t)((oldaddr >> 8) & 0xff));
+      ram[addr] = ch;
+      sizebuffer -= 250;
+    }
+    return 0;
+  }
   }
   return 0;
 }

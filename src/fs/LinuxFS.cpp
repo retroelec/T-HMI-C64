@@ -47,13 +47,25 @@ uint16_t LinuxFS::load(char *filename, uint8_t *ram) {
   while (file.get(byte)) {
     ram[addr++] = static_cast<uint8_t>(byte);
   }
-  file.close();
   return addr;
 }
 
 bool LinuxFS::save(char *filename, uint8_t *ram, uint16_t startaddr,
                    uint16_t endaddr) {
-  return false;
+  char path[64];
+  strcpy(path, Config::PATH);
+  strcat(path, filename);
+  std::ofstream file(path, std::ios::binary | std::ios::out | std::ios::trunc);
+  if (!file.is_open()) {
+    PlatformManager::getInstance().log(LOG_ERROR, TAG, "cannot open file %s",
+                                       path);
+    return false;
+  }
+  file.put(static_cast<char>(startaddr & 0xff));
+  file.put(static_cast<char>((startaddr >> 8) & 0xff));
+  size_t length = static_cast<size_t>(endaddr - startaddr + 1);
+  file.write(reinterpret_cast<char *>(ram + startaddr), length);
+  return file.good();
 }
 
 bool LinuxFS::listnextentry(uint8_t *nextentry, bool start) { return false; }

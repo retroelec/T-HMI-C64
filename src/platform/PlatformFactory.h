@@ -22,6 +22,8 @@
 #include "PlatformESP32.h"
 #elif defined(PLATFORM_LINUX)
 #include "PlatformLinux.h"
+#elif defined(_WIN32)
+#include "PlatformWindows.h"
 #else
 #error "no valid platform defined"
 #endif
@@ -32,6 +34,8 @@ Platform *create() {
   return new PlatformESP32();
 #elif defined(PLATFORM_LINUX)
   return new PlatformLinux();
+#elif defined(_WIN32)
+  return new PlatformWindows();
 #endif
 }
 } // namespace PlatformNS

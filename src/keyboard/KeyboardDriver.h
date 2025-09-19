@@ -37,9 +37,12 @@ public:
   virtual void init() = 0;
 
   /**
-   * @brief Performs a keyboard scan and updates internal variabels.
+   * @brief Performs a keyboard scan and updates internal variables.
    *
-   * Is called every 8ms.
+   * This method is invoked periodically (every 8 ms) by an external process
+   * or timer rather than the main execution flow. Because of this, all
+   * involved variables that are read or modified within this method should
+   * be declared as atomic to ensure safe concurrent access.
    */
   virtual void scanKeyboard() = 0;
 
@@ -82,7 +85,8 @@ public:
    * Is called once per frame.
    *
    * @return Pointer to the data containing the external command including
-   * parameters or nullptr if no command is pending.
+   * parameters.
+   * See enum class ExtCmd for the content of the data buffer.
    */
   virtual uint8_t *getExtCmdData() = 0;
 
@@ -108,6 +112,15 @@ public:
    * @param detectreleasekey true to enable release detection, false to disable.
    */
   virtual void setDetectReleasekey(bool detectreleasekey) = 0;
+
+  /**
+   * @brief Polls keyboard events and enqueues them for later processing by the
+   * method scanKeyboard(). The method is intended for SDL Keyboards only.
+   *
+   * Is called in the main thread (required on Windows) to keep input and window
+   * handling responsive.
+   */
+  virtual void feedEvents() {}
 
   virtual ~KeyboardDriver() {}
 };

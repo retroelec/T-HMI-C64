@@ -60,10 +60,10 @@ public:
                                std::string(SDL_GetError()));
     }
     SDL_AudioSpec desiredSpec = {};
-    desiredSpec.freq = Config::AUDIO_SAMPLE_RATE;
+    desiredSpec.freq = AUDIO_SAMPLE_RATE;
     desiredSpec.format = AUDIO_S16SYS;
     desiredSpec.channels = 1;
-    desiredSpec.samples = 1024;
+    desiredSpec.samples = 512;
     desiredSpec.callback = &SDLSound::audioCallbackStatic;
     desiredSpec.userdata = this;
     SDL_AudioSpec obtainedSpec;
