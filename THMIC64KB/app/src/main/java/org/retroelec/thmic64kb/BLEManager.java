@@ -110,7 +110,7 @@ public class BLEManager {
                 if (receivedData.length > 0) {
                     byte type = receivedData[0];
                     switch (type) {
-                        // state of joysticks and switches
+                        // get status (e.g. state of switches, joystick mode, volume)
                         case 1:
                             settings.setJoymode(receivedData[1]);
                             settings.setDeactivateTemp(receivedData[2] != 0);
@@ -118,8 +118,11 @@ public class BLEManager {
                             settings.setDebug(receivedData[4] != 0);
                             settings.setPerf(receivedData[5] != 0);
                             settings.setDetectReleaseKey(receivedData[6] != 0);
+                            settings.setVolume(Byte.toUnsignedInt(receivedData[7]));
+                            settings.setD64attached(receivedData[8] != 0);
                             settings.notifySettingsObserver();
                             break;
+                        // get register content from esp
                         case 2:
                             type2Notification.setCpuRunning(receivedData[1] != 0);
                             int pcl = receivedData[2] & 0xff;
@@ -143,6 +146,7 @@ public class BLEManager {
                             type2Notification.setDd0f(receivedData[19]);
                             type2Notification.notifyObserver();
                             break;
+                        // get memory content from esp
                         case 3:
                             short[] mem = new short[16];
                             for (byte i = 0; i < 16; i++) {

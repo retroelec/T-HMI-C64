@@ -18,7 +18,6 @@
 
 #include "C64Sys.h"
 #include "ExtCmd.h"
-#include "fs/FSFactory.h"
 #include "listactions.h"
 #include "loadactions.h"
 #include "platform/PlatformManager.h"
@@ -32,7 +31,6 @@ void ExternalCmds::init(uint8_t *ram, C64Sys *cpu) {
   this->cpu = cpu;
   sendrawkeycodes = false;
   liststartflag = true;
-  filesys = FileSys::create();
 }
 
 void ExternalCmds::setType1Notification() {
@@ -43,6 +41,8 @@ void ExternalCmds::setType1Notification() {
   type1notification.switchdebug = cpu->debug;
   type1notification.switchperf = cpu->perf.load(std::memory_order_acquire);
   type1notification.switchdetectreleasekey = cpu->detectreleasekey;
+  type1notification.volume = cpu->sid.getEmuVolume();
+  type1notification.switchattached = cpu->floppy.d64attached;
 }
 
 void ExternalCmds::setType2Notification() {
@@ -83,11 +83,6 @@ void ExternalCmds::setType5Notification(uint8_t batteryVolLow,
   type5notification.batteryVolHi = batteryVolHi;
 }
 
-void ExternalCmds::setType6Notification(uint8_t value) {
-  type6notification.type = 6;
-  type6notification.value = value;
-}
-
 void ExternalCmds::setVarTab(uint16_t addr) {
   // set VARTAB
   ram[0x2d] = addr % 256;
@@ -96,7 +91,7 @@ void ExternalCmds::setVarTab(uint16_t addr) {
   cpu->setPC(0xa52a);
 }
 
-void getFilename(char *path, uint8_t *ram) {
+std::string getFilename(uint8_t *ram, const std::string ext) {
   uint8_t cury = ram[0xd6];
   uint8_t curx = ram[0xd3];
   uint8_t *cursorpos = ram + 0x0400 + cury * 40 + curx;
@@ -108,21 +103,17 @@ void getFilename(char *path, uint8_t *ram) {
     cursorpos--;
   }
   cursorpos++;
-  uint8_t i = 0;
+  std::string filename;
   uint8_t p;
-  while (((p = *cursorpos++) != 32) && (p != 160) && (i < 17)) {
+  while (((p = *cursorpos++) != 32) && (p != 160) && (filename.size() < 17)) {
     if ((p >= 1) && (p <= 26)) {
-      path[i] = p + 96;
+      filename.push_back(static_cast<char>(p + 96));
     } else if ((p >= 33) && (p <= 63)) {
-      path[i] = p;
+      filename.push_back(static_cast<char>(p));
     }
-    i++;
   }
-  path[i++] = '.';
-  path[i++] = 'p';
-  path[i++] = 'r';
-  path[i++] = 'g';
-  path[i] = '\0';
+  filename += ext;
+  return filename;
 }
 
 bool ExternalCmds::isBasicInputMode() {
@@ -140,7 +131,7 @@ bool ExternalCmds::isBasicInputMode() {
 }
 
 void ExternalCmds::dispVolume() {
-  uint8_t volume = cpu->sid.getEmuVolume() * 99 / 255;
+  uint8_t volume = cpu->sid.getEmuVolume() * 100 / 256;
   cpu->vic.dispOverlayInfo(volume / 10 + '0', volume % 10 + '0');
 }
 
@@ -158,10 +149,9 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     bool fileloaded = false;
     bool error = false;
     uint16_t addr;
-    if (filesys->init()) {
-      char filename[21];
-      getFilename(filename, ram);
-      addr = filesys->load(filename, ram);
+    if (cpu->floppy.fsinitialized) {
+      std::string filename = getFilename(ram, ".prg");
+      addr = cpu->floppy.load(filename, ram);
       if (addr == 0) {
         PlatformManager::getInstance().log(LOG_INFO, TAG, "file not found");
       } else {
@@ -171,7 +161,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     } else {
       error = true;
       PlatformManager::getInstance().log(LOG_INFO, TAG,
-                                         "error init file system");
+                                         "file system not initialized");
     }
     addr = src_loadactions_prg[0] + (src_loadactions_prg[1] << 8);
     memcpy(ram + addr, src_loadactions_prg + 2, src_loadactions_prg_len - 2);
@@ -192,18 +182,17 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     PlatformManager::getInstance().log(LOG_INFO, TAG, "save to file system");
     cpu->cpuhalted = true;
     bool filesaved = false;
-    if (filesys->init()) {
-      char filename[21];
-      getFilename(filename, ram);
+    if (cpu->floppy.fsinitialized) {
+      std::string filename = getFilename(ram, ".prg");
       uint16_t startaddr = ram[43] + ram[44] * 256;
       uint16_t endaddr = ram[45] + ram[46] * 256;
-      filesaved = filesys->save(filename, ram, startaddr, endaddr);
+      filesaved = cpu->floppy.save(filename, ram, startaddr, endaddr);
       if (!filesaved) {
         PlatformManager::getInstance().log(LOG_INFO, TAG, "error saving file");
       }
     } else {
       PlatformManager::getInstance().log(LOG_INFO, TAG,
-                                         "error init file system");
+                                         "file system not initialized");
     }
     uint16_t addr = src_saveactions_prg[0] + (src_saveactions_prg[1] << 8);
     memcpy(ram + addr, src_saveactions_prg + 2, src_saveactions_prg_len - 2);
@@ -221,7 +210,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     }
     PlatformManager::getInstance().log(LOG_INFO, TAG, "list file system");
     cpu->cpuhalted = true;
-    if (filesys->init()) {
+    if (cpu->floppy.fsinitialized) {
       uint16_t addr = src_listactions_prg[0] + (src_listactions_prg[1] << 8);
       memcpy(ram + addr, src_listactions_prg + 2, src_listactions_prg_len - 2);
       if (liststartflag) {
@@ -232,7 +221,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       uint8_t filename[17];
       int cnt = 0;
       while (cnt < 23) {
-        bool success = filesys->listnextentry(filename, liststartflag);
+        bool success = cpu->floppy.listnextentry(filename, liststartflag);
         liststartflag = false;
         if (success && (filename[0] != '\0')) {
           // copy filename to c64 ram (0x0342)
@@ -253,10 +242,36 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       }
     } else {
       PlatformManager::getInstance().log(LOG_ERROR, TAG,
-                                         "error init file system");
+                                         "file system not initialized");
     }
     cpu->cpuhalted = false;
     return 0;
+  }
+  case ExtCmd::ATTACHD64: {
+    if (cpu->floppy.fsinitialized) {
+      std::string dirname(reinterpret_cast<char *>(&buffer[3]));
+      dirname += ".d64";
+      PlatformManager::getInstance().log(
+          LOG_INFO, TAG, "try to attach d64 file %s", dirname.c_str());
+      bool d64attached = cpu->floppy.attach(dirname);
+      if (!d64attached) {
+        cpu->vic.dispOverlayInfo(14, 15);
+        PlatformManager::getInstance().log(LOG_INFO, TAG, "d64 file not found");
+      } else {
+        cpu->vic.dispOverlayInfo(15, 11);
+      }
+    }
+    setType1Notification();
+    return 1;
+  }
+  case ExtCmd::DETACHD64: {
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "detach d64 file");
+    if (cpu->floppy.fsinitialized) {
+      cpu->floppy.detach();
+    }
+    cpu->vic.dispOverlayInfo(14, 15);
+    setType1Notification();
+    return 1;
   }
   case ExtCmd::RECEIVEDATA: {
     if (!isBasicInputMode()) {
@@ -361,6 +376,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     cpu->cia1.init(true);
     cpu->cia2.init(false);
     cpu->sid.init();
+    cpu->floppy.init(8);
     cpu->cpuhalted = false;
     return 0;
   case ExtCmd::JOYSTICKMODE1:
@@ -386,17 +402,20 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::KBJOYSTICKMODE1:
     cpu->kbjoystickmode = 1;
     cpu->joystickmode = 0;
+    cpu->vic.dispOverlayInfo(10, '1');
     PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
                                        cpu->kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODE2:
     cpu->kbjoystickmode = 2;
     cpu->joystickmode = 0;
+    cpu->vic.dispOverlayInfo(10, '2');
     PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
                                        cpu->kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODEOFF:
     cpu->kbjoystickmode = 0;
+    cpu->vic.dispOverlayInfo(11, 2);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
                                        cpu->kbjoystickmode);
     return 0;
@@ -454,8 +473,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     }
     cpu->sid.setEmuVolume(newVolume);
     dispVolume();
-    setType6Notification((uint8_t)newVolume);
-    return 6;
+    setType1Notification();
+    return 1;
   }
   case ExtCmd::DECVOLUME: {
     int16_t newVolume = cpu->sid.getEmuVolume() - buffer[1];
@@ -464,8 +483,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     }
     cpu->sid.setEmuVolume(newVolume);
     dispVolume();
-    setType6Notification((uint8_t)newVolume);
-    return 6;
+    setType1Notification();
+    return 1;
   }
   case ExtCmd::WRITETEXT: {
     if (!isBasicInputMode()) {
@@ -473,8 +492,8 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     }
     PlatformManager::getInstance().log(LOG_INFO, TAG, "execute writetext");
     uint16_t addr = 0xc000;
-    int16_t sizebuffer = strlen((const char *)&(buffer[1]));
-    memcpy(&ram[addr], &(buffer[1]), sizebuffer);
+    int16_t sizebuffer = strlen((const char *)&(buffer[3]));
+    memcpy(&ram[addr], &(buffer[3]), sizebuffer);
     while (sizebuffer > 0) {
       uint16_t oldaddr = addr;
       uint8_t inc = sizebuffer > 250 ? 250 : sizebuffer;

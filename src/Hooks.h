@@ -14,41 +14,22 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef EXTERNALCMDS_H
-#define EXTERNALCMDS_H
+#ifndef HOOKS_H
+#define HOOKS_H
 
-#include "NotificationStruct.h"
 #include <cstdint>
 
 class C64Sys; // forward declaration
 
-class ExternalCmds {
+class Hooks {
 private:
   uint8_t *ram;
   C64Sys *cpu;
-  bool sendrawkeycodes;
-  uint16_t actaddrreceivecmd;
-
-  void setVarTab(uint16_t addr);
-  void setType1Notification();
-  void setType2Notification();
-  void setType3Notification(uint16_t addr);
-  void setType4Notification();
-  void setType5Notification(uint8_t batteryVolLow, uint8_t batteryVolHi);
-  bool isBasicInputMode();
-  void dispVolume();
 
 public:
-  bool liststartflag;
-
-  NotificationStruct1 type1notification;
-  NotificationStruct2 type2notification;
-  NotificationStruct3 type3notification;
-  NotificationStruct4 type4notification;
-  NotificationStruct5 type5notification;
-
   void init(uint8_t *ram, C64Sys *cpu);
-  uint8_t executeExternalCmd(uint8_t *buffer);
+  void patchKernal(uint8_t *kernal_rom);
+  bool handlehooks(uint16_t pc);
 };
 
-#endif // EXTERNALCMDS_H
+#endif // HOOKS_H

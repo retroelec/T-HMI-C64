@@ -30,7 +30,7 @@
 class SDLKB : public KeyboardDriver {
 private:
   std::atomic<bool> gotExternalCmd = false;
-  uint8_t extCmdBuffer[1000];
+  uint8_t extCmdBuffer[1024];
 
   bool joystickActive = false;
   ExtCmd joystickmode = ExtCmd::KBJOYSTICKMODEOFF;
@@ -41,6 +41,12 @@ private:
   bool keyDown = false;
   bool keyFire = false;
   bool commodoreKeyPressed = false;
+
+  bool attachwinopen = false;
+  static const uint16_t DISKNAMEMAXLEN = 17;
+  char diskname[DISKNAMEMAXLEN];
+  SDL_Window *attachwin = NULL;
+  SDL_Renderer *attachrenderer = NULL;
 
   std::atomic<uint8_t> kbcode1;
   std::atomic<uint8_t> kbcode2;

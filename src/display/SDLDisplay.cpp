@@ -3,6 +3,24 @@
 #include "SDLDisplay.h"
 #include <SDL2/SDL.h>
 
+extern unsigned char charset_rom[];
+
+void drawChar(SDL_Renderer *ren, uint16_t c, uint16_t x, uint16_t y,
+              uint8_t charpixsize) {
+  uint8_t *glyph = &charset_rom[c * 8];
+  SDL_SetRenderDrawColor(ren, 200, 200, 200, 255);
+  for (uint8_t row = 0; row < 8; row++) {
+    uint8_t bits = glyph[row];
+    for (uint8_t col = 0; col < 8; col++) {
+      if (bits & (1 << (7 - col))) {
+        SDL_Rect pixel = {x + col * charpixsize, y + row * charpixsize,
+                          charpixsize, charpixsize};
+        SDL_RenderFillRect(ren, &pixel);
+      }
+    }
+  }
+}
+
 SDLDisplay::SDLDisplay() {}
 
 SDLDisplay::~SDLDisplay() {
@@ -90,55 +108,10 @@ void SDLDisplay::dispOverlayInfo(char digit1, char digit2) {
   overlay.active = true;
 }
 
-static const uint8_t seg[10] = {
-    0b00111111, // 0
-    0b00000110, // 1
-    0b01011011, // 2
-    0b01001111, // 3
-    0b01100110, // 4
-    0b01101101, // 5
-    0b01111101, // 6
-    0b00000111, // 7
-    0b01111111, // 8
-    0b01101111  // 9
-};
-
-void drawDigit(SDL_Renderer *renderer, int digit, int x, int y, int size) {
-  if (digit < 0 || digit > 9) {
-    return;
-  }
-  int thickness = size / 3;
-  int length = size;
-  SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-  SDL_Rect a = {x + thickness, y, length, thickness};
-  SDL_Rect b = {x + length + thickness, y + thickness, thickness, length};
-  SDL_Rect c = {x + length + thickness, y + length + 2 * thickness, thickness,
-                length};
-  SDL_Rect d = {x + thickness, y + 2 * length + 2 * thickness, length,
-                thickness};
-  SDL_Rect e = {x, y + length + 2 * thickness, thickness, length};
-  SDL_Rect f = {x, y + thickness, thickness, length};
-  SDL_Rect g = {x + thickness, y + length + thickness, length, thickness};
-  if (seg[digit] & (1 << 0))
-    SDL_RenderFillRect(renderer, &a);
-  if (seg[digit] & (1 << 1))
-    SDL_RenderFillRect(renderer, &b);
-  if (seg[digit] & (1 << 2))
-    SDL_RenderFillRect(renderer, &c);
-  if (seg[digit] & (1 << 3))
-    SDL_RenderFillRect(renderer, &d);
-  if (seg[digit] & (1 << 4))
-    SDL_RenderFillRect(renderer, &e);
-  if (seg[digit] & (1 << 5))
-    SDL_RenderFillRect(renderer, &f);
-  if (seg[digit] & (1 << 6))
-    SDL_RenderFillRect(renderer, &g);
-}
-
-void drawDigits(SDL_Renderer *r, int x, int y, int size) {
-  drawDigit(r, overlay.digit1 - '0', x, y, size);
-  x += size + 8;
-  drawDigit(r, overlay.digit2 - '0', x, y, size);
+void drawDigits(SDL_Renderer *r, uint16_t x, uint16_t y) {
+  drawChar(r, overlay.digit1, x, y, 2);
+  x += 16;
+  drawChar(r, overlay.digit2, x, y, 2);
 }
 
 void renderOverlay(SDL_Renderer *renderer) {
@@ -149,7 +122,7 @@ void renderOverlay(SDL_Renderer *renderer) {
     overlay.active = false;
     return;
   }
-  drawDigits(renderer, 320, 200, 8);
+  drawDigits(renderer, 320, 220);
 }
 
 void SDLDisplay::drawBitmap(uint16_t *bitmap) {

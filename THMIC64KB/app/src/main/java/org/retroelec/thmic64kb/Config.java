@@ -16,6 +16,7 @@ public class Config {
 
     public static final int KEYSELECTEDCOLORACTION = 0xffdd7777;
     public static final int KEYBGDCOLORACTION = 0xffcc7777;
+    public static final int KEYBGDCOLORD64ATTACHED = 0xff007777;
 
     public static final byte VIRTUALJOYSTICKLEFT_ACTIVATED = (byte) 0x02;
     public static final byte VIRTUALJOYSTICKLEFT_DEACTIVATED = (byte) 0x82;
@@ -52,4 +53,7 @@ public class Config {
     public static final byte POWEROFF = 30;
     public static final byte SAVE = 31;
     public static final byte LIST = 32;
+    public static final byte SETVOLUME = 33;
+    public static final byte ATTACHD64 = 37;
+    public static final byte DETACHD64 = 38;
 }

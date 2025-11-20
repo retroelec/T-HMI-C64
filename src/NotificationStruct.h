@@ -32,6 +32,8 @@ struct NotificationStruct1 : NotificationStruct {
   uint8_t switchdebug;
   uint8_t switchperf;
   uint8_t switchdetectreleasekey;
+  uint8_t volume;
+  uint8_t switchattached;
 };
 
 struct NotificationStruct2 : NotificationStruct {
@@ -66,10 +68,6 @@ struct NotificationStruct4 : NotificationStruct {};
 struct NotificationStruct5 : NotificationStruct {
   uint8_t batteryVolLow;
   uint8_t batteryVolHi;
-};
-
-struct NotificationStruct6 : NotificationStruct {
-  uint8_t value;
 };
 
 #endif // NOTIFICATIONSTRUCT_H

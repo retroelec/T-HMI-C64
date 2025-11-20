@@ -247,7 +247,10 @@ enum class ExtCmd {
    * The second and following elements of the buffer contain the text to be
    * displayed.
    */
-  WRITETEXT = 36
+  WRITETEXT = 36,
+
+  ATTACHD64 = 37,
+  DETACHD64 = 38
 };
 
 #endif // EXTCMD_H

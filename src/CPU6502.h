@@ -56,7 +56,6 @@ private:
   inline void flagsfromsr();
   inline void pushtostack(uint8_t r);
   inline uint8_t pullfromstack();
-  void cmd6502brk();
   void cmd6502oraIndirectX();
   void cmd6502oraZeropage();
   void cmd6502aslZeropage();
@@ -113,7 +112,6 @@ private:
   void cmd6502eorAbsoluteY();
   void cmd6502eorAbsoluteX();
   void cmd6502lsrAbsoluteX();
-  void cmd6502rts();
   void cmd6502adcIndirectX();
   void cmd6502adcZeropage();
   void cmd6502rorZeropage();
@@ -289,6 +287,9 @@ private:
   virtual void cmd6502nop7a();
   virtual void cmd6502nopda();
   virtual void cmd6502nopfa();
+
+  // brk instruction may be used for kernal patching
+  virtual void cmd6502brk();
 
   virtual void cmd6502halt();
 
@@ -536,6 +537,7 @@ protected:
 
   void execute(uint8_t idx);
   void setPCToIntVec(uint16_t intvect, bool intfrombrk);
+  void cmd6502rts();
 
 public:
   // number of cycles since last adjustment

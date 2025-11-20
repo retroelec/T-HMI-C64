@@ -19,6 +19,8 @@
 
 #include "CIA.h"
 #include "CPU6502.h"
+#include "Floppy.h"
+#include "Hooks.h"
 #include "SID.h"
 #include "VIC.h"
 #include "joystick/JoystickDriver.h"
@@ -56,15 +58,19 @@ public:
   CIA cia1;
   CIA cia2;
   SID sid;
+  Floppy floppy;
   ExternalCmds *externalCmds;
+  Hooks *hooks;
   KeyboardDriver *keyboard;
 
   C64Sys() : cia1(true), cia2(false) {}
 
-  // public only for logging / debugging
   uint8_t getA();
+  void setA(uint8_t ap);
   uint8_t getX();
+  void setX(uint8_t xp);
   uint8_t getY();
+  void setY(uint8_t yp);
   uint8_t getSP();
   uint8_t getSR();
   uint16_t getPC();
@@ -89,6 +95,7 @@ public:
   uint8_t getMem(uint16_t addr);
   void setMem(uint16_t addr, uint8_t val);
 
+  void cmd6502brk() override;
   void cmd6502halt() override;
   void run() override;
 
@@ -96,6 +103,7 @@ public:
   void init(uint8_t *ram, uint8_t *charrom);
   void setPC(uint16_t pc);
   void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
+  void exeSubroutine(uint16_t regpc);
   void setKeycodes(uint8_t keycode1, uint8_t keycode2);
 };
 

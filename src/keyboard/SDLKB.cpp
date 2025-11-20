@@ -24,6 +24,10 @@
 #include <mutex>
 #include <queue>
 
+static const uint8_t CHARPIXSIZE = 4;
+extern void drawChar(SDL_Renderer *ren, uint16_t c, uint16_t x, uint16_t y,
+                     uint8_t size);
+
 void SDLKB::char2codes(uint8_t code1, uint8_t code2, uint8_t ctrlcode) {
   kbcode1 = code1;
   kbcode2 = code2;
@@ -31,6 +35,62 @@ void SDLKB::char2codes(uint8_t code1, uint8_t code2, uint8_t ctrlcode) {
 }
 
 void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
+  if (attachwinopen) {
+    SDL_SetRenderDrawColor(attachrenderer, 0, 0, 50, 255);
+    SDL_RenderClear(attachrenderer);
+    uint16_t startX = 20;
+    uint16_t y = 40;
+    for (uint8_t i = 0; i < strlen(diskname); i++) {
+      uint16_t ch = (unsigned char)diskname[i];
+      if (ch >= 97 && ch <= 122) {
+        ch += 160;
+      }
+      drawChar(attachrenderer, ch, startX + i * (8 * CHARPIXSIZE + 2), y,
+               CHARPIXSIZE);
+    }
+    uint16_t cursorX =
+        startX + (uint16_t)strlen(diskname) * (8 * CHARPIXSIZE + 2);
+    SDL_SetRenderDrawColor(attachrenderer, 255, 0, 0, 255);
+    SDL_RenderDrawLine(attachrenderer, cursorX, y, cursorX,
+                       y + 8 * CHARPIXSIZE);
+    SDL_RenderPresent(attachrenderer);
+    if (pressed) {
+      if (key == SDLK_BACKSPACE) {
+        size_t len = strlen(diskname);
+        if (len > 0) {
+          diskname[len - 1] = '\0';
+        }
+      } else if (key == SDLK_RETURN) {
+        if (attachrenderer) {
+          SDL_DestroyRenderer(attachrenderer);
+        }
+        if (attachwin) {
+          SDL_DestroyWindow(attachwin);
+        }
+        attachwinopen = false;
+        if (strlen(diskname) == 0) {
+          extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
+              ExtCmd::DETACHD64);
+        } else {
+          extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
+              ExtCmd::ATTACHD64);
+          std::copy(diskname, diskname + strlen(diskname) + 1,
+                    extCmdBuffer + 3);
+        }
+        gotExternalCmd = true;
+      } else {
+        if (strlen(diskname) < DISKNAMEMAXLEN - 1) {
+          uint8_t ch = (uint8_t)key;
+          if ((ch >= 97 && ch <= 122) || (ch >= 48 && ch <= 57)) {
+            size_t len = strlen(diskname);
+            diskname[len] = key;
+            diskname[len + 1] = '\0';
+          }
+        }
+      }
+    }
+    return;
+  }
   if (joystickActive) {
     // joystick emulation
     switch (key) {
@@ -85,6 +145,7 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
                                "ALT-L TO LOAD A PROGRAM\r"
                                "      (SEE CONFIG::PATH, README.MD)\r"
                                "ALT-S TO SAVE A PROGRAM\r"
+                               "ALT-A TO ATTACH/DETACH A D64 FILE\r"
                                "ALT-R TO RESET THE EMULATOR\r"
                                "ALT-T FOR KEY COMB. RUN/STOP - RESTORE\r"
                                "ALT-Z FOR KEY RESTORE\r"
@@ -97,7 +158,7 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
                                "      IF A JOYSTICK PORT IS CHOSEN\r"
                                "ALT-N SHOW CONTENT OF CPU REGISTERS\r"
                                "ALT-D SWITCH TO DEBUG MODE AND BACK\r\0";
-        memcpy(&extCmdBuffer[1], help, sizeof(help));
+        memcpy(&extCmdBuffer[3], help, sizeof(help));
         gotExternalCmd = true;
       } else if (key == SDLK_q) {
         exit(0);
@@ -111,6 +172,16 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         extCmdBuffer[0] =
             static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::SAVE);
         gotExternalCmd = true;
+      } else if (key == SDLK_a) {
+        if (!attachwinopen) {
+          attachwin = SDL_CreateWindow("attach disk, enter d64 name",
+                                       SDL_WINDOWPOS_CENTERED,
+                                       SDL_WINDOWPOS_CENTERED, 400, 200, 0);
+          attachrenderer =
+              SDL_CreateRenderer(attachwin, -1, SDL_RENDERER_ACCELERATED);
+          attachwinopen = true;
+          diskname[0] = '\0';
+        }
       } else if (key == SDLK_n) {
         extCmdBuffer[0] =
             static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::SHOWREG);
@@ -232,6 +303,7 @@ uint8_t SDLKB::getKBJoyValue() { return joystickval; }
 uint8_t *SDLKB::getExtCmdData() {
   if (gotExternalCmd) {
     gotExternalCmd = false;
+    extCmdBuffer[2] = 0x80;
     return extCmdBuffer;
   }
   return nullptr;

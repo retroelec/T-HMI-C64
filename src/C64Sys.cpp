@@ -16,14 +16,24 @@
 */
 #include "C64Sys.h"
 
+#include "CIA.h"
+#include "CPU6502.h"
 #include "Config.h"
 #include "ExternalCmds.h"
+#include "Floppy.h"
+#include "Hooks.h"
+#include "SID.h"
+#include "VIC.h"
+#include "joystick/JoystickDriver.h"
 #include "joystick/JoystickFactory.h"
 #include "joystick/JoystickInitializationException.h"
+#include "keyboard/KeyboardDriver.h"
 #include "keyboard/KeyboardFactory.h"
 #include "platform/PlatformManager.h"
 #include "roms/basic.h"
 #include "roms/kernal.h"
+#include <atomic>
+#include <cstdint>
 
 static const char *TAG = "CPUC64";
 
@@ -402,23 +412,35 @@ void C64Sys::cmd6502halt() {
 }
 
 /*
-void CPUC64::cmd6502nop1a() {
+void C64Sys::cmd6502nop1a() {
   PlatformManager::getInstance().log(LOG_INFO, TAG, "nop: %d", micros());
   numofcycles += 2;
 }
 */
 
+void C64Sys::cmd6502brk() {
+  if (hooks->handlehooks(pc)) {
+    return;
+  }
+  pc++;
+  setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), true);
+}
+
 uint8_t C64Sys::getA() { return a; }
+void C64Sys::setA(uint8_t ap) { a = ap; }
 
 uint8_t C64Sys::getX() { return x; }
+void C64Sys::setX(uint8_t xp) { x = xp; }
 
 uint8_t C64Sys::getY() { return y; }
+void C64Sys::setY(uint8_t yp) { y = yp; }
 
 uint8_t C64Sys::getSP() { return sp; }
 
 uint8_t C64Sys::getSR() { return sr; }
 
 uint16_t C64Sys::getPC() { return pc; }
+void C64Sys::setPC(uint16_t newPC) { pc = newPC; }
 
 void C64Sys::checkciatimers(uint8_t cycles) {
   // CIA 1 TOD alarm
@@ -510,10 +532,6 @@ void C64Sys::check4extcmd() {
     case 5:
       data = reinterpret_cast<uint8_t *>(&(externalCmds->type5notification));
       size = sizeof(externalCmds->type5notification);
-      break;
-    case 6:
-      data = reinterpret_cast<uint8_t *>(&(externalCmds->type6notification));
-      size = sizeof(externalCmds->type6notification);
       break;
     default:
       type = 0;
@@ -643,9 +661,11 @@ void C64Sys::initMemAndRegs() {
 void C64Sys::init(uint8_t *ram, uint8_t *charrom) {
   PlatformManager::getInstance().log(LOG_INFO, TAG, "CPUC64::init");
   vic.init(ram, charrom);
+  floppy.init(8);
   this->ram = ram;
   this->charrom = charrom;
   this->externalCmds = new ExternalCmds();
+  this->hooks = new Hooks();
   joystickmode = 0;
   kbjoystickmode = 0;
   deactivateTemp = false;
@@ -667,9 +687,21 @@ void C64Sys::init(uint8_t *ram, uint8_t *charrom) {
   }
   initMemAndRegs();
   externalCmds->init(ram, this);
+  hooks->init(ram, this);
+  hooks->patchKernal(kernal_rom);
 }
 
-void C64Sys::setPC(uint16_t newPC) { pc = newPC; }
+void C64Sys::exeSubroutine(uint16_t regpc) {
+  uint8_t tsp = sp;
+  pc = regpc;
+  while (true) {
+    uint8_t nextopc = getMem(pc++);
+    execute(nextopc);
+    if ((sp == tsp) && (nextopc == 0x60)) { // rts
+      break;
+    }
+  }
+}
 
 void C64Sys::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
                            uint8_t regy) {

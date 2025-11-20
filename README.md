@@ -7,7 +7,7 @@ The emulator was later expanded to support the
 
 Keyboard input is simulated via a custom Android app, communicating with the emulator over Bluetooth Low Energy (BLE).
 
-After extensive refactoring, the code should now be easily portable to other ESP32-S3 boards (and even other platforms).
+After extensive refactoring, the code should now be portable to other ESP32-S3 boards (and even other platforms).
 
 The emulator is also available as a Linux application using SDL for graphics, input, and sound.  
 On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the available sleep functions are too coarse-grained.
@@ -19,6 +19,8 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- Rudimentary disk drive emulation
+- Volume adjustable
 - Emulator for Linux (and Windows) using SDL
 - Code refactoring
 
@@ -152,7 +154,7 @@ make upload
 
 I wrote an Android app which provides a C64 keyboard for the emulator.
 
-<img src="doc/THMIC64KB.png" alt="THMIC64KB" width="1000"/>
+<img src="doc/THMIC64KB.png" alt="THMIC64KB" width="800"/>
 
 However, this app is not available in the Google Play Store - you have to download the APK file
 and install it "manually".
@@ -177,7 +179,7 @@ Once the dependencies are installed, you can compile the emulator using:
 make c64linux
 
 To start the emulator, run ./c64linux in a shell.
-Press Alt + h in the emulator window to display a simple help page in the shell.
+Press Alt + h in the emulator window to display a simple help page on the emulated C64 screen.
 
 ## Usage
 
@@ -217,14 +219,10 @@ Extra functionality and some settings are available in the DIV screen.
 
 #### Virtual Joystick
 
-<img src="doc/THMIC64KB_VirtJoystick.png" alt="Virtual Joystick" width="800"/>
-
 The virtual joystick has some drawbacks in terms of responsiveness.
 To play games, a hardware joystick is recommended.
 
 #### Pinball flippers
-
-<img src="doc/THMIC64KB_Pinball.png" alt="Pinball Flippers" width="800"/>
 
 Because it is difficult to keep an eye on the screen and press the right keys on the virtual keyboard at the same time for pinball games,
 the flippers of “David's Midnight Magic” have been outsourced to a separate screen.
@@ -233,16 +231,23 @@ When you close this screen again, both options are reset to the previous values.
 
 ### Load a program from SD card
 
-You first have to copy C64 games in prg format (only supported format!) to an SD card
-(game names must be in lower case letters, max. 16 characters, no spaces in file names allowed, extension must be ".prg", e.g. dkong.prg).
+You first have to copy C64 games in prg or d64 format to an SD card
+(game names must be in lower case letters, max. 16 characters, no spaces in file names allowed, extension must be ".prg" or .d64, e.g. dkong.prg).
 You have to insert the SD card before you power on the development board.
 
-As there is no C64 tape/disk drive emulation available, the file must be loaded
-into memory using an "external command".
+You can load a prg file into memory using an "external command".
 To do this, you first type in the name of the program (without extension ".prg"!) so it shows up on the C64 text screen (e.g. dkong).
 You then press the LOAD button on your Android phone (cursor must be on the same line and behind or in the middle of the game title).
 If the file is found the text "LOADED" appears on screen, otherwise the text "FILE NOT FOUND" appears.
 Afterwards, as usual, you can start the game by typing "RUN" followed by pressing the button RETURN.
+
+You can also load a prg file into memory using the C64 Load command:  
+LOAD"DKONG",8,1  
+This will load the file dkong.prg.
+
+Finally you can attach a ".d64" file using the ATTACH button on the DIV screen.
+You can then use LOAD"$",8 to load the directory and subsequently load a specific program.
+Note: The wildcard * to load the first program does not yet work.
 
 <img src="doc/loadprg.gif" alt="class diagram" width="800"/>
 
@@ -265,7 +270,12 @@ You can also send a programm from your Android device to the emulator (DIV scree
 
 ### Class diagram of the emulator
 
-<img src="doc/classdiagram.png" alt="class diagram" width="1200"/>
+<img src="doc/classdiagram.png" alt="class diagram" width="800"/>
+
+component details:
+[Platform Board](doc/classdiagram_001.png)
+[Keyboard Joystick](doc/classdiagram_002.png)
+[Display Sound File](doc/classdiagram_003.png)
 
 ### Keyboard
 
@@ -292,19 +302,15 @@ To support a different ESP32-S3 based development board, follow these steps:
 
 First of all: This is a hobby project :)
 
-All hardware ports not explicitly mentioned including their corresponding registers are not emulated (e.g. user port and serial port).
-
-"Software stuff" not emulated resp. known bugs:
+Features not emulated (list not exhaustive) resp. known bugs:
 
 - simple SID emulation, some SID registers are not or only partly implemented yet: $d415 - $d41c
-- no tape/disk drive emulation
+- only very rudimentary support for disk drive emulation available
 - "illegal instructions" test suite fails
 - no "FLI border removal" / "sideborder removal"
 - synchronization is rasterline-based, not cycle-exact
 - rarly C64 CPU is blocked after loading a game
 
-### Games
-
-As there is no disk drive emulation, only "onefiled games" can be played.
-Most of the games tested work well. A few games have minor graphics glitches. Only a small number of the games tested do not work.
+Since only a rudimentary disk drive emulation is available, only a few "multi-load" games can be played (e.g. Summer Games, World Games, The Dallas Quest).
+Most of the single filed games tested work well. A few games have minor graphics glitches and a small number of the games tested do not work at all.
 

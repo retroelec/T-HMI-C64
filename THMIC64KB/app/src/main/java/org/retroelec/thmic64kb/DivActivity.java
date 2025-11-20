@@ -21,9 +21,12 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.slider.Slider;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 public class DivActivity extends AppCompatActivity implements SettingsObserver, NotificationObserver {
     private Switch toggleDeactivateTempSwitch;
@@ -31,6 +34,8 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
     private Switch toggleDebug;
     private Switch togglePerf;
     private Switch toggleDetectReleaseKey;
+    private Slider volumeSlider;
+    private Button keyattach;
     private EditText inputMinKeyPressedDuration;
     private BLEUtils bleUtils;
     private Settings settings;
@@ -202,6 +207,13 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
             toggleDebug.setChecked(settings.isDebug());
             togglePerf.setChecked(settings.isPerf());
             toggleDetectReleaseKey.setChecked(settings.isDetectReleaseKey());
+            volumeSlider.setValue(settings.getVolume() * 100 / 255);
+            if (settings.isd64attached()) {
+                keyattach.setBackgroundColor(Config.KEYBGDCOLORD64ATTACHED);
+            }
+            else {
+                keyattach.setBackgroundColor(Config.KEYBGDCOLORACTION);
+            }
         });
     }
 
@@ -216,6 +228,45 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
     protected void onPause() {
         super.onPause();
         settings.removeSettingsObserver();
+    }
+
+    private byte[] getAttachInputBytes() {
+        EditText attachInput = findViewById(R.id.attachInput);
+        if (attachInput == null) {
+            return null;
+        }
+        String text = attachInput.getText().toString();
+        if (text.isEmpty()) {
+            return null;
+        }
+        byte[] bytes = text.getBytes(StandardCharsets.US_ASCII);
+        byte[] result = new byte[bytes.length + 1];
+        System.arraycopy(bytes, 0, result, 0, bytes.length);
+        result[bytes.length] = 0;
+        return result;
+    }
+
+    private final C64Keyboard.ActionDownHandler createAttachCommand = (context, key) -> {
+        byte[] result = new byte[0];
+        byte[] attachBytes = getAttachInputBytes();
+        if (attachBytes == null) {
+            Log.i("THMIC64", "detach file");
+            result = new byte[]{Config.DETACHD64, (byte) 0, (byte) 0x80};
+        } else {
+            Log.i("THMIC64", "attach file " + new String(attachBytes, StandardCharsets.UTF_8));
+            byte[] base = new byte[]{Config.ATTACHD64, (byte) attachBytes.length, (byte) 0x80};
+            result = new byte[base.length + attachBytes.length];
+            System.arraycopy(base, 0, result, 0, base.length);
+            System.arraycopy(attachBytes, 0, result, base.length, attachBytes.length);
+        }
+        bleUtils.send(result);
+        return true;
+    };
+
+    private void onVolumeChanged(int progress) {
+        byte volume = (byte) (progress * 255 / 100);
+        Log.i("THMIC64", "send volume " + volume);
+        bleUtils.send(new byte[]{Config.SETVOLUME, volume, (byte) 0x80});
     }
 
     @Override
@@ -303,6 +354,24 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
 
         final Button keylist = findViewById(R.id.keylist);
         keylist.setOnTouchListener(bleUtils.createButtonTouchListener(keylist, new byte[]{Config.LIST, (byte) 0x00, (byte) 0x80}, Config.KEYSELECTEDCOLORACTION, Config.KEYBGDCOLORACTION, true));
+
+        keyattach = findViewById(R.id.keyattach);
+        keyattach.setOnTouchListener(bleUtils.createButtonTouchListener(
+                "A", createAttachCommand, true, Config.KEYSELECTEDCOLORACTION, Config.KEYBGDCOLORACTION)
+        );
+
+        volumeSlider = findViewById(R.id.volumeSlider);
+        volumeSlider.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {
+            @Override
+            public void onStartTrackingTouch(Slider slider) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(Slider slider) {
+                int volume = Math.round(slider.getValue());
+                onVolumeChanged(volume);
+            }
+        });
 
         final Button closeButton = findViewById(R.id.close);
         closeButton.setOnClickListener(v -> finish());

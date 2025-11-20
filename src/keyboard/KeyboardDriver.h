@@ -80,12 +80,12 @@ public:
   virtual uint8_t getKBJoyValue() = 0;
 
   /**
-   * @brief Retrieves the data for an external command if one is requested.
+   * @brief Retrieves an external command including corresponding data.
    *
    * Is called once per frame.
    *
    * @return Pointer to the data containing the external command including
-   * parameters.
+   * parameters. The null pointer is returned if no command is requested.
    * See enum class ExtCmd for the content of the data buffer.
    */
   virtual uint8_t *getExtCmdData() = 0;

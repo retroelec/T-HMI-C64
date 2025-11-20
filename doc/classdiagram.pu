@@ -1,18 +1,13 @@
 @startuml
 title class diagram
+skinparam linetype ortho
+allowmixing
 
 skinparam class {
   BackgroundColor #f3f3f3
   ArrowColor Black
   BorderColor Black
 }
-
-interface BoardDriver
-interface DisplayDriver
-interface SoundDriver
-interface KeyboardDriver
-interface FSDriver
-interface JoystickDriver
 
 class C64Emu
 class C64Sys
@@ -21,106 +16,43 @@ class ExternalCmds
 class CIA
 class CPU6502
 class SID
+class Hooks
+class Floppy
 
-together {
-class T_HMI <<hw_specific>>
-class T_DISPLAY_S3 <<hw_specific>>
-class Waveshare <<hw_specific>>
-class Linux <<hw_specific>>
-}
+component "Platform" as Platform
 
-together {
-class BLEKB <<hw_specific>>
-class SDLKB <<hw_specific>>
-}
+component "Board" as Board
+C64Emu --> Board
 
-together {
-class ST7789V <<hw_specific>>
-class RM67162 <<hw_specific>>
-class ST7789VSerial <<hw_specific>>
-class SDLDisplay <<hw_specific>>
-}
-
-together {
-class I2SSound <<hw_specific>>
-class SDLSound <<hw_specific>>
-class NoSound
-}
-
-together {
-class SDCard <<hw_specific>>
-class LinuxFS <<hw_specific>>
-class NoFS
-}
-
-together {
-class ArduinoJoystick <<hw_specific>>
-class NoJoystick
-}
-
-class BoardFactory <<factory>>
-class DisplayFactory <<factory>>
-class SoundFactory <<factory>>
-class KeyboardFactory <<factory>>
-class FSFactory <<factory>>
-class JoystickFactory <<factory>>
-
-T_HMI ..|> BoardDriver
-T_DISPLAY_S3 ..|> BoardDriver
-Waveshare ..|> BoardDriver
-Linux ..|> BoardDriver
-
-C64Emu *-- BoardDriver
-C64Emu --> BoardFactory
-BoardFactory ..> BoardDriver
 C64Emu *-- C64Sys
 
-BLEKB ..|> KeyboardDriver
-SDLKB ..|> KeyboardDriver
+component "Keyboard" as Keyboard
+C64Sys --> Keyboard
 
-ArduinoJoystick ..|> JoystickDriver
-NoJoystick ..|> JoystickDriver
+component "Joystick" as Joystick
+C64Sys --> Joystick
 
-C64Sys *-- KeyboardDriver
-C64Sys --> KeyboardFactory
-KeyboardFactory ..> KeyboardDriver
-C64Sys *-- JoystickDriver
-C64Sys --> JoystickFactory
-JoystickFactory ..> JoystickDriver
 C64Sys --|> CPU6502
 C64Sys o-- ExternalCmds
+C64Sys o-- Hooks
 C64Sys *-- VIC
 C64Sys *-- CIA : 2
 C64Sys *-- SID
+C64Sys *-- Floppy
 
-SDCard ..|> FSDriver
-LinuxFS ..|> FSDriver
-NoFS ..|> FSDriver
-
-ExternalCmds *-- FSDriver
-ExternalCmds --> FSFactory
-FSFactory ..> FSDriver
 ExternalCmds --> C64Sys
+Hooks --> C64Sys
 
-ST7789V ..|> DisplayDriver
-RM67162 ..|> DisplayDriver
-ST7789VSerial ..|> DisplayDriver
-SDLDisplay ..|> DisplayDriver
+component "Display" as Display
+VIC --> Display
 
-VIC *-- DisplayDriver
-VIC --> DisplayFactory
-DisplayFactory ..> DisplayDriver
+component "Sound" as Sound
+SID --> Sound
 
-I2SSound ..|> SoundDriver
-SDLSound ..|> SoundDriver
-NoSound ..|> SoundDriver
+component "File" as File
+Floppy --> File
 
-SID *-- SoundDriver
-SID --> SoundFactory
-SoundFactory ..> SoundDriver
-@enduml
-
-@startuml
+newpage
 
 skinparam class {
   BackgroundColor #f3f3f3
@@ -128,10 +60,10 @@ skinparam class {
   BorderColor Black
 }
 
+package "PlatformComponent" {
 interface Platform
 class PlatformESP32 <<os_specific>>
 class PlatformLinux <<os_specific>>
-
 class Config
 note right of Config
 Globally used platform- and
@@ -144,8 +76,106 @@ platform-specific services
 (logging, timers, etc.)
 end note
 class PlatformFactory <<factory>>
+
 PlatformESP32 ..|> Platform
 PlatformLinux ..|> Platform
 PlatformManager --> Platform
 PlatformFactory ..> Platform
+}
+
+package "BoardComponent" {
+class T_HMI <<hw_specific>>
+class T_DISPLAY_S3 <<hw_specific>>
+class Waveshare <<hw_specific>>
+class Linux <<hw_specific>>
+interface BoardDriver
+class BoardFactory <<factory>>
+
+T_HMI ..|> BoardDriver
+T_DISPLAY_S3 ..|> BoardDriver
+Waveshare ..|> BoardDriver
+Linux ..|> BoardDriver
+BoardFactory ..> BoardDriver
+}
+
+newpage
+
+skinparam class {
+  BackgroundColor #f3f3f3
+  ArrowColor Black
+  BorderColor Black
+}
+
+package "KeyboardComponent" {
+class BLEKB <<hw_specific>>
+class SDLKB <<hw_specific>>
+interface KeyboardDriver
+class KeyboardFactory <<factory>>
+
+BLEKB ..|> KeyboardDriver
+SDLKB ..|> KeyboardDriver
+KeyboardFactory ..> KeyboardDriver
+}
+
+package "JoystickComponent" {
+class ArduinoJoystick <<hw_specific>>
+class NoJoystick
+interface JoystickDriver
+class JoystickFactory <<factory>>
+
+ArduinoJoystick ..|> JoystickDriver
+NoJoystick ..|> JoystickDriver
+JoystickFactory ..> JoystickDriver
+}
+
+newpage
+
+skinparam class {
+  BackgroundColor #f3f3f3
+  ArrowColor Black
+  BorderColor Black
+}
+
+package "DisplayComponent" {
+class ST7789V <<hw_specific>>
+class RM67162 <<hw_specific>>
+class ST7789VSerial <<hw_specific>>
+class SDLDisplay <<hw_specific>>
+interface DisplayDriver
+class DisplayFactory <<factory>>
+
+ST7789V ..|> DisplayDriver
+RM67162 ..|> DisplayDriver
+ST7789VSerial ..|> DisplayDriver
+SDLDisplay ..|> DisplayDriver
+DisplayFactory ..> DisplayDriver
+}
+
+package "SoundComponent" {
+class I2SSound <<hw_specific>>
+class SDLSound <<hw_specific>>
+class NoSound
+interface SoundDriver
+class SoundFactory <<factory>>
+
+I2SSound ..|> SoundDriver
+SDLSound ..|> SoundDriver
+NoSound ..|> SoundDriver
+SoundFactory ..> SoundDriver
+}
+
+package "FileComponent" {
+class SDMMCFile <<hw_specific>>
+class LinuxFile <<hw_specific>>
+class NoFile
+interface FileDriver
+class FileFactory <<factory>>
+
+SDMMCFile ..|> FileDriver
+LinuxFile ..|> FileDriver
+NoFile ..|> FileDriver
+FileFactory ..> FileDriver
+}
+
 @enduml
+

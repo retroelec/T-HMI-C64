@@ -1,28 +1,33 @@
 package org.retroelec.thmic64kb;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Settings {
-    private SettingsObserver observer = null;
-    byte joymode;
-    boolean deactivateTemp;
-    boolean sendRawKeyCodes;
-    boolean debug;
-    boolean perf;
-    boolean detectReleaseKey;
-    short minKeyPressedDuration;
-    boolean powerOff;
+    private List<SettingsObserver> observerList = new ArrayList<>();
+    private byte joymode;
+    private int volume;
+    private boolean d64attached;
+    private boolean deactivateTemp;
+    private boolean sendRawKeyCodes;
+    private boolean debug;
+    private boolean perf;
+    private boolean detectReleaseKey;
+    private short minKeyPressedDuration;
+    private boolean powerOff;
 
     public void registerSettingsObserver(SettingsObserver observer) {
-        this.observer = observer;
+        this.observerList.add(observer);
     }
 
     public void notifySettingsObserver() {
-        if (observer != null) {
+        for (SettingsObserver observer : observerList) {
             observer.updateSettings();
         }
     }
 
     public void removeSettingsObserver() {
-        observer = null;
+        observerList.clear();
     }
 
     public byte getJoymode() {
@@ -31,6 +36,22 @@ public class Settings {
 
     public void setJoymode(byte joymode) {
         this.joymode = joymode;
+    }
+
+    public int getVolume() {
+        return volume;
+    }
+
+    public void setVolume(int volume) {
+        this.volume = volume;
+    }
+
+    public boolean isd64attached() {
+        return d64attached;
+    }
+
+    public void setD64attached(boolean d64attached) {
+        this.d64attached = d64attached;
     }
 
     public boolean isDeactivateTemp() {

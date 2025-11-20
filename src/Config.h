@@ -124,6 +124,9 @@ struct Config {
   static const uint16_t LCDWIDTH = 320;
   static const uint16_t LCDHEIGHT = 240;
 
+  // filesystem
+  static constexpr const char *PATH = "";
+
   // SDCard
   static const uint8_t SD_MISO_PIN = 13;
   static const uint8_t SD_MOSI_PIN = 11;
@@ -158,6 +161,9 @@ struct Config {
   // power
   static const adc_channel_t BAT_ADC = ADC_CHANNEL_3; // GPIO4
 
+  // filesystem
+  static constexpr const char *PATH = "";
+
   // display driver
   static const uint16_t LCDWIDTH = 536;
   static const uint16_t LCDHEIGHT = 240;
@@ -188,6 +194,9 @@ struct Config {
   static const gpio_num_t PWR_KEY_INPUT_PIN = GPIO_NUM_6;
   static const gpio_num_t PWR_CONTROL_PIN = GPIO_NUM_7;
   static const adc_channel_t BAT_ADC = ADC_CHANNEL_7; // GPIO8
+
+  // filesystem
+  static constexpr const char *PATH = "";
 
   // display driver
   static const uint16_t LCDWIDTH = 320;
