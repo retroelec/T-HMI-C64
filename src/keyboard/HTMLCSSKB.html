@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<!-- Based on the great work of Bryan Miner's mac keyboard
+	 https://codepen.io/gymbry/pen/KWwepx
+	 
+	 Copyright (C) 2025  <uliuc@gmx.net>
+	
+	 This program is free software; you can redistribute it and/or modify it
+	 under the terms of the GNU General Public License as published by the
+	 Free Software Foundation; either version 3 of the License, or (at your
+	 option) any later version.
+	
+	 This program is distributed in the hope that it will be useful, but
+	 WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+	 or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+	 for more details.
+	
+	 For the complete text of the GNU General Public License see
+	 http://www.gnu.org/licenses/.
+	 
+	 Conversion of the htmlcode to include in c++ code:
+	 xxd -i HTMLCSSKB.html > htmlcode.h -->
+	 
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>C64 Keyboard</title>
+	<style>
+	h1 {
+		text-align: center;
+		font-size: 1.8em;
+		font-family: monospace;
+		padding: 0.7em;
+	}
+
+	.wholekeyboard {
+		display: flex;
+	}
+
+	.keyboard {
+		text-align: center;
+		font-size: 14px;
+		font-family: sans-serif;
+	}
+
+	.keyboard__row {
+		display: inline-block;
+		height: 3em;
+		margin: 0.2em;
+	}
+
+	.keyboard__row--h1 {
+		height: 1.7em;
+		line-height: 1.4em;
+	}
+
+	.keyboard__row--h3 {
+		height: 3.3em;
+	}
+
+	.keyboard__row>* {
+		position: relative;
+		background: #333;
+		text-align: center;
+		color: #eee;
+		float: left;
+		border-radius: 0.3em;
+		margin: 0.2em;
+		padding: 0.2em;
+		width: 3.3em;
+		height: 100%;
+		box-sizing: border-box;
+		cursor: pointer;
+		-webkit-user-select: none;
+		border: 1px solid #444;
+		box-shadow: 0 0.2em 0 0.05em #222;
+		border-bottom-color: #555;
+	}
+
+	.keyboard__row--h1>div {
+		width: 3.5em;
+	}
+
+	.keyboard__row>div[data-pressed],
+	.keyboard__row>div:active {
+		background: #2a2a2a;
+		color: #aaa;
+		position: relative;
+		top: 0.2em;
+		box-shadow: 0 0 0 0.05em black;
+	}
+
+	.key--w2 {
+		width: 3.6em;
+	}
+
+	.key--w3 {
+		width: 4.6em;
+	}
+
+	.key--w4 {
+		width: 6em;
+	}
+
+	.key--w5 {
+		width: 6.5em;
+	}
+
+	.key--w6 {
+		width: 8.3em;
+	}
+
+	.key--space {
+		width: 28em;
+		margin-left: 5em;
+	}
+
+	.key--double>* {
+		padding-top: 0.15em;
+	}
+
+	.key--double-arrow>* {
+		padding-top: 0.05em;
+	}
+
+	.key--letter {
+		line-height: 2.8em;
+	}
+
+	.key--bottom-left>* {
+		position: absolute;
+		text-align: left;
+		bottom: 0.4em;
+		left: 0.4em;
+	}
+
+	.key--bottom-right>* {
+		position: absolute;
+		text-align: right;
+		bottom: 0.4em;
+		right: 0.4em;
+	}
+
+	.key--fn>* {
+		font-size: 0.6em;
+		line-height: 1em;
+		padding-top: 1.2em;
+		padding-right: 0.2em;
+		text-align: right;
+		float: right;
+	}
+
+	.key--word>* {
+		font-size: 0.8em;
+	}
+
+	.key--arrow--tall>*,
+	.key--arrow>* {
+		font-size: 0.5em;
+		line-height: 3em;
+	}
+
+	.key--arrow {
+		height: 1.8em;
+		margin-top: 1.7em;
+		line-height: 0.5em;
+	}
+
+	.key--arrow--tall>* {
+		padding-top: 0.2em;
+	}
+
+	.keyboard>.keyboard__row {
+		text-align: center;
+	}
+
+	.key--commodore {
+		position: absolute;
+		bottom: 0.1em;
+		left: 0.1em;
+		width: 2em;
+		/* img width */
+		height: auto;
+		/* height in same ratio */
+		pointer-events: none;
+	}
+	</style>
+</head>
+
+<body>
+	<h1>C64 Keyboard</h1>
+	<div class="wholekeyboard">
+		<div class="keyboard">
+			<div class="keyboard__row">
+				<div class="key--letter" data-char="Backspace">
+					<span>&larr;</span>
+				</div>
+				<div class="key--double" data-char="!|1">
+					<div>!</div>
+					<div>1</div>
+				</div>
+				<div class="key--double" data-char='"|2'>
+					<div>&ldquo;</div>
+					<div>2</div>
+				</div>
+				<div class="key--double" data-char="#|3">
+					<div>#</div>
+					<div>3</div>
+				</div>
+				<div class="key--double" data-char="$|4">
+					<div>$</div>
+					<div>4</div>
+				</div>
+				<div class="key--double" data-char="%|5">
+					<div>%</div>
+					<div>5</div>
+				</div>
+				<div class="key--double" data-char="&|6">
+					<div>&</div>
+					<div>6</div>
+				</div>
+				<div class="key--double" data-char="'|7">
+					<div>&lsquo;</div>
+					<div>7</div>
+				</div>
+				<div class="key--double" data-char="(|8">
+					<div>(</div>
+					<div>8</div>
+				</div>
+				<div class="key--double" data-char=")|9">
+					<div>)</div>
+					<div>9</div>
+				</div>
+				<div class="key--double" data-char="0">
+					<div>&nbsp;</div>
+					<div>0</div>
+				</div>
+				<div class="key--letter" data-char="+">+</div>
+				<div class="key--letter" data-char="-">-</div>
+				<div class="key--letter" data-char="£">&pound;</div>
+				<div class="key--double" data-char="F12|Home">
+					<div>CLR</div>
+					<div>HOME</div>
+				</div>
+				<div class="key--double" data-char="Insert|Delete">
+					<div>INST</div>
+					<div>DEL</div>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--bottom-left key--word key--w4" data-char="Control">
+					<span>CTRL</span>
+				</div>
+				<div class="key--letter" data-char="q">Q</div>
+				<div class="key--letter" data-char="w">W</div>
+				<div class="key--letter" data-char="e">E</div>
+				<div class="key--letter" data-char="r">R</div>
+				<div class="key--letter" data-char="t">T</div>
+				<div class="key--letter" data-char="y">Y</div>
+				<div class="key--letter" data-char="u">U</div>
+				<div class="key--letter" data-char="i">I</div>
+				<div class="key--letter" data-char="o">O</div>
+				<div class="key--letter" data-char="p">P</div>
+				<div class="key--letter" data-char="@">@</div>
+				<div class="key--letter" data-char="*">*</div>
+				<div class="key--letter" data-char="°">&uarr;</div>
+				<div class="key--bottom-left key--word key--w4" data-char="PageUp">
+					<!-- PAGEUP for RESTORE -->
+					<span>RESTORE</span>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--double" data-char="Escape">
+					<div>RUN<br>STOP</div>
+				</div>
+				<div class="key--bottom-left key--word key--w5" data-char="Capslock">
+					<span>SHIFT<br>LOCK</span>
+				</div>
+				<div class="key--letter" data-char="a">A</div>
+				<div class="key--letter" data-char="s">S</div>
+				<div class="key--letter" data-char="d">D</div>
+				<div class="key--letter" data-char="f">F</div>
+				<div class="key--letter" data-char="g">G</div>
+				<div class="key--letter" data-char="h">H</div>
+				<div class="key--letter" data-char="j">J</div>
+				<div class="key--letter" data-char="k">K</div>
+				<div class="key--letter" data-char="l">L</div>
+				<div class="key--double" data-char="[|:">
+					<div>[</div>
+					<div>:</div>
+				</div>
+				<div class="key--double" data-char="]|;">
+					<div>]</div>
+					<div>;</div>
+				</div>
+				<div class="key--letter" data-char="=">=</div>
+				<div class="key--bottom-left key--word key--w4" data-char="Enter">
+					<span>RETURN</span>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--bottom-left key--word key--w6" data-char="Alt|Altgraph">
+					<span><img class="key--commodore" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhLS0gQ3JlYXRlZCB3aXRoIElua3NjYXBlIChodHRwOi8vd3d3Lmlua3NjYXBlLm9yZy8pIC0tPgoKPHN2ZwogICB3aWR0aD0iOTUuNjkwMjM5bW0iCiAgIGhlaWdodD0iODkuNzMyMTU1bW0iCiAgIHZpZXdCb3g9IjAgMCA5NS42OTAyMzkgODkuNzMyMTU1IgogICB2ZXJzaW9uPSIxLjEiCiAgIGlkPSJzdmcxIgogICB4bWw6c3BhY2U9InByZXNlcnZlIgogICBpbmtzY2FwZTp2ZXJzaW9uPSIxLjQgKGU3YzNmZWIxLCAyMDI0LTEwLTA5KSIKICAgc29kaXBvZGk6ZG9jbmFtZT0iQ29tbW9kb3JlLnN2ZyIKICAgeG1sbnM6aW5rc2NhcGU9Imh0dHA6Ly93d3cuaW5rc2NhcGUub3JnL25hbWVzcGFjZXMvaW5rc2NhcGUiCiAgIHhtbG5zOnNvZGlwb2RpPSJodHRwOi8vc29kaXBvZGkuc291cmNlZm9yZ2UubmV0L0RURC9zb2RpcG9kaS0wLmR0ZCIKICAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogICB4bWxuczpzdmc9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48c29kaXBvZGk6bmFtZWR2aWV3CiAgICAgaWQ9Im5hbWVkdmlldzEiCiAgICAgcGFnZWNvbG9yPSIjZmZmZmZmIgogICAgIGJvcmRlcmNvbG9yPSIjMDAwMDAwIgogICAgIGJvcmRlcm9wYWNpdHk9IjAuMjUiCiAgICAgaW5rc2NhcGU6c2hvd3BhZ2VzaGFkb3c9IjIiCiAgICAgaW5rc2NhcGU6cGFnZW9wYWNpdHk9IjAuMCIKICAgICBpbmtzY2FwZTpwYWdlY2hlY2tlcmJvYXJkPSIwIgogICAgIGlua3NjYXBlOmRlc2tjb2xvcj0iI2QxZDFkMSIKICAgICBpbmtzY2FwZTpkb2N1bWVudC11bml0cz0ibW0iCiAgICAgaW5rc2NhcGU6em9vbT0iMC4wNTA5NjEwMDMiCiAgICAgaW5rc2NhcGU6Y3g9Ii01MjkuODE2ODkiCiAgICAgaW5rc2NhcGU6Y3k9IjI2NC45MDg0NSIKICAgICBpbmtzY2FwZTp3aW5kb3ctd2lkdGg9IjEyMzIiCiAgICAgaW5rc2NhcGU6d2luZG93LWhlaWdodD0iNjQ4IgogICAgIGlua3NjYXBlOndpbmRvdy14PSIwIgogICAgIGlua3NjYXBlOndpbmRvdy15PSIzNSIKICAgICBpbmtzY2FwZTp3aW5kb3ctbWF4aW1pemVkPSIwIgogICAgIGlua3NjYXBlOmN1cnJlbnQtbGF5ZXI9ImxheWVyMSI+PGlua3NjYXBlOnBhZ2UKICAgICAgIHg9Ii0zLjE4MTMwNjFlLTEzIgogICAgICAgeT0iMCIKICAgICAgIHdpZHRoPSI5NS42OTAyNDciCiAgICAgICBoZWlnaHQ9Ijg5LjczMjE1NSIKICAgICAgIGlkPSJwYWdlMiIKICAgICAgIG1hcmdpbj0iMCIKICAgICAgIGJsZWVkPSIwIiAvPjwvc29kaXBvZGk6bmFtZWR2aWV3PjxkZWZzCiAgICAgaWQ9ImRlZnMxIiAvPjxnCiAgICAgaW5rc2NhcGU6bGFiZWw9IkViZW5lIDEiCiAgICAgaW5rc2NhcGU6Z3JvdXBtb2RlPSJsYXllciIKICAgICBpZD0ibGF5ZXIxIgogICAgIHRyYW5zZm9ybT0idHJhbnNsYXRlKC01Ny4xNTQ4NzQsLTU4Ljc2Nzg1OSkiPjxwYXRoCiAgICAgICBzdHlsZT0iZmlsbDojZmZmZmZmO2ZpbGwtb3BhY2l0eToxIgogICAgICAgZD0ibSA5Ni40MjgwMzUsMTQ4LjIxNTM2IGMgLTE5LjE3MzgyLC0yLjQ1NjM5IC0zNC41Nzc0NSwtMTYuNzA5OTYgLTM4LjY1NzEzLC0zNS43NzA5MiAtMC41NDE0NSwtMi41Mjk3MiAtMC42MTYwMywtMy41OTg4OCAtMC42MTYwMywtOC44MzEyOSAwLC01LjIzMjQxNSAwLjA3NDYsLTYuMzAxNTc1IDAuNjE2MDMsLTguODMxMjk1IDMuOTUxMTksLTE4LjQ2MDY2IDE4LjM0MjA4LC0zMi4zODQxNiAzNi43MTU2MywtMzUuNTIzMjEgNS4yMDc0MSwtMC44ODk2NiAxMy41OTU4MDUsLTAuNTM2NSAxOC43NjAwMTUsMC43ODk4MyBsIDEuMzIyOTIsMC4zMzk3NiAwLjA2OTIsMTAuNjMyMjUgYyAwLjA0NzIsNy4yNTg0NiAtMC4wMTg2LDEwLjYzMjI0IC0wLjIwNzI0LDEwLjYzMjI0IC0wLjE1MiwwIC0wLjg2NTIxLC0wLjI5ODM4IC0xLjU4NDg5LC0wLjY2MzA3IC0zLjY2MjAyLC0xLjg1NTY5IC02LjEyMTA5LC0yLjM4MTAxIC0xMS4xMDkzMSwtMi4zNzMyNiAtNC41ODg3MDUsMC4wMDcgLTYuNTY3ODQ1LDAuNDEzMTYgLTEwLjIwNDkwNSwyLjA5MzU4IC02LjU2MjA0LDMuMDMxODUgLTExLjc5MjE3LDkuMjQ3OSAtMTMuNjQyOTEsMTYuMjE0NzEgLTAuNzA1MTUsMi42NTQ0NCAtMC45NTM1NCw4LjA0MjQ4NSAtMC41MDA3MSwxMC44NjE2NDUgMS40MjQ3MSw4Ljg2OTg0IDguMTQ4MTcsMTYuNTg1NDkgMTYuOTU4OTYsMTkuNDYxNjIgNS42MjE4OCwxLjgzNTE3IDEyLjU4MjMzNSwxLjQ0MTc4IDE3Ljg5MTQ0NSwtMS4wMTExOSAxLjEwNDQ0LC0wLjUxMDI3IDIuMTEwMzUsLTAuOTI3NzcgMi4yMzUzNywtMC45Mjc3NyAwLjEyNTAzLDAgMC4yMjczMiw0LjgwNDM2IDAuMjI3MzIsMTAuNjc2MzUgdiAxMC42NzYzNiBsIC0xLjY1MzY0LDAuNDQyMTQgYyAtNC44MzA1NCwxLjI5MTU2IC0xMS42NTMxMywxLjc0Nzg0IC0xNi42MjAwNzUsMS4xMTE1MiB6IG0gMTkuMDY3NDc1LC0zMy44ODY1OCB2IC04LjU5ODk2IGggMTAuNDIxOTMgMTAuNDIxOTQgbCA1LjkxNTIzLDYuMTUxNTYgYyAzLjI1MzM3LDMuMzgzMzYgNi44OTc4OCw3LjE3MTM0IDguMDk4OSw4LjQxNzc0IDEuMjAxMDIsMS4yNDYzOSAyLjE4MzY3LDIuMzQ3NzIgMi4xODM2NywyLjQ0NzM5IDAsMC4wOTk3IC04LjMzNDM3LDAuMTgxMjMgLTE4LjUyMDgzLDAuMTgxMjMgaCAtMTguNTIwODQgeiBtIDAsLTIxLjQzMTI2NSB2IC04LjU5ODk1IGggMTguNjc0ODEgMTguNjc0ODEgbCAtMi40NjkwOCwyLjYyMjUyIGMgLTEuMzU3OTksMS40NDIzOSAtNS4wMjg5Miw1LjMwMzU1IC04LjE1NzYyLDguNTgwMzUgbCAtNS42ODg1NCw1Ljk1NzgyNSAtMTAuNTE3MTksMC4wMTg2IC0xMC41MTcxOSwwLjAxODYgeiIKICAgICAgIGlkPSJwYXRoMSIgLz48L2c+PC9zdmc+Cg==" alt="C="></span>
+				</div>
+				<div class="key--bottom-left key--word key--w6" data-char="Shift">
+					<span>SHIFT</span>
+				</div>
+				<div class="key--letter" data-char="z">Z</div>
+				<div class="key--letter" data-char="x">X</div>
+				<div class="key--letter" data-char="c">C</div>
+				<div class="key--letter" data-char="v">V</div>
+				<div class="key--letter" data-char="b">B</div>
+				<div class="key--letter" data-char="n">N</div>
+				<div class="key--letter" data-char="m">M</div>
+				<div class="key--double" data-char="&lt;|&comma;">
+					<div>&lt;</div>
+					<div>&comma;</div>
+				</div>
+				<div class="key--double" data-char="&gt;|.">
+					<div>&gt;</div>
+					<div>.</div>
+				</div>
+				<div class="key--double" data-char="?|/">
+					<div>?</div>
+					<div>/</div>
+				</div>
+				<div class="key--bottom-right key--word key--w6" data-char="Shift">
+					<span>SHIFT</span>
+				</div>
+				<div class="key--double-arrow" data-char="ArrowUp|ArrowDown">
+					<div>&uarr;</div>
+					<div>&darr;</div>
+				</div>
+				<div class="key--double-arrow" data-char="ArrowLeft|ArrowRight">
+					<div>&larr;</div>
+					<div>&rarr;</div>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--double key--right key--space" data-char=" "> &nbsp; </div>
+			</div>
+		</div>
+		<div class="keyboard">
+			<div class="keyboard__row">
+				<div class="key--double" data-char="F1|F2">
+					<div>F1</div>
+					<div>F2</div>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--double" data-char="F3|F4">
+					<div>F3</div>
+					<div>F4</div>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--double" data-char="F5|F6">
+					<div>F5</div>
+					<div>F6</div>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--double" data-char="F7|F8">
+					<div>F7</div>
+					<div>F8</div>
+				</div>
+			</div>
+		</div>
+		<div class="keyboard">
+			<div class="keyboard__row">
+				<div class="key--bottom-right key--word key--w2" data-char="LOAD">
+					<span>LOAD</span>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--bottom-right key--word key--w2" data-char="SAVE">
+					<span>SAVE</span>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--bottom-right key--word key--w2" data-char="LIST">
+					<span>LIST</span>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--bottom-right key--word key--w2" data-char="RESET">
+					<span>RESET</span>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--bottom-right key--word key--w2" data-char="INCVOLUME">
+					<span>VOL +</span>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--bottom-right key--word key--w2" data-char="DECVOLUME">
+					<span>VOL -</span>
+				</div>
+			</div>
+			<div class="keyboard__row">
+				<div class="key--bottom-right key--word key--w6" data-char="JOYMODE1">
+					<span>JOYSTICKMODE<br>1 ACTIVE</span>
+				</div>
+			</div>
+		</div>
+	</div> Help: <br>
+	<ul>
+		<li>RESTORE = PageUp</li>
+		<li>CLR = F12</li>
+		<li>RUN/STOP = Escape</li>
+		<li>ARROWUP = °</li>
+		<li>COMMODORE = Alt or AltGraph</li>
+	</ul>
+	<script>
+	// init websocket
+	const ws = new WebSocket("ws://" + location.host + "/ws");
+	// check for letter
+	function isLetter(char) {
+		if(!char || char.length !== 1) return false;
+		const c = char.toLowerCase();
+		return c >= 'a' && c <= 'z';
+	}
+	// function for sending key events	
+	function sendKeyToWS(type, e) {
+		if(!ws || ws.readyState !== WebSocket.OPEN) return;
+		let shift = e.shiftKey || false;
+		// if it not a letter, than ignore shift
+		if(!isLetter(e.key)) shift = false;
+		const payload = {
+			chars: e.key,
+			modifiers: {
+				shift: shift,
+				ctrl: e.ctrlKey || false,
+				commodore: e.metaKey || false
+			}
+		};
+		ws.send(JSON.stringify({
+			type: type,
+			keys: payload
+		}));
+	}
+	// function for sending mouse events
+	function sendMouseKeyToWS(obj) {
+		if(!ws || ws.readyState !== WebSocket.OPEN) return;
+		ws.send(JSON.stringify(obj));
+	}
+	// split items into a list (sepator: pipe)
+	function attrList(el, attrName) {
+		const v = el.getAttribute(attrName);
+		if(!v) return [];
+		return v.split('|') // multiple values
+			.filter(s => s.length);
+	}
+	// find key by char description
+	function findKeysByChar(ch) {
+		if(!ch) return [];
+		const all = document.querySelectorAll('[data-char]');
+		const cUpper = ch.toUpperCase();
+		const res = [];
+		for(const el of all) {
+			const list = attrList(el, 'data-char');
+			for(const entry of list) {
+				if(entry.toUpperCase() === cUpper) {
+					res.push(el);
+					break;
+				}
+			}
+		}
+		return res;
+	}
+	// message compositor for mouse clicks: check which character is selected
+	function buildKeyMessageFromElement(el, type, ev) {
+		let shift = ev.shiftKey;
+		let char = "";
+		const elist = attrList(el, 'data-char');
+		if(elist.length == 1) char = elist[0];
+		else if(elist.length > 1) {
+			// if shift is pressed, take the first char and clear shift
+			// if not, take the second char
+			if(ev.shiftKey) {
+				char = elist[0];
+				shift = false;
+			} else char = elist[1];
+		}
+		const ctrl = ev.ctrlKey;
+		const commodore = ev.altKey;
+		const keyObj = {
+			chars: char,
+			modifiers: {
+				shift: shift,
+				ctrl: ctrl,
+				commodore: commodore
+			}
+		};
+		return {
+			type,
+			keys: keyObj
+		};
+	}
+	// visualize key state (pressed or released)
+	function pressVisualKeys(keys) {
+		keys.forEach(k => {
+			k.setAttribute('data-pressed', 'on');
+			const svgImg = k.querySelector('img.key--commodore');
+			if(svgImg) {
+				svgImg.style.filter = 'brightness(50%)';
+			}
+		});
+	}
+
+	function releaseVisualKeys(keys) {
+		keys.forEach(k => {
+			k.removeAttribute('data-pressed');
+			const svgImg = k.querySelector('img.key--commodore');
+			if(svgImg) {
+				svgImg.style.filter = '';
+			}
+		});
+	}
+	const pressedMap = new Map();
+	// keydown event listener
+	document.addEventListener('keydown', function(e) {
+		// search for key
+		let keys = findKeysByChar(e.key);
+		if(keys.length > 0) {
+			let keyStr = keys.join("~");
+			// if already pressed -> return
+			if(pressedMap.has(keyStr)) return;
+			pressedMap.set(keyStr);
+			pressVisualKeys(keys);
+			// send key-down event to websocket
+			sendKeyToWS('key-down', e);
+			// send the key-up event too, to prevent keys getting stuck
+			sendKeyToWS('key-up', e);
+			// timer for automatic key release
+			setTimeout(() => {
+				if(pressedMap.has(keyStr)) {
+					releaseVisualKeys(keys);
+					pressedMap.delete(keyStr);
+				}
+			}, 1000);
+			e.preventDefault();
+			return;
+		}
+	}, {
+		passive: false
+	});
+	// keyup event listener, just for releasing the visual keys
+	document.addEventListener('keyup', function(e) {
+		// characters
+		if(e.key && e.key.length >= 1) {
+			let keys = findKeysByChar(e.key);
+			let keyStr = keys.join("~");
+			if(pressedMap.has(keyStr)) {
+				releaseVisualKeys(keys);
+				pressedMap.delete(keyStr);
+				e.preventDefault();
+				return;
+			}
+		}
+	});
+	// mouse event listener
+	document.querySelectorAll('[class*="key--"]').forEach(k => {
+		k.addEventListener('mousedown', (ev) => {
+			const charStr = k.getAttribute("data-char");
+			if(!charStr) return;
+			const span = k.querySelector("span");
+			// toggle joystick mode
+			if(charStr.endsWith("JOYMODE2")) {
+				k.setAttribute("data-char", "JOYMODE1");
+				span.innerHTML = "JOYSTICKMODE<br>1 ACTIVE";
+			} else if(charStr.endsWith("JOYMODE1")) {
+				k.setAttribute("data-char", "JOYMODE2");
+				span.innerHTML = "JOYSTICKMODE<br>2 ACTIVE";
+			}
+			pressVisualKeys([k]);
+			const msg = buildKeyMessageFromElement(k, "key-down", ev);
+			sendMouseKeyToWS(msg);
+		});
+		k.addEventListener('mouseup', (ev) => {
+			releaseVisualKeys([k]);
+			const msg = buildKeyMessageFromElement(k, "key-up", ev);
+			sendMouseKeyToWS(msg);
+		});
+	});
+	// keyboard resizing
+	function resize(keyboard) {
+		var size = keyboard.parentNode.clientWidth / 90;
+		keyboard.style.fontSize = size + 'px';
+	}
+	var keyboards = document.querySelectorAll('.keyboard');
+	window.addEventListener('resize', function(e) {
+		keyboards.forEach(kb => resize(kb));
+	});
+	// resize
+	keyboards.forEach(kb => resize(kb));
+	</script>
+</body>
+
+</html>

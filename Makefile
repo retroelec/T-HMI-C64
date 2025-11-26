@@ -3,7 +3,7 @@ ALLBOARDS := T_HMI T_DISPLAY_S3 WAVESHARE
 #BOARD := T_DISPLAY_S3
 BOARD := WAVESHARE
 
-PORT := /dev/ttyACM0
+PORT := /dev/tty.usbmodem1101
 
 ifeq ($(BOARD), WAVESHARE)
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
@@ -16,8 +16,13 @@ HEADERFILES := $(shell find src -name '*.h')
 
 TARGET := build$(BOARD)/T-HMI-C64.ino.elf
 
+# -------------------------------------------------------
+# Build flags
+# -------------------------------------------------------
+BUILD_FLAGS := -DBOARD_$(BOARD)
+
 $(TARGET):	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES)
-	arduino-cli compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD)" --build-path build$(BOARD) T-HMI-C64.ino
+	arduino-cli compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD) -DESP32" --build-path build$(BOARD) T-HMI-C64.ino
 
 src/loadactions.h:	src/loadactions.asm
 	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/loadactions.asm -o src/loadactions.prg
@@ -78,7 +83,7 @@ TARGETLINUX := c64linux
 OBJFILESLINUX := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRLINUX)/%.o,$(SOURCEFILES))
 
 CXX := g++
-CXXFLAGS := -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc
+CXXFLAGS := -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc -D_THREAD_SAFE
 
 $(TARGETLINUX): $(OBJFILESLINUX)
 	$(CXX) $(OBJFILESLINUX) -o $@ -lSDL2 -pthread
@@ -93,6 +98,31 @@ cleanlinux:
 	rm -rf $(BUILDDIRLINUX) $(TARGETLINUX)
 
 .PHONY: cleanlinux
+
+# MacOS
+
+SRCDIR := src
+BUILDDIRMACOS := buildmacos
+TARGETMACOS := c64macos
+
+OBJFILESMACOS := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRMACOS)/%.o,$(SOURCEFILES))
+
+CXX := g++
+CXXFLAGS := -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc -I/opt/homebrew/include/ -D_THREAD_SAFE
+
+$(TARGETMACOS): $(OBJFILESMACOS)
+	$(CXX) $(OBJFILESMACOS) -L/opt/homebrew/lib -o $@ -lSDL2 -pthread
+
+$(BUILDDIRMACOS)/%.o: $(SRCDIR)/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+-include $(OBJFILESMACOS:.o=.d)
+
+cleanmacos:
+	rm -rf $(BUILDDIRMACOS) $(TARGETMACOS)
+
+.PHONY: cleanmacos
 
 # Windows
 # create image in directory windows using

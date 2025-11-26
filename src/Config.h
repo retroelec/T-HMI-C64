@@ -34,21 +34,29 @@
 
 #elif defined(ESP_PLATFORM)
 
+// if you use the web keyboard (USE_WEB_KEYBOARD see boards below), please
+// specify the wifi settings
+#define WLAN_SSID "XXXX"
+#define WLAN_PASSWORD "XXXX"
+
 #if defined(BOARD_T_HMI)
 #define USE_ST7789V
 #define USE_BLE_KEYBOARD
+// #define USE_WEB_KEYBOARD
 #define USE_SDCARD
 #define USE_ARDUINOJOYSTICK
 #define USE_NOSOUND
 #elif defined(BOARD_T_DISPLAY_S3)
 #define USE_RM67162
 #define USE_BLE_KEYBOARD
+// #define USE_WEB_KEYBOARD
 #define USE_NOFS
 #define USE_NOJOYSTICK
 #define USE_NOSOUND
 #elif defined(BOARD_WAVESHARE)
 #define USE_ST7789VSERIAL
-#define USE_BLE_KEYBOARD
+// #define USE_BLE_KEYBOARD
+#define USE_WEB_KEYBOARD
 #define USE_SDCARD
 #define USE_ARDUINOJOYSTICK
 #define USE_I2SSOUND

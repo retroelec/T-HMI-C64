@@ -444,7 +444,7 @@ bool Floppy::handleCmdChannel() {
         channels[secch1].bufferidx = 0;
       } else {
         PlatformManager::getInstance().log(LOG_ERROR, TAG,
-                                           "unknown command: %d", name);
+                                           "unknown command: %s", name.c_str());
       }
     } else {
       PlatformManager::getInstance().log(LOG_ERROR, TAG,

@@ -23,6 +23,8 @@
 #include "BLEKB.h"
 #elif defined(USE_SDL_KEYBOARD)
 #include "SDLKB.h"
+#elif defined(USE_WEB_KEYBOARD)
+#include "WebKB.h"
 #else
 #error "no valid keyboard driver defined"
 #endif
@@ -33,6 +35,8 @@ KeyboardDriver *create() {
   return new BLEKB();
 #elif defined(USE_SDL_KEYBOARD)
   return new SDLKB();
+#elif defined(USE_WEB_KEYBOARD)
+  return new WebKB(80);
 #endif
 }
 } // namespace Keyboard
