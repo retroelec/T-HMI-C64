@@ -1,9 +1,22 @@
-ALLBOARDS := T_HMI T_DISPLAY_S3 WAVESHARE
+# choose board
 #BOARD := T_HMI
 #BOARD := T_DISPLAY_S3
 BOARD := WAVESHARE
 
-PORT := /dev/tty.usbmodem1101
+# choose keyboard
+KEYBOARD := BLE_KEYBOARD
+#KEYBOARD := WEB_KEYBOARD
+
+UNAME_S := $(shell uname -s)
+
+# choose port
+ifeq ($(UNAME_S),Linux)
+  PORT := /dev/ttyACM0
+else ifeq ($(UNAME_S),Darwin)
+  PORT := /dev/tty.usbmodem1101
+endif
+
+ALLBOARDS := T_HMI T_DISPLAY_S3 WAVESHARE
 
 ifeq ($(BOARD), WAVESHARE)
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
@@ -11,18 +24,19 @@ else
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info
 endif
 
+.DEFAULT_GOAL := compile
+
+SRCDIR := src
 SOURCEFILES := $(shell find src -name '*.cpp')
 HEADERFILES := $(shell find src -name '*.h')
 
 TARGET := build$(BOARD)/T-HMI-C64.ino.elf
 
-# -------------------------------------------------------
-# Build flags
-# -------------------------------------------------------
-BUILD_FLAGS := -DBOARD_$(BOARD)
+CLI_COMPILE := compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD) -DUSE_$(KEYBOARD) -DWLAN_SSID=\"${WLAN_SSID}\" -DWLAN_PASSWORD=\"${WLAN_PASSWORD}\" -DESP32" --build-path build$(BOARD) T-HMI-C64.ino
 
+# -DESP32 is needed for ESP_Async_WebServer, Async_TCP
 $(TARGET):	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES)
-	arduino-cli compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD) -DESP32" --build-path build$(BOARD) T-HMI-C64.ino
+	arduino-cli $(CLI_COMPILE)
 
 src/loadactions.h:	src/loadactions.asm
 	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/loadactions.asm -o src/loadactions.prg
@@ -36,7 +50,19 @@ src/listactions.h:	src/listactions.asm
 	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/listactions.asm -o src/listactions.prg
 	xxd -i src/listactions.prg > src/listactions.h
 
-compile:	$(TARGET)
+check_settings:
+	@if [ "$(KEYBOARD)" = "WEB_KEYBOARD" ]; then \
+		if [ -z "$(WLAN_SSID)" ]; then \
+			echo "Error: WLAN_SSID is not set"; \
+			exit 1; \
+		fi; \
+		if [ -z "$(WLAN_PASSWORD)" ]; then \
+			echo "Error: WLAN_PASSWORD is not set"; \
+			exit 1; \
+		fi \
+	fi
+
+compile:	check_settings $(TARGET)
 
 clean:
 	rm -rf build$(BOARD)
@@ -44,13 +70,13 @@ clean:
 compileAll:
 	@for board in $(ALLBOARDS); do \
 		echo "\ncompiling for $$board"; \
-		$(MAKE) clean compile BOARD=$$board || exit $$?; \
+		$(MAKE) clean compile BOARD=$$board KEYBOARD=BLE_KEYBOARD || exit $$?; \
 	done
 
 # first you have to get the docker image:
-# podman pull docker.io/retroelec42/arduino-cli:latest
-podcompile:	T-HMI-C64.ino $(SOURCEFILES) src/loadactions.h src/saveactions.h src/listactions.h
-	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli-thmic64 compile --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD)" --build-path build$(BOARD) T-HMI-C64.ino
+# podman pull docker.io/retroelec42/arduino-cli-thmic64:latest
+podcompile:	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES)
+	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli-thmic64 $(CLI_COMPILE)
 
 upload:
 	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build$(BOARD)/T-HMI-C64.ino.bin
@@ -70,27 +96,38 @@ install:	check_install
 	arduino-cli config init --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json --overwrite
 	arduino-cli core update-index
 	arduino-cli core install esp32:esp32@3.2.0
+	arduino-cli lib install ArduinoJson
+	arduino-cli config set library.enable_unsafe_install true
+	arduino-cli lib install --git-url https://github.com/ESP32Async/AsyncTCP.git
+	arduino-cli lib install --git-url https://github.com/ESP32Async/ESPAsyncWebServer.git
 
 check_install:
 	@echo -n "Are you sure? [y/N] " && read ans && [ $${ans:-N} = y ]
 
+
 # Linux
 
-SRCDIR := src
 BUILDDIRLINUX := buildlinux
 TARGETLINUX := c64linux
 
 OBJFILESLINUX := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRLINUX)/%.o,$(SOURCEFILES))
 
-CXX := g++
-CXXFLAGS := -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc -D_THREAD_SAFE
+CXX_LINUX := g++
+CXXFLAGS_LINUX := -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc
+LDFLAGS_LINUX := -lSDL2 -pthread
 
-$(TARGETLINUX): $(OBJFILESLINUX)
-	$(CXX) $(OBJFILESLINUX) -o $@ -lSDL2 -pthread
+check_linux:
+	@if [ "$(UNAME_S)" != "Linux" ]; then \
+		echo "Error: $(TARGETLINUX) can only be built on linux!"; \
+		exit 1; \
+	fi
+
+$(TARGETLINUX):	check_linux $(OBJFILESLINUX)
+	$(CXX_LINUX) $(OBJFILESLINUX) -o $@ $(LDFLAGS_LINUX)
 
 $(BUILDDIRLINUX)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX_LINUX) $(CXXFLAGS_LINUX) -c $< -o $@
 
 -include $(OBJFILESLINUX:.o=.d)
 
@@ -99,30 +136,38 @@ cleanlinux:
 
 .PHONY: cleanlinux
 
-# MacOS
 
-SRCDIR := src
-BUILDDIRMACOS := buildmacos
-TARGETMACOS := c64macos
+# macOS
 
-OBJFILESMACOS := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRMACOS)/%.o,$(SOURCEFILES))
+BUILDDIRMAC := buildmac
+TARGETMAC := c64mac
 
-CXX := g++
-CXXFLAGS := -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc -I/opt/homebrew/include/ -D_THREAD_SAFE
+OBJFILESMAC := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRMAC)/%.o,$(SOURCEFILES))
 
-$(TARGETMACOS): $(OBJFILESMACOS)
-	$(CXX) $(OBJFILESMACOS) -L/opt/homebrew/lib -o $@ -lSDL2 -pthread
+CXX_MAC := g++
+CXXFLAGS_MAC := -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc -I/opt/homebrew/include/ -D_THREAD_SAFE
+LDFLAGS_MAC := -L/opt/homebrew/lib -lSDL2 -pthread
 
-$(BUILDDIRMACOS)/%.o: $(SRCDIR)/%.cpp
+check_mac:
+	@if [ "$(UNAME_S)" != "Darwin" ]; then \
+		echo "Error: $(TARGETMAC) can only be built on macOS!"; \
+		exit 1; \
+	fi
+
+$(TARGETMAC):	check_mac $(OBJFILESMAC)
+	$(CXX_MAC) $(OBJFILESMAC) -o $@ $(LDFLAGS_MAC)
+
+$(BUILDDIRMAC)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX_MAC) $(CXXFLAGS_MAC) -c $< -o $@
 
--include $(OBJFILESMACOS:.o=.d)
+-include $(OBJFILESMAC:.o=.d)
 
-cleanmacos:
-	rm -rf $(BUILDDIRMACOS) $(TARGETMACOS)
+cleanmac:
+	rm -rf $(BUILDDIRMAC) $(TARGETMAC)
 
-.PHONY: cleanmacos
+.PHONY: cleanlinux cleanmac
+
 
 # Windows
 # create image in directory windows using

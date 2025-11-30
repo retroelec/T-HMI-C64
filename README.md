@@ -1,15 +1,16 @@
-# C64 Emulator for ESP32-S3 with "Android keyboard" (BLE) (Lilygo T-HMI, Lilygo T-Display S3 AMOLED, Waveshare ESP32-S3-LCD-2.8)
+# C64 Emulator for ESP32-S3 with "Android keyboard" (BLE) or "Web keyboard" (Lilygo T-HMI, Lilygo T-Display S3 AMOLED, Waveshare ESP32-S3-LCD-2.8)
 
 A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD, and an SD card slot.
 The emulator was later expanded to support the
 [Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI) and the
 [ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm).
 
-Keyboard input is simulated via a custom Android app, communicating with the emulator over Bluetooth Low Energy (BLE).
+Keyboard input is simulated via a custom Android app, communicating with the emulator over Bluetooth Low Energy (BLE) or via a web interface.  
+The web keyboard was provided by uliuc@gmx.net.
 
 After extensive refactoring, the code should now be portable to other ESP32-S3 boards (and even other platforms).
 
-The emulator is also available as a Linux application using SDL for graphics, input, and sound.  
+The emulator is also available as a Linux and Mac application using SDL for graphics, input, and sound.  
 On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the available sleep functions are too coarse-grained.
 Probably for the same reason, audio output is also slightly delayed.
 
@@ -19,10 +20,8 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- Web keyboard by uliuc@gmx.net
 - Rudimentary disk drive emulation
-- Volume adjustable
-- Emulator for Linux (and Windows) using SDL
-- Code refactoring
 
 ## Hardware
 
@@ -47,9 +46,8 @@ can be used to simulate the pressing of the space bar.
 ### Battery
 
 You can also operate your board with a battery. The T-HMI and Waveshare development boards allow you to switch on the board by pressing
-the On/Off switch (next to the SD card slot).
-However, it does not appear to be possible to turn the board off with this switch.
-Therefore, the Android app allows the board to be switched off by pressing the Off switch in the top right-hand corner.
+the On/Off switch (next to the SD card slot). The Waveshare board can be switched off with the reset button, *if* it is powered by battery.
+Alternatively, the Android app allows the board to be switched off by pressing the Off switch in the top right-hand corner.
 
 ### Lilygo T-HMI development board
 
@@ -101,7 +99,7 @@ Switch voltage to 3.3V on the Arduino joystick module.
 
 ### Files
 
-- build\*/\*.bin : Binary files of the C64 emulator to be uploaded to the respective development board
+- build_\*/\*.bin : Binary files of the C64 emulator to be uploaded to the respective development board
 - THMIC64KB/thmic64kb.apk : Android APK file to be uploaded to your Android smartphone
 - T-HMI-C64.ino : Arduino .ino file of the C64 emulator
 - src/* : C64 emulator source code
@@ -126,9 +124,26 @@ Switch voltage to 3.3V on the Arduino joystick module.
   (however please be aware that you could overwrite an already installed specfic Arduino core, see also next chapter):  
   make install
 
-### Compile code (optional)
+### Compile code (optional for Android BLE keyboard, mandatory for Web keyboard)
 
-First adapt the file Makefile and choose the board you want the code to be compiled for (adapt variable BOARD).
+First adapt the file Makefile and choose
+
+- the board you want the code to be compiled for (adapt variable BOARD)
+- the keyboard type: Android BLE keyboard, Web keyboard (adapt variable KEYBOARD)
+
+If you choose the Web keyboard, you also have to provide the credentials of your WLAN.
+The credentials are transferred to the Makefile via environment variables (WLAN_SSID, WLAN_PASSWORD).
+
+Under Linux, the environment variables can be set in a script (e.g. setenv.sh), for example:  
+export WLAN_SSID="myssid”  
+export WLAN_PASSWORD="mypasswd”
+
+The script must then be executed with the "source" command so that the environment variables are available in the current shell, e.g.:  
+source setenv.sh
+
+The Web keyboard requires the following libraries for a successful compilation: ArduinoJson, AsyncTCP and ESPAsyncWebServer.
+The libraries AsyncTCP and ESPAsyncWebServer need to be installed from their respective GitHub pages, as the versions available
+in the standard Arduino Library Manager are outdated and incompatible with the current source code of this project.
 
 If you installed the required Arduino core and libraries on your system (see also previous chapter),
 you can compile the code using the following command:  
@@ -145,7 +160,8 @@ For this situation you can use a prepared docker image to compile the code:
 ### Upload C64 Emulator to the development board
 
 First adapt the file Makefile and choose the board you want the binary files to be uploaded for (adapt variable BOARD).
-Binary files are also part of the git repository, so you don't have to compile them yourself if you don't want to.
+Binary files for the Android BLE keyboard variant are also part of the git repository, so you don't have to compile them yourself if you don't want to.
+If you want to use the Web keyboard, you have to provide the credentials of your WLAN and compile the binary yourself.
 
 Afterwards you can upload the binary files:  
 make upload
@@ -168,6 +184,11 @@ You may follow these steps to install the app on your Android device (there may 
 2. Download the APK file to your Android device: Click [here](https://github.com/retroelec/T-HMI-C64/blob/main/THMIC64KB/thmic64kb.apk)
 3. After the app has been downloaded, a message appears which allows you to open the file.
    Click on open and follow the on-screen instructions to complete the installation.
+
+### Web keyboard
+
+The Web keyboard can be used as an alternative to the Android keyboard (e.g. for people who do not own an Android device).
+It runs via Wi-Fi and requires the access data (credentials) to be specified (see chapter "Compile code").
 
 ### Install Emulator for Linux
 
@@ -210,6 +231,11 @@ Besides the normal C64 keys this virtual keyboard also provides some extra butto
 - LOAD: load a C64 program from SD card
 - RESET: reset C64
 - OFF: switch off T-HMI development board
+
+### Web keyboard
+
+The keyboard is accessed via the URL http://"ip-address-of-your-esp32s3" on standard port 80.
+The GUI itself is self explaining.
 
 #### DIV screen
 

@@ -1,1 +1,10 @@
 **/.*
+debug.cfg
+debug.svd
+debug_custom.json
+README.html
+tmp
+build*
+c64linux
+c64mac
+c64prgs
