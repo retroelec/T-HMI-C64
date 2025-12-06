@@ -21,6 +21,7 @@
 #include "CPU6502.h"
 #include "Floppy.h"
 #include "Hooks.h"
+#include "IDebugBus.h"
 #include "SID.h"
 #include "VIC.h"
 #include "joystick/JoystickDriver.h"
@@ -30,12 +31,11 @@
 
 class ExternalCmds; // forward declaration
 
-class C64Sys : public CPU6502 {
+class C64Sys : public CPU6502, public IDebugBus {
 private:
   uint8_t *ram;
-  uint8_t *basicrom;
   uint8_t *kernalrom;
-  uint8_t *charrom;
+  const uint8_t *charrom;
   JoystickDriver *joystick;
 
   bool bankARAM;
@@ -63,7 +63,7 @@ public:
   Hooks *hooks;
   KeyboardDriver *keyboard;
 
-  C64Sys() : cia1(true), cia2(false) {}
+  C64Sys() : cia1(true), cia2(false), floppy(this) {}
 
   uint8_t getA();
   void setA(uint8_t ap);
@@ -87,7 +87,7 @@ public:
   bool deactivateTemp;
   bool debug;
   uint16_t debugstartaddr;
-  bool debuggingstarted;
+  long debugNumOfSteps;
   bool detectreleasekey;
 
   bool restorenmi;
@@ -99,8 +99,10 @@ public:
   void cmd6502halt() override;
   void run() override;
 
+  void startLogCPUCmds(const long numOfCmds) override;
+
   void initMemAndRegs();
-  void init(uint8_t *ram, uint8_t *charrom);
+  void init(uint8_t *ram, const uint8_t *charrom);
   void setPC(uint16_t pc);
   void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
   void exeSubroutine(uint16_t regpc);

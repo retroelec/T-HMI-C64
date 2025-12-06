@@ -1,13 +1,12 @@
 #include "../Config.h"
 #ifdef USE_SDL_DISPLAY
 #include "SDLDisplay.h"
+#include "roms/charset.h"
 #include <SDL2/SDL.h>
-
-extern unsigned char charset_rom[];
 
 void drawChar(SDL_Renderer *ren, uint16_t c, uint16_t x, uint16_t y,
               uint8_t charpixsize) {
-  uint8_t *glyph = &charset_rom[c * 8];
+  const uint8_t *glyph = &charset_rom[c * 8];
   SDL_SetRenderDrawColor(ren, 200, 200, 200, 255);
   for (uint8_t row = 0; row < 8; row++) {
     uint8_t bits = glyph[row];

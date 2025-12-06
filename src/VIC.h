@@ -107,8 +107,8 @@ public:
   std::atomic<uint8_t> cntRefreshs;
 
   uint8_t *colormap;
-  uint8_t *charset;
-  uint8_t *chrom;
+  const uint8_t *charset;
+  const uint8_t *chrom;
 
   uint8_t vicreg[0x40];
   uint8_t latchd011;
@@ -121,7 +121,7 @@ public:
 
   VIC();
   void initVarsAndRegs();
-  void init(uint8_t *ram, uint8_t *charrom);
+  void init(uint8_t *ram, const uint8_t *charrom);
   void refresh();
   uint8_t nextRasterline();
   void drawRasterline();

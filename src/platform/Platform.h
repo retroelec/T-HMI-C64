@@ -106,7 +106,7 @@ public:
   virtual void startTask(std::function<void(void *)> fn, uint8_t core,
                          uint8_t prio) = 0;
 
-  virtual ~Platform() {};
+  virtual ~Platform(){};
 };
 
 #endif // PLATFORM_H

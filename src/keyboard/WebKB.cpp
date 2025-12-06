@@ -347,9 +347,9 @@ void WebKB::init() {
     PlatformManager::getInstance().log(LOG_ERROR, TAG,
                                        "Unable to connect to Wifi.");
 
-  // start with joystickmode 1 at startup
+  // start with joystickmode 2 at startup
   extCmdBuffer[0] =
-      static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::JOYSTICKMODE1);
+      static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::JOYSTICKMODE2);
   gotExternalCmd = true;
 }
 
@@ -394,7 +394,7 @@ void WebKB::handleWebsocketMessage(void *arg, uint8_t *data, size_t len) {
   // debug log
   String jsonStr;
   serializeJson(doc, jsonStr);
-  PlatformManager::getInstance().log(LOG_INFO, TAG, jsonStr.c_str());
+  PlatformManager::getInstance().log(LOG_DEBUG, TAG, jsonStr.c_str());
 
   // return, if type is missing
   const char *type = doc["type"] | "";
@@ -440,63 +440,65 @@ void WebKB::processSingleKey(const char *type, const char *keyId, bool shift,
     return;
   }
 
-  // check for external commands
-  if (strcmp(keyId, "char:RESET") == 0) {
-    extCmdBuffer[0] =
-        static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESET);
-    gotExternalCmd = true;
-    return;
-  }
-  if (strcmp(keyId, "char:LOAD") == 0) {
-    extCmdBuffer[0] =
-        static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LOAD);
-    gotExternalCmd = true;
-    return;
-  }
-  if (strcmp(keyId, "char:SAVE") == 0) {
-    extCmdBuffer[0] =
-        static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::SAVE);
-    gotExternalCmd = true;
-    return;
-  }
-  if (strcmp(keyId, "char:LIST") == 0) {
-    extCmdBuffer[0] =
-        static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LIST);
-    gotExternalCmd = true;
-    return;
-  }
-  if (strcmp(keyId, "char:PageUp") == 0) {
-    extCmdBuffer[0] =
-        static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESTORE);
-    extCmdBuffer[1] = 0x00;
-    gotExternalCmd = true;
-    return;
-  }
-  if (strcmp(keyId, "char:INCVOLUME") == 0) {
-    extCmdBuffer[0] =
-        static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::INCVOLUME);
-    extCmdBuffer[1] = 10;
-    gotExternalCmd = true;
-    return;
-  }
-  if (strcmp(keyId, "char:DECVOLUME") == 0) {
-    extCmdBuffer[0] =
-        static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::DECVOLUME);
-    extCmdBuffer[1] = 10;
-    gotExternalCmd = true;
-    return;
-  }
-  if (strcmp(keyId, "char:JOYMODE1") == 0) {
-    extCmdBuffer[0] =
-        static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::JOYSTICKMODE1);
-    gotExternalCmd = true;
-    return;
-  }
-  if (strcmp(keyId, "char:JOYMODE2") == 0) {
-    extCmdBuffer[0] =
-        static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::JOYSTICKMODE2);
-    gotExternalCmd = true;
-    return;
+  // check for external commands, only on key-down
+  if (strcmp(type, "key-down") == 0) {
+    if (strcmp(keyId, "char:RESET") == 0) {
+      extCmdBuffer[0] =
+          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESET);
+      gotExternalCmd = true;
+      return;
+    }
+    if (strcmp(keyId, "char:LOAD") == 0) {
+      extCmdBuffer[0] =
+          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LOAD);
+      gotExternalCmd = true;
+      return;
+    }
+    if (strcmp(keyId, "char:SAVE") == 0) {
+      extCmdBuffer[0] =
+          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::SAVE);
+      gotExternalCmd = true;
+      return;
+    }
+    if (strcmp(keyId, "char:LIST") == 0) {
+      extCmdBuffer[0] =
+          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LIST);
+      gotExternalCmd = true;
+      return;
+    }
+    if (strcmp(keyId, "char:PageUp") == 0) {
+      extCmdBuffer[0] =
+          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESTORE);
+      extCmdBuffer[1] = 0x00;
+      gotExternalCmd = true;
+      return;
+    }
+    if (strcmp(keyId, "char:INCVOLUME") == 0) {
+      extCmdBuffer[0] =
+          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::INCVOLUME);
+      extCmdBuffer[1] = 10;
+      gotExternalCmd = true;
+      return;
+    }
+    if (strcmp(keyId, "char:DECVOLUME") == 0) {
+      extCmdBuffer[0] =
+          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::DECVOLUME);
+      extCmdBuffer[1] = 10;
+      gotExternalCmd = true;
+      return;
+    }
+    if (strcmp(keyId, "char:JOYMODE1") == 0) {
+      extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
+          ExtCmd::JOYSTICKMODE1);
+      gotExternalCmd = true;
+      return;
+    }
+    if (strcmp(keyId, "char:JOYMODE2") == 0) {
+      extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
+          ExtCmd::JOYSTICKMODE2);
+      gotExternalCmd = true;
+      return;
+    }
   }
 
   // search in keymap
@@ -542,8 +544,6 @@ void WebKB::scanKeyboard() {
   // countdown
   if (currentKey.active && currentKey.holdTicks > 0) {
     currentKey.holdTicks--;
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "Ticks %d",
-                                       currentKey.holdTicks);
   }
 
   // if the key is not active for at least 24 ms, do nothing (3*8ms)

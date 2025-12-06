@@ -50,7 +50,7 @@ void SIDVoice::init() {
 bool SIDVoice::isActive() { return adsrState != IDLE; }
 
 void SIDVoice::updVarFrequency(uint16_t freq) {
-  phaseIncrement = (float)(freq) * 985248.0f / 16777216.0f / AUDIO_SAMPLE_RATE;
+  phaseIncrement = (float)(freq)*985248.0f / 16777216.0f / AUDIO_SAMPLE_RATE;
 }
 
 void SIDVoice::updVarPulseWidth(uint16_t pw) {

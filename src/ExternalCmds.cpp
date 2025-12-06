@@ -438,7 +438,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 1;
   case ExtCmd::SWITCHDEBUG:
     cpu->debug = !cpu->debug;
-    cpu->debuggingstarted = false;
+    cpu->debugNumOfSteps = 5000;
     PlatformManager::getInstance().log(LOG_INFO, TAG, "debug = %x", cpu->debug);
     setType1Notification();
     return 1;

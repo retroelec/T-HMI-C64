@@ -20,6 +20,7 @@
 #include "platform/PlatformManager.h"
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <iomanip>
 #include <optional>
 #include <sstream>
@@ -293,8 +294,9 @@ bool Floppy::readNextFileBlk() {
     }
     std::vector<uint8_t> &buf = buffer[channels[currentSecondary].buffernr];
     uint8_t *bufdata = buf.data();
-    channels[currentSecondary].buffersize = d64file->read(bufdata, 256);
-    if (channels[currentSecondary].buffersize == 0) {
+    uint16_t s = d64file->read(bufdata, 256);
+    if (s == 0) {
+      track = 0;
       lastStatus = 0x40; // EOI
       return true;
     }
@@ -308,6 +310,11 @@ bool Floppy::readNextFileBlk() {
       track = 0;
       lastStatus = 0x02;
       return true;
+    }
+    if (track == 0) {
+      channels[currentSecondary].buffersize = sector + 1;
+    } else {
+      channels[currentSecondary].buffersize = 256;
     }
     channels[currentSecondary].bufferidx = 2;
   } else {
@@ -438,9 +445,6 @@ bool Floppy::handleCmdChannel() {
         std::vector<uint8_t> &buf = buffer[channels[secch1].buffernr];
         uint8_t *bufdata = buf.data();
         channels[secch1].buffersize = d64file->read(bufdata, 256);
-        PlatformManager::getInstance().log(
-            LOG_INFO, TAG, "read data: %d %d %d %d %d", (int)bufdata[0],
-            (int)bufdata[1], (int)bufdata[2], (int)bufdata[3], (int)bufdata[4]);
         channels[secch1].bufferidx = 0;
       } else {
         PlatformManager::getInstance().log(LOG_ERROR, TAG,
@@ -466,6 +470,7 @@ uint8_t Floppy::iecin() {
     }
     lastStatus = 0x40; // EOI
     triggererrorchannel = false;
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "errmessage sent!");
     return 0;
   }
   uint8_t cursec = currentSecondary;
@@ -500,15 +505,19 @@ uint8_t Floppy::iecin() {
   std::vector<uint8_t> &buf = buffer[channels[cursec].buffernr];
   uint8_t byte = buf[channels[cursec].bufferidx];
   channels[cursec].bufferidx++;
+  if (iecindebug) {
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "iecin byte: %x", byte);
+  }
   return byte;
 }
 
 void Floppy::iecout(uint8_t value) {
-  lastStatus = 0;
   if (collectName) {
     if (value == 0x3f) {
       // end of filename
       collectName = false;
+      PlatformManager::getInstance().log(LOG_INFO, TAG, "name = %s!",
+                                         name.c_str());
       if (d64attached) {
         if (name == "$") {
           channels[0].isOpen = true;
@@ -580,18 +589,8 @@ void Floppy::iecout(uint8_t value) {
       if ((currentSecondary == 15) &&
           (channels[15].bufferidx == channels[15].buffersize)) {
         if (talking) {
-          errmessage[0] = '0';
-          errmessage[1] = '0';
-          errmessage[2] = ',';
-          errmessage[3] = ' ';
-          errmessage[4] = 'O';
-          errmessage[5] = 'K';
-          errmessage[6] = ',';
-          errmessage[7] = '0';
-          errmessage[8] = '0';
-          errmessage[9] = ',';
-          errmessage[10] = '0';
-          errmessage[11] = '0';
+          const char *okmsg = "00, OK,00,00";
+          memcpy(errmessage, okmsg, 12);
           errmessageidx = 0;
           channels[15].hasChannelName = false;
           channels[15].isOpen = true;

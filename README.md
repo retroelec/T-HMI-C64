@@ -1,4 +1,4 @@
-# C64 Emulator for ESP32-S3 with "Android keyboard" (BLE) or "Web keyboard" (Lilygo T-HMI, Lilygo T-Display S3 AMOLED, Waveshare ESP32-S3-LCD-2.8)
+# C64 Emulator for ESP32-S3 with "Android BLE keyboard" or "Web keyboard" (Lilygo T-HMI, Lilygo T-Display S3 AMOLED, Waveshare ESP32-S3-LCD-2.8)
 
 A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD, and an SD card slot.
 The emulator was later expanded to support the
@@ -99,7 +99,7 @@ Switch voltage to 3.3V on the Arduino joystick module.
 
 ### Files
 
-- build_\*/\*.bin : Binary files of the C64 emulator to be uploaded to the respective development board
+- build\*/\*.bin : Binary files of the C64 emulator to be uploaded to the respective development board
 - THMIC64KB/thmic64kb.apk : Android APK file to be uploaded to your Android smartphone
 - T-HMI-C64.ino : Arduino .ino file of the C64 emulator
 - src/* : C64 emulator source code

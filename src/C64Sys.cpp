@@ -494,9 +494,11 @@ void C64Sys::checkciatimers(uint8_t cycles) {
 }
 
 void C64Sys::logDebugInfo() {
-  if (debug &&
-      (debuggingstarted || (debugstartaddr == 0) || (pc == debugstartaddr))) {
-    debuggingstarted = true;
+  if (debug && ((debugNumOfSteps > 0) || (pc == debugstartaddr))) {
+    debugNumOfSteps--;
+    if (debugNumOfSteps == 0) {
+      debug = false;
+    }
     PlatformManager::getInstance().log(
         LOG_INFO, TAG, "pc: %2x, cmd: %s, a: %x, x: %x, y: %x, sp: %x, sr: %x",
         pc, cmdName[getMem(pc)], a, x, y, sp, sr);
@@ -548,7 +550,7 @@ void C64Sys::run() {
   cpuhalted = false;
   debug = false;
   debugstartaddr = 0;
-  debuggingstarted = false;
+  debugNumOfSteps = 0;
   detectreleasekey = true;
   numofcycles = 0;
   uint8_t badlinecycles = 0;
@@ -643,6 +645,11 @@ void C64Sys::run() {
   }
 }
 
+void C64Sys::startLogCPUCmds(const long numOfCmds) {
+  debug = true;
+  debugNumOfSteps = numOfCmds;
+}
+
 void C64Sys::initMemAndRegs() {
   PlatformManager::getInstance().log(LOG_INFO, TAG, "CPUC64::initMemAndRegs");
   setMem(0, 0x2f);
@@ -658,7 +665,7 @@ void C64Sys::initMemAndRegs() {
   pc = kernal_rom[addr] + (kernal_rom[addr + 1] << 8);
 }
 
-void C64Sys::init(uint8_t *ram, uint8_t *charrom) {
+void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   PlatformManager::getInstance().log(LOG_INFO, TAG, "CPUC64::init");
   vic.init(ram, charrom);
   floppy.init(8);

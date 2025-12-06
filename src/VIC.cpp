@@ -536,7 +536,7 @@ void VIC::initVarsAndRegs() {
   vertborder = true;
 }
 
-void VIC::init(uint8_t *ram, uint8_t *charrom) {
+void VIC::init(uint8_t *ram, const uint8_t *charrom) {
   if (bitmap != nullptr) {
     // init method must be called only once
     return;

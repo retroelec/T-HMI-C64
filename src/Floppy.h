@@ -17,6 +17,7 @@
 #ifndef FLOPPY_H
 #define FLOPPY_H
 
+#include "IDebugBus.h"
 #include "fs/FileDriver.h"
 #include "platform/PlatformManager.h"
 #include <fstream>
@@ -65,6 +66,7 @@ private:
   bool collectName = false;
   bool triggererrorchannel = false;
   bool triggercmdchannel = false;
+  IDebugBus *debugBus;
 
   int64_t calcOffset(uint8_t track, uint8_t sector) {
     int64_t off = 0;
@@ -132,6 +134,9 @@ private:
   void initAttach();
 
 public:
+  Floppy(IDebugBus *debug = nullptr) : debugBus(debug) {}
+
+  bool iecindebug = false;
   static bool fsinitialized;
 
   bool d64attached = false;

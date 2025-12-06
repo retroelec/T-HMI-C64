@@ -94,6 +94,7 @@ format:
 # see https://arduino.github.io/arduino-cli/1.0/getting-started/
 install:	check_install
 	arduino-cli config init --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json --overwrite
+	arduino-cli config set network.connection_timeout 600s
 	arduino-cli core update-index
 	arduino-cli core install esp32:esp32@3.2.0
 	arduino-cli lib install ArduinoJson
