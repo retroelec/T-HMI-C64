@@ -22,6 +22,7 @@ Contact: retroelec42@gmail.com
 
 - Web keyboard by uliuc@gmx.net
 - Rudimentary disk drive emulation
+- Enclosure for the Waveshare Board by uliuc@gmx.net
 
 ## Hardware
 
@@ -95,6 +96,15 @@ Joystick connections:
 
 Switch voltage to 3.3V on the Arduino joystick module.
 
+#### Enclosure for the Waveshare Board
+
+uliuc@gmx.net has created a gamepad for the Waveshare board.
+
+<img src="doc/C64Gamepad.png" alt="gamepad" width="800"/>
+
+The files for this are located in the directory named "enclosure".
+If you have any questions about the gamepad, please contact Uli directly.
+
 ## Installation
 
 ### Files
@@ -105,6 +115,7 @@ Switch voltage to 3.3V on the Arduino joystick module.
 - src/* : C64 emulator source code
 - THMIC64KB/app/src/ : source code of Android app
 - Makefile : used to install development environment and to compile + upload code
+- enclosure : stl and scad files for the gamepad by uliuc@gmx.net
 
 ### Install environment
 
