@@ -76,6 +76,7 @@ private:
   void handleWebsocketMessage(void *arg, uint8_t *data, size_t len);
   void processSingleKey(const char *type, const char *keyId, bool shift,
                         bool ctrl, bool comm);
+  void printIPAddress();
 
   uint16_t port;
   AsyncWebServer *server;

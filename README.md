@@ -5,7 +5,8 @@ The emulator was later expanded to support the
 [Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI) and the
 [ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm).
 
-Keyboard input is simulated via a custom Android app, communicating with the emulator over Bluetooth Low Energy (BLE) or via a web interface.  
+Keyboard input is simulated via a custom Android app or via a web interface.  
+The Android app communicates with the emulator via Bluetooth Low Energy (BLE).
 The web keyboard was provided by uliuc@gmx.net.
 
 After extensive refactoring, the code should now be portable to other ESP32-S3 boards (and even other platforms).
@@ -115,7 +116,7 @@ If you have any questions about the gamepad, please contact Uli directly.
 - src/* : C64 emulator source code
 - THMIC64KB/app/src/ : source code of Android app
 - Makefile : used to install development environment and to compile + upload code
-- enclosure : stl and scad files for the gamepad by uliuc@gmx.net
+- enclosure/* : stl and scad files for the gamepad by uliuc@gmx.net
 
 ### Install environment
 
@@ -135,14 +136,16 @@ If you have any questions about the gamepad, please contact Uli directly.
   (however please be aware that you could overwrite an already installed specfic Arduino core, see also next chapter):  
   make install
 
-### Compile code (optional for Android BLE keyboard, mandatory for Web keyboard)
+### Compile code (optional for Android BLE keyboard, mandatory for web keyboard)
 
 First adapt the file Makefile and choose
 
 - the board you want the code to be compiled for (adapt variable BOARD)
-- the keyboard type: Android BLE keyboard, Web keyboard (adapt variable KEYBOARD)
+- the keyboard type: Android BLE keyboard, web keyboard (adapt variable KEYBOARD)
 
-If you choose the Web keyboard, you also have to provide the credentials of your WLAN.
+#### Web keyboard
+
+If you choose the web keyboard, you also have to provide the credentials of your WLAN.
 The credentials are transferred to the Makefile via environment variables (WLAN_SSID, WLAN_PASSWORD).
 
 Under Linux, the environment variables can be set in a script (e.g. setenv.sh), for example:  
@@ -152,14 +155,16 @@ export WLAN_PASSWORD="mypasswd”
 The script must then be executed with the "source" command so that the environment variables are available in the current shell, e.g.:  
 source setenv.sh
 
-The Web keyboard requires the following libraries for a successful compilation: ArduinoJson, AsyncTCP and ESPAsyncWebServer.
+The web keyboard requires the following libraries for a successful compilation: ArduinoJson, AsyncTCP and ESPAsyncWebServer.
 The libraries AsyncTCP and ESPAsyncWebServer need to be installed from their respective GitHub pages, as the versions available
 in the standard Arduino Library Manager are outdated and incompatible with the current source code of this project.
+
+#### Compile code
 
 If you installed the required Arduino core and libraries on your system (see also previous chapter),
 you can compile the code using the following command:  
 make  
-(you may need to use ‘make clean’ beforehand if classes have been renamed)
+(you may need to use ‘make clean’ beforehand if classes have been renamed or only the Makefile has been changed)
 
 You may have installed already a specfic Arduino core for other projects (e.g. Arduino core 2.0.x) and you don't want to change this setup.
 For this situation you can use a prepared docker image to compile the code:
@@ -172,7 +177,7 @@ For this situation you can use a prepared docker image to compile the code:
 
 First adapt the file Makefile and choose the board you want the binary files to be uploaded for (adapt variable BOARD).
 Binary files for the Android BLE keyboard variant are also part of the git repository, so you don't have to compile them yourself if you don't want to.
-If you want to use the Web keyboard, you have to provide the credentials of your WLAN and compile the binary yourself.
+If you want to use the web keyboard, you have to provide the credentials of your WLAN and compile the binary yourself.
 
 Afterwards you can upload the binary files:  
 make upload
@@ -195,11 +200,6 @@ You may follow these steps to install the app on your Android device (there may 
 2. Download the APK file to your Android device: Click [here](https://github.com/retroelec/T-HMI-C64/blob/main/THMIC64KB/thmic64kb.apk)
 3. After the app has been downloaded, a message appears which allows you to open the file.
    Click on open and follow the on-screen instructions to complete the installation.
-
-### Web keyboard
-
-The Web keyboard can be used as an alternative to the Android keyboard (e.g. for people who do not own an Android device).
-It runs via Wi-Fi and requires the access data (credentials) to be specified (see chapter "Compile code").
 
 ### Install Emulator for Linux
 
@@ -246,7 +246,10 @@ Besides the normal C64 keys this virtual keyboard also provides some extra butto
 ### Web keyboard
 
 The keyboard is accessed via the URL http://"ip-address-of-your-esp32s3" on standard port 80.
+If you have selected the web keyboard, the IP address of your development board will be displayed on the C64 screen at startup (top line).
 The GUI itself is self explaining.
+
+<img src="doc/webkeyboard.png" alt="Web Keyboard" width="800"/>
 
 #### DIV screen
 

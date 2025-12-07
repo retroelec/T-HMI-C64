@@ -14,6 +14,7 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
+
 #include "WebKB.h"
 #include "../Config.h"
 #ifdef USE_WEB_KEYBOARD
@@ -309,6 +310,45 @@ WebKB::~WebKB() {
     delete server;
 }
 
+struct TimerContext {
+  std::function<void()> timerFunction;
+  esp_timer_handle_t handle;
+};
+
+void IRAM_ATTR genericCallback(void *arg) {
+  TimerContext *ctx = static_cast<TimerContext *>(arg);
+  if (ctx->timerFunction) {
+    ctx->timerFunction();
+  }
+  esp_timer_stop(ctx->handle);
+  esp_timer_delete(ctx->handle);
+  delete ctx;
+}
+
+void startOneShotTimer(std::function<void()> timerFunction, uint64_t delay_ms) {
+  auto *ctx = new TimerContext{timerFunction, nullptr};
+  esp_timer_create_args_t timerArgs = {.callback = &genericCallback,
+                                       .arg = ctx,
+                                       .dispatch_method = ESP_TIMER_TASK,
+                                       .name = "PlatformESP32OneShot",
+                                       .skip_unhandled_events = false};
+  esp_timer_handle_t handle;
+  ESP_ERROR_CHECK(esp_timer_create(&timerArgs, &handle));
+  ctx->handle = handle;
+  uint64_t delay_us = delay_ms * 1000;
+  ESP_ERROR_CHECK(esp_timer_start_once(handle, delay_us));
+}
+
+void WebKB::printIPAddress() {
+  extCmdBuffer[0] =
+      static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::WRITETEXT);
+  std::string httpstr = std::string("\x13\x5WEB KEYBOARD: HTTP:\x2f\x2f") +
+                        std::string(WiFi.localIP().toString().c_str()) +
+                        std::string("\x9a\r\r\r\r\r\r\0");
+  memcpy(&extCmdBuffer[3], httpstr.c_str(), httpstr.length() + 1);
+  gotExternalCmd = true;
+}
+
 void WebKB::init() {
   queueSem = xSemaphoreCreateBinary();
   xSemaphoreGive(queueSem);
@@ -327,6 +367,7 @@ void WebKB::init() {
       PlatformManager::getInstance().log(LOG_INFO, TAG,
                                          "Wifi connected. IP address: %s",
                                          WiFi.localIP().toString());
+      startOneShotTimer([this]() { this->printIPAddress(); }, 4000);
       startWebServer();
     }
   });
