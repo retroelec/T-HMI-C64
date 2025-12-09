@@ -13,7 +13,7 @@ After extensive refactoring, the code should now be portable to other ESP32-S3 b
 
 The emulator is also available as a Linux and Mac application using SDL for graphics, input, and sound.  
 On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the available sleep functions are too coarse-grained.
-Probably for the same reason, audio output is also slightly delayed.
+Probably for the same reason, audio output is also delayed.
 
 [![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
 
