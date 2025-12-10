@@ -5,7 +5,7 @@ BUILD_DIR = buildwin
 SRC = $(shell find $(SRC_DIR) -name '*.cpp')
 OBJ = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRC))
 
-INCLUDES = -I$(SDL2DIR)/include
+INCLUDES = -I$(SDL2DIR)/include -I$(SRC_DIR)
 LIBS     = -L$(SDL2DIR)/lib -lmingw32 -lSDL2main -lSDL2
 CXXFLAGS += -std=c++17 -pthread
 LDFLAGS  += -pthread
