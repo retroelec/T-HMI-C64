@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -14,31 +14,19 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef JOYSTICKFACTORY_H
-#define JOYSTICKFACTORY_H
+#ifndef SDLJOYSTICK_H
+#define SDLJOYSTICK_H
 
 #include "../Config.h"
+#ifdef USE_SDLJOYSTICK
 #include "JoystickDriver.h"
-#if defined(USE_ARDUINOJOYSTICK)
-#include "ArduinoJoystick.h"
-#elif defined(USE_NOJOYSTICK)
-#include "NoJoystick.h"
-#elif defined(USE_SDLJOYSTICK)
-#include "SDLJoystick.h"
-#else
-#error "no valid joystick driver defined"
+#include <cstdint>
+
+class SDLJoystick : public JoystickDriver {
+public:
+  uint8_t getValue() override;
+  bool getFire2() override;
+};
 #endif
 
-namespace Joystick {
-JoystickDriver *create() {
-#if defined(USE_ARDUINOJOYSTICK)
-  return new ArduinoJoystick();
-#elif defined(USE_SDLJOYSTICK)
-  return new SDLJoystick();
-#elif defined(USE_NOJOYSTICK)
-  return new NoJoystick();
-#endif
-}
-} // namespace Joystick
-
-#endif // JOYSTICKFACTORY_H
+#endif // SDLJOYSTICK_H

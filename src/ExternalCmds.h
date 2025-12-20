@@ -29,14 +29,13 @@ private:
   bool sendrawkeycodes;
   uint16_t actaddrreceivecmd;
 
-  void setVarTab(uint16_t addr);
   void setType1Notification();
   void setType2Notification();
   void setType3Notification(uint16_t addr);
   void setType4Notification();
   void setType5Notification(uint8_t batteryVolLow, uint8_t batteryVolHi);
-  bool isBasicInputMode();
   void dispVolume();
+  void writeTextToC64Screen(uint16_t addr, int16_t sizebuffer);
 
 public:
   bool liststartflag;
@@ -48,7 +47,9 @@ public:
   NotificationStruct5 type5notification;
 
   void init(uint8_t *ram, C64Sys *cpu);
+  void setVarTab(uint16_t addr);
   uint8_t executeExternalCmd(uint8_t *buffer);
+  bool isBasicInputMode();
 };
 
 #endif // EXTERNALCMDS_H

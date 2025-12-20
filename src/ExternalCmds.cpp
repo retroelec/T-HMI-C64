@@ -23,6 +23,7 @@
 #include "platform/PlatformManager.h"
 #include "saveactions.h"
 #include <cstring>
+#include <string>
 
 static const char *TAG = "ExternalCmds";
 
@@ -116,24 +117,53 @@ std::string getFilename(uint8_t *ram, const std::string ext) {
   return filename;
 }
 
+// the following method is not reliable
 bool ExternalCmds::isBasicInputMode() {
-  uint16_t pc = cpu->getPC();
-  if ((cpu->getMem(1) & 7) != 7)
+  if ((cpu->getMem(1) & 7) != 7) {
     return false;
+  }
   uint16_t irqVec = ram[0x0314] | (ram[0x0315] << 8);
-  if (irqVec != 0xea31)
+  if (irqVec != 0xea31) {
     return false;
-  if (pc == 0xe5d1 || pc == 0xe5d4 || pc == 0xe5cd || pc == 0xe5cf)
-    return true;
-  if (pc >= 0xea31 && pc < 0xefff)
-    return true;
-  return false;
+  }
+  if ((cpu->getMem(0xd011) & 0x7f) != 27) {
+    return false;
+  }
+  if ((cpu->getMem(0xd016) & 0x1f) != 8) {
+    return false;
+  }
+  if (cpu->getMem(0xd018) != 20) {
+    return false;
+  }
+  return true;
 }
 
 void ExternalCmds::dispVolume() {
   uint8_t volume = cpu->sid.getEmuVolume() * 100 / 256;
-  cpu->vic.dispOverlayInfo(volume / 10 + '0', volume % 10 + '0');
+  cpu->vic.dispOverlayInfoDeprecated(volume / 10 + '0', volume % 10 + '0');
 }
+
+void ExternalCmds::writeTextToC64Screen(uint16_t addr, int16_t sizebuffer) {
+  while (sizebuffer > 0) {
+    uint16_t oldaddr = addr;
+    uint8_t inc = sizebuffer > 250 ? 250 : sizebuffer;
+    addr += inc;
+    uint8_t ch = ram[addr];
+    ram[addr] = '\0';
+    cpu->exeSubroutine(0xab1e, (uint8_t)(oldaddr & 0xff), 0,
+                       (uint8_t)((oldaddr >> 8) & 0xff));
+    ram[addr] = ch;
+    sizebuffer -= 250;
+  }
+}
+
+static uint8_t doiJ1[] = "\xe2\xfb\x20\x20\xfb"
+                         "\x20\xe1\x20\x20\xe1"
+                         "\xfc\xfe\x20\x20\xe1";
+
+static uint8_t doiJ2[] = "\xe2\xfb\x20\xe2\xfb"
+                         "\x20\xe1\x20\x62\xfe"
+                         "\xfc\xfe\x20\xfc\x62";
 
 uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   ExtCmd cmd = static_cast<ExtCmd>(buffer[0]);
@@ -208,28 +238,31 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     if (!isBasicInputMode()) {
       return 0;
     }
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "list file system");
     cpu->cpuhalted = true;
     if (cpu->floppy.fsinitialized) {
-      uint16_t addr = src_listactions_prg[0] + (src_listactions_prg[1] << 8);
-      memcpy(ram + addr, src_listactions_prg + 2, src_listactions_prg_len - 2);
       if (liststartflag) {
-        cpu->exeSubroutine(addr, 0, 1, 0);
+        const uint8_t start[] = "*** START ***\r\0";
+        uint16_t addr = 0x342;
+        memcpy(&ram[addr], start, 15);
+        writeTextToC64Screen(addr, 15);
       } else {
-        cpu->exeSubroutine(addr, 0, 2, 0);
+        const uint8_t next[] = "*** NEXT ***\r\0";
+        uint16_t addr = 0x342;
+        memcpy(&ram[addr], next, 14);
+        writeTextToC64Screen(addr, 14);
       }
-      uint8_t filename[17];
-      int cnt = 0;
+      uint8_t filename[18];
+      uint8_t cnt = 0;
       while (cnt < 23) {
         bool success = cpu->floppy.listnextentry(filename, liststartflag);
         liststartflag = false;
         if (success && (filename[0] != '\0')) {
-          // copy filename to c64 ram (0x0342)
-          for (uint8_t i = 0; i < 17; i++) {
-            ram[0x342 + i] = filename[i];
-          }
-          // print it
-          cpu->exeSubroutine(addr, 0, 0, 0);
+          uint16_t addr = 0x342;
+          uint8_t len = strlen((char *)filename);
+          filename[len] = '\r';
+          filename[len + 1] = '\0';
+          memcpy(&ram[addr], filename, len + 2);
+          writeTextToC64Screen(addr, len + 2);
         } else {
           if (!success) {
             PlatformManager::getInstance().log(LOG_ERROR, TAG,
@@ -255,10 +288,10 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
           LOG_INFO, TAG, "try to attach d64 file %s", dirname.c_str());
       bool d64attached = cpu->floppy.attach(dirname);
       if (!d64attached) {
-        cpu->vic.dispOverlayInfo(14, 15);
+        cpu->vic.dispOverlayInfoDeprecated(14, 15);
         PlatformManager::getInstance().log(LOG_INFO, TAG, "d64 file not found");
       } else {
-        cpu->vic.dispOverlayInfo(15, 11);
+        cpu->vic.dispOverlayInfoDeprecated(15, 11);
       }
     }
     setType1Notification();
@@ -269,7 +302,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     if (cpu->floppy.fsinitialized) {
       cpu->floppy.detach();
     }
-    cpu->vic.dispOverlayInfo(14, 15);
+    cpu->vic.dispOverlayInfoDeprecated(14, 15);
     setType1Notification();
     return 1;
   }
@@ -378,10 +411,14 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     cpu->sid.init();
     cpu->floppy.init(8);
     cpu->cpuhalted = false;
-    return 0;
+    cpu->joystickmode = 0;
+    cpu->keyboard->setJoystickmode(ExtCmd::JOYSTICKMODEOFF);
+    setType1Notification();
+    return 1;
   case ExtCmd::JOYSTICKMODE1:
     cpu->joystickmode = 1;
     cpu->kbjoystickmode = 0;
+    cpu->vic.drawDOIBox(doiJ1, 33, 21, 5, 3, 1, 0, 4, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
                                        cpu->joystickmode);
     setType1Notification();
@@ -389,12 +426,14 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::JOYSTICKMODE2:
     cpu->joystickmode = 2;
     cpu->kbjoystickmode = 0;
+    cpu->vic.drawDOIBox(doiJ2, 33, 21, 5, 3, 1, 0, 4, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
                                        cpu->joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::JOYSTICKMODEOFF:
     cpu->joystickmode = 0;
+    cpu->vic.drawDOIBox((uint8_t *)"\xb\x2", 38, 24, 2, 1, 1, 0, 4, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
                                        cpu->joystickmode);
     setType1Notification();
@@ -402,20 +441,17 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::KBJOYSTICKMODE1:
     cpu->kbjoystickmode = 1;
     cpu->joystickmode = 0;
-    cpu->vic.dispOverlayInfo(10, '1');
     PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
                                        cpu->kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODE2:
     cpu->kbjoystickmode = 2;
     cpu->joystickmode = 0;
-    cpu->vic.dispOverlayInfo(10, '2');
     PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
                                        cpu->kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODEOFF:
     cpu->kbjoystickmode = 0;
-    cpu->vic.dispOverlayInfo(11, 2);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
                                        cpu->kbjoystickmode);
     return 0;
@@ -494,17 +530,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     uint16_t addr = 0xc000;
     int16_t sizebuffer = strlen((const char *)&(buffer[3]));
     memcpy(&ram[addr], &(buffer[3]), sizebuffer);
-    while (sizebuffer > 0) {
-      uint16_t oldaddr = addr;
-      uint8_t inc = sizebuffer > 250 ? 250 : sizebuffer;
-      addr += inc;
-      uint8_t ch = ram[addr];
-      ram[addr] = '\0';
-      cpu->exeSubroutine(0xab1e, (uint8_t)(oldaddr & 0xff), 0,
-                         (uint8_t)((oldaddr >> 8) & 0xff));
-      ram[addr] = ch;
-      sizebuffer -= 250;
-    }
+    writeTextToC64Screen(addr, sizebuffer);
     return 0;
   }
   }

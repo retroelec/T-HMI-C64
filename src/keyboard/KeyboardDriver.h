@@ -17,6 +17,7 @@
 #ifndef KEYBOARDDRIVER_H
 #define KEYBOARDDRIVER_H
 
+#include "../ExtCmd.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -121,6 +122,17 @@ public:
    * handling responsive.
    */
   virtual void feedEvents() {}
+
+  /**
+   * @brief Sets the "gamemode" state.
+   *
+   * Used for systems which emulate joystick input via the keyboard.
+   *
+   * @return true if the button 3 is pressed, false otherwise.
+   */
+  virtual void setGamemode(bool gamemode) {}
+
+  virtual void setJoystickmode(ExtCmd joystickmode) {}
 
   virtual ~KeyboardDriver() {}
 };

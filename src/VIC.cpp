@@ -17,6 +17,7 @@
 #include "VIC.h"
 #include "Config.h"
 #include "display/DisplayFactory.h"
+#include "platform/PlatformManager.h"
 #include <cstring>
 
 static const uint16_t *tftColorFromC64ColorArr;
@@ -534,6 +535,8 @@ void VIC::initVarsAndRegs() {
   rasterline = 0;
   charset = chrom;
   vertborder = true;
+  doiactive[0] = false;
+  doiactive[1] = false;
 }
 
 void VIC::init(uint8_t *ram, const uint8_t *charrom) {
@@ -566,6 +569,7 @@ void VIC::checkFrameColor() {
 }
 
 void VIC::refresh() {
+  dispOverlayInfo();
   display->drawBitmap(bitmap);
   checkFrameColor();
   cntRefreshs.fetch_add(1, std::memory_order_release);
@@ -678,6 +682,64 @@ void VIC::drawRasterline() {
   }
 }
 
-void VIC::dispOverlayInfo(char digit1, char digit2) {
-  display->dispOverlayInfo(digit1, digit2);
+void VIC::dispOverlayInfoDeprecated(char digit1, char digit2) {
+  display->dispOverlayInfoDeprecated(digit1, digit2);
+}
+
+void VIC::drawDOIBox(uint8_t *box, uint8_t x, uint8_t y, uint8_t w, uint8_t h,
+                     uint8_t fgcol, uint8_t bgcol, uint16_t duration,
+                     uint8_t doiidx) {
+  doistartx[doiidx] = x;
+  doistarty[doiidx] = y;
+  doiw[doiidx] = w;
+  doih[doiidx] = h;
+  doicol[doiidx] = fgcol;
+  doibgcol[doiidx] = bgcol;
+  doiduration[doiidx] = ((int64_t)duration) * 1000 * 1000;
+  for (uint8_t yi = 0; yi < h; yi++) {
+    const uint8_t *sourceLine = &box[yi * w];
+    uint8_t *destLine = &doitextmap[(y + yi) * 40 + x];
+    std::copy(sourceLine, sourceLine + w, destLine);
+  }
+  doistarttime[doiidx] = PlatformManager::getInstance().getTimeUS();
+  doiactive[doiidx] = true;
+}
+
+void VIC::dispOverlayInfoInt(uint8_t doiidx) {
+  if (!doiactive[doiidx]) {
+    return;
+  }
+  int64_t acttime = PlatformManager::getInstance().getTimeUS();
+  if (acttime - doistarttime[doiidx] >= doiduration[doiidx]) {
+    doiactive[doiidx] = false;
+    return;
+  }
+  uint16_t bgcol = tftColorFromC64ColorArr[doibgcol[doiidx] & 15];
+  uint16_t fgcol = tftColorFromC64ColorArr[doicol[doiidx] & 15];
+  for (uint8_t y = doistarty[doiidx]; y < doistarty[doiidx] + doih[doiidx];
+       y++) {
+    for (uint8_t x = doistartx[doiidx]; x < doistartx[doiidx] + doiw[doiidx];
+         x++) {
+      uint16_t idxtm = x + y * 40;
+      uint16_t idxch = 8 * doitextmap[idxtm];
+      uint16_t idxbm = (x + y * 320) << 3;
+      for (uint8_t i = 0; i < 8; i++) {
+        uint16_t idx = idxbm + i * 320;
+        uint8_t rowOfChar = chrom[idxch++];
+        bitmap[idx++] = (rowOfChar & 128) ? fgcol : bgcol;
+        bitmap[idx++] = (rowOfChar & 64) ? fgcol : bgcol;
+        bitmap[idx++] = (rowOfChar & 32) ? fgcol : bgcol;
+        bitmap[idx++] = (rowOfChar & 16) ? fgcol : bgcol;
+        bitmap[idx++] = (rowOfChar & 8) ? fgcol : bgcol;
+        bitmap[idx++] = (rowOfChar & 4) ? fgcol : bgcol;
+        bitmap[idx++] = (rowOfChar & 2) ? fgcol : bgcol;
+        bitmap[idx++] = (rowOfChar & 1) ? fgcol : bgcol;
+      }
+    }
+  }
+}
+
+void VIC::dispOverlayInfo() {
+  dispOverlayInfoInt(1);
+  dispOverlayInfoInt(0);
 }

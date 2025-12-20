@@ -34,7 +34,7 @@ public:
    * This method should be called once during system startup to configure
    * any hardware or software resources required to read joystick input.
    */
-  virtual void init() = 0;
+  virtual void init(){};
 
   /**
    * @brief Returns the current state of the joystick directions and fire
@@ -54,7 +54,7 @@ public:
    *
    * @return uint8_t Bitfield representing the joystick state.
    */
-  virtual uint8_t getValue() = 0;
+  virtual uint8_t getValue() { return 0xff; }
 
   /**
    * @brief Returns the state of the optional second fire button.
@@ -63,7 +63,7 @@ public:
    *
    * @return true if the second fire button is pressed, false otherwise.
    */
-  virtual bool getFire2() = 0;
+  virtual bool getFire2() { return false; }
 
   virtual ~JoystickDriver() {}
 };

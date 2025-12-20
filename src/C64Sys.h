@@ -31,6 +31,8 @@
 
 class ExternalCmds; // forward declaration
 
+enum class SpecialJoyModeState { NONE, CHOOSEFILE, INGAME };
+
 class C64Sys : public CPU6502, public IDebugBus {
 private:
   uint8_t *ram;
@@ -45,6 +47,19 @@ private:
   uint8_t register1;
 
   bool nmiAck;
+
+  SpecialJoyModeState specialjoymodestate;
+  uint16_t specialjoymodecnt;
+  bool specialjoymode;
+  bool gmprevfire1;
+  bool gmprevup;
+  bool gmprevdown;
+  bool gmprevleft;
+  bool gmprevright;
+  uint8_t savexpos;
+  uint8_t saveypos;
+  bool liststartflag;
+  std::string actfilename;
 
   uint8_t getDC01(uint8_t dc00, bool xchgports);
   inline void adaptVICBaseAddrs(bool fromcia) __attribute__((always_inline));

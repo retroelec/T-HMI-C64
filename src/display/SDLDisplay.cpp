@@ -1,7 +1,7 @@
 #include "../Config.h"
 #ifdef USE_SDL_DISPLAY
+#include "../roms/charset.h"
 #include "SDLDisplay.h"
-#include "roms/charset.h"
 #include <SDL2/SDL.h>
 
 void drawChar(SDL_Renderer *ren, uint16_t c, uint16_t x, uint16_t y,
@@ -100,7 +100,7 @@ struct Overlay {
 
 Overlay overlay;
 
-void SDLDisplay::dispOverlayInfo(char digit1, char digit2) {
+void SDLDisplay::dispOverlayInfoDeprecated(char digit1, char digit2) {
   overlay.digit1 = digit1;
   overlay.digit2 = digit2;
   overlay.startTicks = SDL_GetTicks();

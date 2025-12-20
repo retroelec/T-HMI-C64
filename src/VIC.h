@@ -34,6 +34,17 @@ private:
   bool denbadline;
   uint8_t caccbadlinecnt;
 
+  // doi
+  uint8_t doitextmap[1000];
+  int64_t doistarttime[2];
+  int64_t doiduration[2];
+  uint8_t doicol[2];
+  uint8_t doibgcol[2];
+  uint8_t doistartx[2];
+  uint8_t doistarty[2];
+  uint8_t doiw[2];
+  uint8_t doih[2];
+
   // members to reduce repetition of code
   uint8_t line;
   uint16_t idx;
@@ -101,6 +112,8 @@ private:
                           uint8_t color11);
   void drawSprites(uint8_t line);
   inline void checkFrameColor() __attribute__((always_inline));
+  void dispOverlayInfoInt(uint8_t doiidx);
+  void dispOverlayInfo();
 
 public:
   // profiling info
@@ -119,12 +132,17 @@ public:
   uint16_t rasterline;
   uint8_t syncd020;
 
+  bool doiactive[2];
+
   VIC();
   void initVarsAndRegs();
   void init(uint8_t *ram, const uint8_t *charrom);
   void refresh();
   uint8_t nextRasterline();
   void drawRasterline();
-  void dispOverlayInfo(char digit1, char digit2);
+  void dispOverlayInfoDeprecated(char digit1, char digit2);
+  void drawDOIBox(uint8_t *box, uint8_t x, uint8_t y, uint8_t w, uint8_t h,
+                  uint8_t fgcol, uint8_t bgcol, uint16_t duration,
+                  uint8_t doiidx);
 };
 #endif // VIC_H

@@ -17,8 +17,15 @@
 #include "../Config.h"
 #ifdef USE_LINUXFS
 #include "LinuxFile.h"
+#include <algorithm>
+#include <cerrno>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
+#include <dirent.h>
+#include <iostream>
 #include <string>
+#include <sys/types.h>
 
 LinuxFile::~LinuxFile() { close(); }
 
@@ -60,4 +67,49 @@ void LinuxFile::close() {
     fp = nullptr;
   }
 }
+
+static DIR *dir_stream = nullptr;
+
+bool LinuxFile::listnextentry(uint8_t *nextentry, bool start) {
+  if (start) {
+    if (dir_stream != nullptr) {
+      closedir(dir_stream);
+      dir_stream = nullptr;
+    }
+    dir_stream = opendir(Config::PATH);
+    if (dir_stream == nullptr) {
+      return false;
+    }
+  }
+  errno = 0;
+  struct dirent *entry = readdir(dir_stream);
+  if (entry == nullptr) {
+    if (errno != 0) {
+      closedir(dir_stream);
+      dir_stream = nullptr;
+      return false;
+    }
+    // end of directory reached
+    closedir(dir_stream);
+    dir_stream = nullptr;
+    nextentry[0] = '\0';
+    return true;
+  }
+  std::string filename(entry->d_name);
+  // ignore . and ..
+  if (filename == "." || filename == "..") {
+    // call method recursively to get next entry
+    return listnextentry(nextentry, false);
+  }
+  if (filename.length() > 4 &&
+      filename.substr(filename.length() - 4) == ".prg") {
+    filename = filename.substr(0, filename.length() - 4);
+  }
+  std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper);
+  size_t len = std::min(filename.length(), static_cast<size_t>(16));
+  std::memcpy(nextentry, filename.c_str(), len);
+  nextentry[len] = '\0';
+  return true;
+}
+
 #endif

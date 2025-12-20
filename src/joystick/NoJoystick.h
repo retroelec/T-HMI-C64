@@ -21,12 +21,7 @@
 #ifdef USE_NOJOYSTICK
 #include "JoystickDriver.h"
 
-class NoJoystick : public JoystickDriver {
-public:
-  void init() override {}
-  uint8_t getValue() override { return 0xff; }
-  bool getFire2() override { return false; }
-};
+class NoJoystick : public JoystickDriver {};
 #endif
 
 #endif // NOJOYSTICK_H

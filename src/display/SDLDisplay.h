@@ -25,7 +25,7 @@ public:
   void init() override;
   void drawFrame(uint16_t frameColor) override;
   void drawBitmap(uint16_t *bitmap) override;
-  void dispOverlayInfo(char digit1, char digit2) override;
+  void dispOverlayInfoDeprecated(char digit1, char digit2) override;
   const uint16_t *getC64Colors() const override;
 };
 #endif

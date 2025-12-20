@@ -11,9 +11,9 @@ The web keyboard was provided by uliuc@gmx.net.
 
 After extensive refactoring, the code should now be portable to other ESP32-S3 boards (and even other platforms).
 
-The emulator is also available as a Linux and Mac application using SDL for graphics, input, and sound.  
+The emulator is also available as a Linux, Mac and Windows application using SDL for graphics, input, and sound.  
 On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the available sleep functions are too coarse-grained.
-Probably for the same reason, audio output is also delayed.
+(The CPU time on Windows can be reduced by commenting out #WINDOWS_BUSYWAIT in Config.h, however this results in a delay in audio output.)
 
 [![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
 
@@ -21,9 +21,9 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- Enclosure for the Waveshare Board by uliuc@gmx.net
 - Web keyboard by uliuc@gmx.net
 - Rudimentary disk drive emulation
-- Enclosure for the Waveshare Board by uliuc@gmx.net
 
 ## Hardware
 

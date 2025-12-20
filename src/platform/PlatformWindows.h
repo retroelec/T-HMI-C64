@@ -30,7 +30,7 @@
 
 class PlatformWindows : public Platform {
 public:
-  PlatformWindows() = default;
+  PlatformWindows() { timeBeginPeriod(1); }
 
   void log(LogLevel level, const char *tag, const char *format, ...) override {
     static const char *levelStrs[] = {"[E]", "[W]", "[I]", "[D]", "[V]"};
@@ -57,7 +57,14 @@ public:
   }
 
   void waitUS(uint32_t us) override {
+#ifdef WINDOWS_BUSYWAIT
+    auto target_time =
+        std::chrono::steady_clock::now() + std::chrono::microseconds(us);
+    while (std::chrono::steady_clock::now() < target_time) {
+    }
+#else
     std::this_thread::sleep_for(std::chrono::microseconds(us));
+#endif
   }
 
   void waitMS(uint32_t ms) override { Sleep(ms); }
@@ -81,7 +88,7 @@ public:
     std::thread([fn]() { fn(nullptr); }).detach();
   }
 
-  ~PlatformWindows() override = default;
+  ~PlatformWindows() { timeEndPeriod(1); }
 };
 #endif
 

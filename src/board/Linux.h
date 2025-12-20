@@ -27,7 +27,7 @@ public:
 
   uint16_t getBatteryVoltage() override { return 4000; }
 
-  void powerOff() override {}
+  void powerOff() override { exit(0); }
 };
 #endif
 

@@ -91,40 +91,6 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
     }
     return;
   }
-  if (joystickActive) {
-    // joystick emulation
-    switch (key) {
-    case SDLK_RIGHT:
-      keyRight = pressed;
-      break;
-    case SDLK_LEFT:
-      keyLeft = pressed;
-      break;
-    case SDLK_DOWN:
-      keyDown = pressed;
-      break;
-    case SDLK_UP:
-      keyUp = pressed;
-      break;
-    case SDLK_LCTRL:
-      keyFire = pressed;
-      break;
-    }
-    joystickval = 0xff;
-    if (keyRight) {
-      joystickval &= ~(1 << 3);
-    } else if (keyLeft) {
-      joystickval &= ~(1 << 2);
-    }
-    if (keyDown) {
-      joystickval &= ~(1 << 1);
-    } else if (keyUp) {
-      joystickval &= ~(1 << 0);
-    }
-    if (keyFire) {
-      joystickval &= ~(1 << 4);
-    }
-  }
   if (key == SDLK_TAB) {
     if (pressed) {
       commodoreKeyPressed = true;
@@ -138,17 +104,16 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
       if (key == SDLK_h) {
         extCmdBuffer[0] =
             static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::WRITETEXT);
-        const uint8_t help[] = "\x93\r"
+        const uint8_t help[] = "\x93\x5\r"
                                "          **** HELP PAGE ****\r\r"
                                "ALT-H FOR THIS HELP PAGE\r"
                                "ALT-Q TO QUIT THE EMULATOR\r"
                                "ALT-L TO LOAD A PROGRAM\r"
                                "      (SEE CONFIG::PATH, README.MD)\r"
                                "ALT-S TO SAVE A PROGRAM\r"
+                               "ALT-T TO LIST PROGRAMS\r"
                                "ALT-A TO ATTACH/DETACH A D64 FILE\r"
                                "ALT-R TO RESET THE EMULATOR\r"
-                               "ALT-T FOR KEY COMB. RUN/STOP - RESTORE\r"
-                               "ALT-Z FOR KEY RESTORE\r"
                                "ALT-, TO DECREMENT SOUND VOLUME\r"
                                "ALT-. TO INCREMENT SOUND VOLUME\r"
                                "ALT-J TO SWITCH BETWEEN JOYSTICK\r"
@@ -157,7 +122,7 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
                                "      CTRL ARE USED AS JOYSTICK KEYS\r"
                                "      IF A JOYSTICK PORT IS CHOSEN\r"
                                "ALT-N SHOW CONTENT OF CPU REGISTERS\r"
-                               "ALT-D SWITCH TO DEBUG MODE AND BACK\r\0";
+                               "ALT-D SWITCH TO DEBUG MODE AND BACK\r\x9a\0";
         memcpy(&extCmdBuffer[3], help, sizeof(help));
         gotExternalCmd = true;
       } else if (key == SDLK_q) {
@@ -171,6 +136,10 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
       } else if (key == SDLK_s) {
         extCmdBuffer[0] =
             static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::SAVE);
+        gotExternalCmd = true;
+      } else if (key == SDLK_t) {
+        extCmdBuffer[0] =
+            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LIST);
         gotExternalCmd = true;
       } else if (key == SDLK_a) {
         if (!attachwinopen) {
@@ -190,16 +159,6 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         extCmdBuffer[0] =
             static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESET);
         gotExternalCmd = true;
-      } else if (key == SDLK_t) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESTORE);
-        extCmdBuffer[1] = 0x01;
-        gotExternalCmd = true;
-      } else if (key == SDLK_z) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESTORE);
-        extCmdBuffer[1] = 0x00;
-        gotExternalCmd = true;
       } else if (key == SDLK_d) {
         extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
             ExtCmd::SWITCHDEBUG);
@@ -216,35 +175,35 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         gotExternalCmd = true;
       } else if (key == SDLK_j) {
         switch (joystickmode) {
-        case ExtCmd::KBJOYSTICKMODEOFF:
-          joystickmode = ExtCmd::KBJOYSTICKMODE1;
+        case ExtCmd::JOYSTICKMODEOFF:
+          joystickmode = ExtCmd::JOYSTICKMODE1;
           extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-              ExtCmd::KBJOYSTICKMODE1);
+              ExtCmd::JOYSTICKMODE1);
           gotExternalCmd = true;
           break;
-        case ExtCmd::KBJOYSTICKMODE1:
-          joystickmode = ExtCmd::KBJOYSTICKMODE2;
+        case ExtCmd::JOYSTICKMODE1:
+          joystickmode = ExtCmd::JOYSTICKMODE2;
           extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-              ExtCmd::KBJOYSTICKMODE2);
+              ExtCmd::JOYSTICKMODE2);
           gotExternalCmd = true;
           break;
-        case ExtCmd::KBJOYSTICKMODE2:
-          joystickmode = ExtCmd::KBJOYSTICKMODEOFF;
+        case ExtCmd::JOYSTICKMODE2:
+          joystickmode = ExtCmd::JOYSTICKMODEOFF;
           extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-              ExtCmd::KBJOYSTICKMODEOFF);
+              ExtCmd::JOYSTICKMODEOFF);
           gotExternalCmd = true;
           break;
         default:
           break;
         }
-        if (joystickmode != ExtCmd::KBJOYSTICKMODEOFF) {
+        if (joystickmode != ExtCmd::JOYSTICKMODEOFF) {
           joystickActive = true;
         } else {
           joystickActive = false;
         }
       }
     } else {
-      if (joystickActive) {
+      if (joystickActive || gamemode) {
         switch (key) {
         case SDLK_RIGHT:
         case SDLK_LEFT:
@@ -268,7 +227,10 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
   }
 }
 
-void SDLKB::init() { SDL_InitSubSystem(SDL_INIT_EVENTS); }
+void SDLKB::init() {
+  SDL_InitSubSystem(SDL_INIT_EVENTS);
+  gamemode = false;
+}
 
 void SDLKB::feedEvents() {
   SDL_Event ev;
@@ -298,7 +260,7 @@ uint8_t SDLKB::getKBCodeDC00() { return kbcode1; }
 
 uint8_t SDLKB::getShiftctrlcode() { return shiftctrlcode; }
 
-uint8_t SDLKB::getKBJoyValue() { return joystickval; }
+uint8_t SDLKB::getKBJoyValue() { return 0xff; }
 
 uint8_t *SDLKB::getExtCmdData() {
   if (gotExternalCmd) {
@@ -322,4 +284,15 @@ void SDLKB::setKBcodes(uint8_t sentdc01, uint8_t sentdc00) {
 }
 
 void SDLKB::setDetectReleasekey(bool detectreleasekey) {}
+
+void SDLKB::setGamemode(bool gamemode) { this->gamemode = gamemode; }
+
+void SDLKB::setJoystickmode(ExtCmd joystickmode) {
+  this->joystickmode = joystickmode;
+  if (joystickmode != ExtCmd::JOYSTICKMODEOFF) {
+    joystickActive = true;
+  } else {
+    joystickActive = false;
+  }
+}
 #endif

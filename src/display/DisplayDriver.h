@@ -101,7 +101,7 @@ public:
    * @param char1 Optional character to be displayed.
    * @param char2 Optional character to be displayed.
    */
-  virtual void dispOverlayInfo(char char1, char char2) {}
+  virtual void dispOverlayInfoDeprecated(char char1, char char2) {}
 
   virtual ~DisplayDriver() {}
 };

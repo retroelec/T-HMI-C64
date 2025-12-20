@@ -174,5 +174,6 @@ cleanmac:
 # first you have to get the docker image:
 # podman pull docker.io/retroelec42/sdl2-cross:latest
 c64win.exe:
+	make -f windows/Makefile clean
 	podman run -it --rm -v "$(PWD)":/build sdl2-cross make -f windows/Makefile
 

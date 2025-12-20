@@ -145,7 +145,7 @@ uint8_t C64Sys::getMem(uint16_t addr) {
       if (ciaidx == 0x00) {
         uint8_t ddra = cia1.ciareg[0x02];
         uint8_t input = getDC01(cia1.ciareg[0x01], true);
-        if (joystickmode == 2) {
+        if ((joystickmode == 2) && (!specialjoymode)) {
           if (input == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             input = joystick->getValue();
@@ -160,13 +160,13 @@ uint8_t C64Sys::getMem(uint16_t addr) {
       } else if (ciaidx == 0x01) {
         uint8_t ddrb = cia1.ciareg[0x03];
         uint8_t input = getDC01(cia1.ciareg[0x00], false);
-        if (joystickmode == 2) {
+        if ((joystickmode == 2) && (!specialjoymode)) {
           // special case: handle fire2 button -> space key
           if ((cia1.ciareg[0x00] == 0x7f) && joystick->getFire2()) {
             return 0xef;
           }
         }
-        if (joystickmode == 1) {
+        if ((joystickmode == 1) && (!specialjoymode)) {
           if (input == 0xff) {
             // no key pressed -> return joystick value (of real joystick)
             input = joystick->getValue();
@@ -505,12 +505,209 @@ void C64Sys::logDebugInfo() {
   }
 }
 
+static uint8_t listbox[] =
+    "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+    "\x43\x43\x43\x43\x43\x43\x43\x49"
+    "\x42  \x10\x12\x5\x13\x13 \xa\xf\x19 \x4\xf\x17\xe  \x42"
+    "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+    "\x43\x43\x43\x43\x43\x43\x43\x4b";
+
+static uint8_t listboxhelp[] =
+    "\x55\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x49"
+    "\x42\x20\x20\x20\x20\x20\x0f\x06\x06\x20\x20\x20\x20\x20\x42"
+    "\x42\x20\x20\x20\x20\x20\x55\x44\x49\x20\x20\x20\x20\x20\x42"
+    "\x42\x0c\x0f\x01\x04\x20\x47\x51\x48\x20\x0a\x0f\x19\x20\x42"
+    "\x42\x20\x20\x20\x20\x20\x4a\x46\x4b\x20\x20\x20\x20\x20\x42"
+    "\x42\x20\x20\x20\x20\x0e\x05\x18\x14\x20\x20\x20\x20\x20\x42"
+    "\x4a\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x4b";
+
+static uint8_t ingamebox[] =
+    "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x49"
+    "\x42\x20\x20\x20\x20\x12\x05\x13\x05\x14\x20\x20\x20\x20\x42"
+    "\x42\x20\x20\x20\x20\x20\x55\x44\x49\x20\x20\x20\x20\x20\x42"
+    "\x42\x20\x27\x31\x27\x20\x47\x51\x48\x20\x0a\x0f\x19\x20\x42"
+    "\x42\x20\x20\x20\x20\x20\x4a\x46\x4b\x20\x20\x20\x20\x20\x42"
+    "\x42\x20\x20\x20\x20\x20\x27\x20\x27\x20\x20\x20\x20\x20\x42"
+    "\x42\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x42"
+    "\x42\x06\x09\x12\x05\x20\x14\x0f\x20\x05\x18\x09\x14\x20\x42"
+    "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x4b";
+
 void C64Sys::check4extcmd() {
+  bool isBasicInputMode = externalCmds->isBasicInputMode();
+  bool fire2pressed = false;
+  if (specialjoymodestate == SpecialJoyModeState::NONE) {
+    bool fire2pressing = joystick->getFire2();
+    if (fire2pressing) {
+      specialjoymodecnt++;
+    } else {
+      specialjoymodecnt = 0;
+    }
+    if (specialjoymodecnt >= 100 * 312) {
+      fire2pressed = true;
+    }
+  }
+  bool executeExtCmdKB = false;
+  bool executeExtCmdGM = false;
+  uint8_t extCmdBuffer[120];
   uint8_t *extcmdbuffer = keyboard->getExtCmdData();
   if (extcmdbuffer != nullptr) {
-    uint8_t type = externalCmds->executeExternalCmd(extcmdbuffer);
-    // sync detectreleasekey
-    keyboard->setDetectReleasekey(detectreleasekey);
+    executeExtCmdKB = true;
+  } else if (specialjoymodestate == SpecialJoyModeState::NONE) {
+    keyboard->setGamemode(false);
+    specialjoymode = false;
+    if (fire2pressed) {
+      specialjoymodecnt = 0;
+      specialjoymode = true;
+      keyboard->setGamemode(true);
+      if (isBasicInputMode) {
+        const char *msg = "\x10\x12\x5\x13\x13 \xa\xf\x19 \x4\xf\x17\xe  ";
+        memcpy(&listbox[22], msg, 16);
+        vic.drawDOIBox(listbox, 9, 1, 20, 3, 1, 0, 65535, 1);
+        vic.drawDOIBox(listboxhelp, 12, 6, 15, 7, 1, 0, 5, 0);
+        liststartflag = true;
+        specialjoymodestate = SpecialJoyModeState::CHOOSEFILE;
+      } else {
+        specialjoymodestate = SpecialJoyModeState::INGAME;
+      }
+    }
+  } else if (specialjoymodestate == SpecialJoyModeState::CHOOSEFILE) {
+    bool fire1pressing = joystick->getValue() == 0xff - (1 << 4);
+    bool fire1pressed = fire1pressing && (!gmprevfire1);
+    gmprevfire1 = fire1pressing;
+    bool uppressing = joystick->getValue() == 0xff - (1 << 0);
+    bool uppressed = uppressing && (!gmprevup);
+    gmprevup = uppressing;
+    bool downpressing = joystick->getValue() == 0xff - (1 << 1);
+    bool downpressed = downpressing && (!gmprevdown);
+    gmprevdown = downpressing;
+    bool leftpressing = joystick->getValue() == 0xff - (1 << 2);
+    bool leftpressed = leftpressing && (!gmprevleft);
+    gmprevleft = leftpressing;
+    bool rightpressing = joystick->getValue() == 0xff - (1 << 3);
+    bool rightpressed = rightpressing && (!gmprevright);
+    gmprevright = rightpressing;
+    if (downpressed) {
+      if (floppy.fsinitialized) {
+        uint8_t filename[17];
+        bool success = floppy.listnextentry(filename, liststartflag);
+        liststartflag = false;
+        if (success && (filename[0] != '\0')) {
+          std::string temp_filename((char *)filename);
+          actfilename = temp_filename;
+          if (temp_filename.length() < 16) {
+            temp_filename.append(16 - temp_filename.length(), ' ');
+          }
+          uint8_t i = 0;
+          for (char c : temp_filename) {
+            if (c >= 0x40) {
+              filename[i++] = c - 0x40;
+            } else {
+              filename[i++] = c;
+            }
+          }
+          memcpy(&listbox[22], filename, 16);
+          vic.drawDOIBox(listbox, 9, 1, 20, 3, 1, 0, 65535, 1);
+        }
+      }
+    } else if (leftpressed) {
+      specialjoymodestate = SpecialJoyModeState::NONE;
+      vic.doiactive[1] = false;
+      cpuhalted = true;
+      if (floppy.fsinitialized) {
+        std::transform(actfilename.begin(), actfilename.end(),
+                       actfilename.begin(), ::tolower);
+        std::string filename = actfilename + ".prg";
+        uint16_t addr = floppy.load(filename, ram);
+        if (addr != 0) {
+          externalCmds->setVarTab(addr);
+          ram[0xd3] = 0;
+          ram[0x0277] = 'R';
+          ram[0x0278] = 'U';
+          ram[0x0279] = 'N';
+          ram[0x027A] = ':';
+          ram[0x027B] = 0x0d;
+          ram[0x00C6] = 5;
+        }
+      }
+      cpuhalted = false;
+    } else if (rightpressed) {
+      switch (joystickmode) {
+      case 0:
+      case 2:
+        extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::JOYSTICKMODE1)};
+        keyboard->setJoystickmode(ExtCmd::JOYSTICKMODE1);
+        break;
+      case 1:
+        extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::JOYSTICKMODE2)};
+        keyboard->setJoystickmode(ExtCmd::JOYSTICKMODE2);
+        break;
+      }
+      executeExtCmdGM = true;
+    } else if (uppressed) {
+      specialjoymodestate = SpecialJoyModeState::NONE;
+      vic.doiactive[1] = false;
+      extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::POWEROFF)};
+      executeExtCmdGM = true;
+    } else if (fire1pressed) {
+      specialjoymodestate = SpecialJoyModeState::NONE;
+      vic.doiactive[1] = false;
+    }
+  } else if (specialjoymodestate == SpecialJoyModeState::INGAME) {
+    vic.drawDOIBox(ingamebox, 12, 1, 15, 9, 1, 0, 65535, 1);
+    bool fire1pressing = joystick->getValue() == 0xff - (1 << 4);
+    bool fire1pressed = fire1pressing && (!gmprevfire1);
+    gmprevfire1 = fire1pressing;
+    bool uppressing = joystick->getValue() == 0xff - (1 << 0);
+    bool uppressed = uppressing && (!gmprevup);
+    gmprevup = uppressing;
+    bool downpressing = joystick->getValue() == 0xff - (1 << 1);
+    bool downpressed = downpressing && (!gmprevdown);
+    gmprevdown = downpressing;
+    bool leftpressing = joystick->getValue() == 0xff - (1 << 2);
+    bool leftpressed = leftpressing && (!gmprevleft);
+    gmprevleft = leftpressing;
+    bool rightpressing = joystick->getValue() == 0xff - (1 << 3);
+    bool rightpressed = rightpressing && (!gmprevright);
+    gmprevright = rightpressing;
+    if (downpressed) {
+      vic.drawDOIBox((uint8_t *)"\xa0", 39, 24, 1, 1, 1, 0, 2, 0);
+      setKeycodes(0xef, 0x7f); // send space
+    } else if (leftpressed) {
+      vic.drawDOIBox((uint8_t *)"\x31", 39, 24, 1, 1, 1, 0, 2, 0);
+      setKeycodes(0xfe, 0x7f); // send '1'
+    } else if (rightpressed) {
+      switch (joystickmode) {
+      case 0:
+      case 2:
+        extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::JOYSTICKMODE1)};
+        keyboard->setJoystickmode(ExtCmd::JOYSTICKMODE1);
+        break;
+      case 1:
+        extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::JOYSTICKMODE2)};
+        keyboard->setJoystickmode(ExtCmd::JOYSTICKMODE2);
+        break;
+      }
+      executeExtCmdGM = true;
+    } else if (uppressed) {
+      specialjoymodestate = SpecialJoyModeState::NONE;
+      vic.doiactive[1] = false;
+      extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::RESET)};
+      executeExtCmdGM = true;
+    } else if (fire1pressed) {
+      specialjoymodestate = SpecialJoyModeState::NONE;
+      vic.doiactive[1] = false;
+    }
+  }
+  // ececute external command?
+  if (executeExtCmdKB || executeExtCmdGM) {
+    uint8_t type;
+    if (executeExtCmdKB) {
+      type = externalCmds->executeExternalCmd(extcmdbuffer);
+      // sync detectreleasekey
+      keyboard->setDetectReleasekey(detectreleasekey);
+    } else {
+      type = externalCmds->executeExternalCmd(extCmdBuffer);
+    }
     // send notification
     uint8_t *data;
     size_t size;
@@ -663,6 +860,13 @@ void C64Sys::initMemAndRegs() {
   restorenmi = false;
   uint16_t addr = 0xfffc - 0xe000;
   pc = kernal_rom[addr] + (kernal_rom[addr + 1] << 8);
+  gmprevfire1 = false;
+  gmprevup = false;
+  gmprevdown = false;
+  gmprevleft = false;
+  gmprevright = false;
+  specialjoymodestate = SpecialJoyModeState::NONE;
+  specialjoymode = false;
 }
 
 void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {

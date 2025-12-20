@@ -29,8 +29,9 @@
 #define USE_SDL_DISPLAY
 #define USE_SDL_KEYBOARD
 #define USE_LINUXFS
-#define USE_NOJOYSTICK
+#define USE_SDLJOYSTICK
 #define USE_SDLSOUND
+#define WINDOWS_BUSYWAIT
 
 #elif defined(ESP_PLATFORM)
 

@@ -33,7 +33,7 @@ private:
   uint8_t extCmdBuffer[1024];
 
   bool joystickActive = false;
-  ExtCmd joystickmode = ExtCmd::KBJOYSTICKMODEOFF;
+  ExtCmd joystickmode = ExtCmd::JOYSTICKMODEOFF;
 
   bool keyRight = false;
   bool keyLeft = false;
@@ -41,6 +41,8 @@ private:
   bool keyDown = false;
   bool keyFire = false;
   bool commodoreKeyPressed = false;
+
+  bool gamemode;
 
   bool attachwinopen = false;
   static const uint16_t DISKNAMEMAXLEN = 17;
@@ -51,7 +53,6 @@ private:
   std::atomic<uint8_t> kbcode1;
   std::atomic<uint8_t> kbcode2;
   std::atomic<uint8_t> shiftctrlcode;
-  std::atomic<uint8_t> joystickval;
 
   std::queue<SDL_Event> eventQueue;
   std::mutex eventMutex;
@@ -71,6 +72,8 @@ public:
   uint8_t getKBJoyValue() override;
   void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) override;
   void setDetectReleasekey(bool detectreleasekey) override;
+  void setGamemode(bool gamemode) override;
+  void setJoystickmode(ExtCmd joystickmode) override;
 };
 #endif
 
