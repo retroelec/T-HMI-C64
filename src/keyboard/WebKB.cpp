@@ -26,11 +26,54 @@
 #include <ESPAsyncWebServer.h>
 #include <WiFi.h>
 #include <cctype>
+#include <set>
 
 // html/css/javascript web keyboard
 #include "htmlcode.h"
 
 static const char *TAG = "WEBKB";
+
+// web conf portal
+#define AP_SSID "T-HMI-C64"
+#define AP_PASSWORD ""
+#define DNS_PORT 53
+
+const char *portalHTML = R"rawliteral(
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta charset="UTF-8">
+		<title>C64 WLAN SETUP</title>
+		<style>
+			body { font-family: sans-serif; background:#f2f2f2; padding:20px; }
+			h2 { text-align:center; }
+			select, input, button {
+			  box-sizing: border-box;	
+			  width:100%; padding:12px; margin:10px 0;
+			  border-radius:6px; border:1px solid #ccc;
+			}
+			button { background:#007bff; color:white; font-size:16px; }
+		</style>
+		</head>
+		<body>
+		<h2>SELECT WLAN:</h2>
+		<form action="/save" method="POST" accept-charset="UTF-8">
+			<select id="networks">%NETWORKS%</select>
+			<input type="text" id="ssid" name="ssid" placeholder="NETWORK (SSID)" required>
+			<input type="password" name="password" placeholder="PASSWORD">
+			<button type="submit">CONNECT</button>
+		</form>
+		</body>
+		<script>
+			document.getElementById('networks').addEventListener('change', function () {
+    		if (this.value) {
+        		document.getElementById('ssid').value = this.value;
+    		}
+		});
+		</script>
+	</html>
+)rawliteral";
 
 const CodeTriple C64_KEYCODE_BREAK = {0x7f, 0x7f, 0x80};
 const CodeTriple C64_KEYCODE_RETURN = {0xfe, 0xfd, 0x00};
@@ -304,8 +347,10 @@ const KeyMapEntry c64KeyMap[] = {
 WebKB::WebKB(uint16_t port) : port(port) {}
 
 WebKB::~WebKB() {
-  if (ws)
+  if (ws) {
     ws->closeAll();
+    delete ws;
+  }
   if (server)
     delete server;
 }
@@ -359,7 +404,10 @@ void WebKB::init() {
   currentKey.active = false;
   currentKey.holdTicks = 0;
 
-  PlatformManager::getInstance().log(LOG_INFO, TAG, "Init Wifi ");
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "Init Wifi");
+
+  // create webserver instance
+  server = new AsyncWebServer(port);
 
   // event callback to start the web service
   WiFi.onEvent([this](WiFiEvent_t event, WiFiEventInfo_t info) {
@@ -372,21 +420,16 @@ void WebKB::init() {
     }
   });
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WLAN_SSID, WLAN_PASSWORD);
+  prefs.begin("wifi", true);
+  String storedSSID = prefs.getString("ssid", "");
+  String storedPASS = prefs.getString("pass", "");
+  prefs.end();
 
-  int attempts = 0;
-  const int maxAttempts = 20; // 20 attemps
-
-  while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {
-    delay(500);
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "...");
-    attempts++;
+  if (storedSSID.length()) {
+    connectToWiFi(storedSSID, storedPASS);
+  } else {
+    startCaptivePortal();
   }
-
-  if (WiFi.status() != WL_CONNECTED)
-    PlatformManager::getInstance().log(LOG_ERROR, TAG,
-                                       "Unable to connect to Wifi.");
 
   // start with joystickmode 2 at startup
   extCmdBuffer[0] =
@@ -394,10 +437,106 @@ void WebKB::init() {
   gotExternalCmd = true;
 }
 
+// scan for wifi networks
+String WebKB::getNetworksHTML() {
+  int n = WiFi.scanNetworks();
+  String options;
+  std::set<String> seenSSIDs;
+
+  for (int i = 0; i < n; i++) {
+    String ssid = WiFi.SSID(i);
+
+    if (ssid.length() == 0)
+      continue;
+    if (seenSSIDs.find(ssid) != seenSSIDs.end())
+      continue;
+
+    seenSSIDs.insert(ssid);
+    options += "<option value='" + ssid + "'>" + ssid + "</option>";
+  }
+
+  return options;
+}
+
+// setup an access point and redirect to the captive portal
+void WebKB::startCaptivePortal() {
+
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(AP_SSID, AP_PASSWORD);
+
+  PlatformManager::getInstance().log(LOG_INFO, TAG,
+                                     "Wifi access point ip adress: %s",
+                                     WiFi.softAPIP().toString());
+
+  dns_server.start(53, "*", WiFi.softAPIP());
+
+  server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
+    String page = portalHTML;
+    page.replace("%NETWORKS%", this->getNetworksHTML());
+    request->send(200, "text/html", page);
+  });
+
+  // Android / iOS captive portal triggers
+  server->on("/generate_204", HTTP_GET,
+             [](AsyncWebServerRequest *r) { r->redirect("/"); });
+  server->on("/hotspot-detect.html", HTTP_GET,
+             [](AsyncWebServerRequest *r) { r->redirect("/"); });
+  server->on("/connecttest.txt", HTTP_GET,
+             [](AsyncWebServerRequest *r) { r->redirect("/"); });
+
+  server->on("/save", HTTP_POST, [this](AsyncWebServerRequest *request) {
+    String new_ssid = request->getParam("ssid", true)->value();
+    String new_pass = request->getParam("password", true)->value();
+    request->send(200, "text/html", "<h3>REBOOTING AND CONNECTING...</h3>");
+
+    // save wifi data
+    prefs.begin("wifi", false);
+    prefs.putString("ssid", new_ssid);
+    prefs.putString("pass", new_pass);
+    prefs.end();
+    delay(1000);
+
+    // reboot
+    startOneShotTimer([]() { ESP.restart(); }, 2000);
+  });
+
+  server->begin();
+}
+
+void WebKB::connectToWiFi(const String &ssid, const String &pass) {
+
+  PlatformManager::getInstance().log(
+      LOG_INFO, TAG, "Trying to connect to ssid %s %s", ssid.c_str());
+
+  WiFi.mode(WIFI_STA);
+  delay(100);
+  WiFi.begin(ssid.c_str(), pass.c_str());
+
+  int attempts = 0;
+  const int maxAttempts = 60; // 30 seconds
+  while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {
+    delay(500);
+    attempts++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "Connection to ssid %s established.", ssid);
+
+  } else {
+
+    PlatformManager::getInstance().log(LOG_INFO, TAG,
+                                       "Connection to ssid %s failed.", ssid);
+    WiFi.mode(WIFI_OFF);
+    delay(1000);
+    startCaptivePortal();
+  }
+}
+
 void WebKB::startWebServer() {
   PlatformManager::getInstance().log(LOG_INFO, TAG, "Starting web server...");
 
-  server = new AsyncWebServer(port);
   ws = new AsyncWebSocket("/ws");
 
   ws->onEvent([this](AsyncWebSocket *srv, AsyncWebSocketClient *client,

@@ -145,19 +145,18 @@ First adapt the file Makefile and choose
 
 #### Web keyboard
 
-If you choose the web keyboard, you also have to provide the credentials of your WLAN.
-The credentials are transferred to the Makefile via environment variables (WLAN_SSID, WLAN_PASSWORD).
-
-Under Linux, the environment variables can be set in a script (e.g. setenv.sh), for example:  
-export WLAN_SSID="myssid”  
-export WLAN_PASSWORD="mypasswd”
-
-The script must then be executed with the "source" command so that the environment variables are available in the current shell, e.g.:  
-source setenv.sh
-
-The web keyboard requires the following libraries for a successful compilation: ArduinoJson, AsyncTCP and ESPAsyncWebServer.
+The web keyboard requires the following libraries for a successful compilation: ArduinoJson, AsyncTCP, ESPAsyncWebServer and ESPAsyncDNSServer.
 The libraries AsyncTCP and ESPAsyncWebServer need to be installed from their respective GitHub pages, as the versions available
 in the standard Arduino Library Manager are outdated and incompatible with the current source code of this project.
+
+To ensure flexibility and security, the ESP32-S3 development board utilizes a dynamic Wi-Fi provisioning system.
+This avoids the need to hardcode sensitive credentials during compilation. The process follows a structured fallback logic:
+
+- Credential Retrieval: Upon startup, the system attempts to retrieve the SSID and password from the non-volatile memory (NVRAM) using the Arduino Preferences library.
+- Connection Attempt: The board attempts to establish a connection to the stored local network in Station (STA) mode.
+- Fallback to Access Point (AP): If the connection fails or no credentials are found, the board automatically initializes as an Access Point (AP). In this mode, it hosts a specialized web interface designed for network configuration. Use the default P address for an ESP32 when it's in AP mode to get this web page: http://192.168.4.1
+- Provisioning & Persistence: The web interface provides a list of available networks for the user to select and enter credentials. Once submitted, these values are securely stored in the NVRAM.
+- Reboot & Initialization: After saving the new credentials, the ESP32-S3 performs a software reset. On the subsequent boot, it uses the newly stored data to connect to the intended Wi-Fi network.
 
 #### Compile code
 
@@ -177,7 +176,7 @@ For this situation you can use a prepared docker image to compile the code:
 
 First adapt the file Makefile and choose the board you want the binary files to be uploaded for (adapt variable BOARD).
 Binary files for the Android BLE keyboard variant are also part of the git repository, so you don't have to compile them yourself if you don't want to.
-If you want to use the web keyboard, you have to provide the credentials of your WLAN and compile the binary yourself.
+If you want to use the web keyboard, you have to compile the binary yourself.
 
 Afterwards you can upload the binary files:  
 make upload

@@ -24,7 +24,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include <Arduino.h>
+#include <ESPAsyncDNSServer.h>
 #include <ESPAsyncWebServer.h>
+#include <Preferences.h>
 #include <atomic>
 #include <queue>
 
@@ -77,10 +79,15 @@ private:
   void processSingleKey(const char *type, const char *keyId, bool shift,
                         bool ctrl, bool comm);
   void printIPAddress();
+  String getNetworksHTML();
+  void startCaptivePortal();
+  void connectToWiFi(const String &ssid, const String &pass);
 
   uint16_t port;
   AsyncWebServer *server;
   AsyncWebSocket *ws;
+  AsyncDNSServer dns_server;
+  Preferences prefs;
 
   std::atomic<uint16_t> dc01dc00; // high byte = dc01, low byte = dc00
   std::atomic<uint8_t> shiftctrlcode{0};

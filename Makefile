@@ -4,8 +4,8 @@
 BOARD := WAVESHARE
 
 # choose keyboard
-KEYBOARD := BLE_KEYBOARD
-#KEYBOARD := WEB_KEYBOARD
+#KEYBOARD := BLE_KEYBOARD
+KEYBOARD := WEB_KEYBOARD
 
 UNAME_S := $(shell uname -s)
 
@@ -32,7 +32,7 @@ HEADERFILES := $(shell find src -name '*.h')
 
 TARGET := build$(BOARD)/T-HMI-C64.ino.elf
 
-CLI_COMPILE := compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD) -DUSE_$(KEYBOARD) -DWLAN_SSID=\"${WLAN_SSID}\" -DWLAN_PASSWORD=\"${WLAN_PASSWORD}\" -DESP32" --build-path build$(BOARD) T-HMI-C64.ino
+CLI_COMPILE := compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD) -DUSE_$(KEYBOARD) -DESP32" --build-path build$(BOARD) T-HMI-C64.ino
 
 # -DESP32 is needed for ESP_Async_WebServer, Async_TCP
 $(TARGET):	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES)
@@ -50,19 +50,7 @@ src/listactions.h:	src/listactions.asm
 	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/listactions.asm -o src/listactions.prg
 	xxd -i src/listactions.prg > src/listactions.h
 
-check_settings:
-	@if [ "$(KEYBOARD)" = "WEB_KEYBOARD" ]; then \
-		if [ -z "$(WLAN_SSID)" ]; then \
-			echo "Error: WLAN_SSID is not set"; \
-			exit 1; \
-		fi; \
-		if [ -z "$(WLAN_PASSWORD)" ]; then \
-			echo "Error: WLAN_PASSWORD is not set"; \
-			exit 1; \
-		fi \
-	fi
-
-compile:	check_settings $(TARGET)
+compile:	$(TARGET)
 
 clean:
 	rm -rf build$(BOARD)
@@ -101,6 +89,7 @@ install:	check_install
 	arduino-cli config set library.enable_unsafe_install true
 	arduino-cli lib install --git-url https://github.com/ESP32Async/AsyncTCP.git
 	arduino-cli lib install --git-url https://github.com/ESP32Async/ESPAsyncWebServer.git
+	arduino-cli lib install --git-url https://github.com/devyte/ESPAsyncDNSServer.git
 
 check_install:
 	@echo -n "Are you sure? [y/N] " && read ans && [ $${ans:-N} = y ]
