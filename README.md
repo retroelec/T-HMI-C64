@@ -7,7 +7,8 @@ The emulator was later expanded to support the
 
 Keyboard input is simulated via a custom Android app or via a web interface.  
 The Android app communicates with the emulator via Bluetooth Low Energy (BLE).
-The web keyboard was provided by uliuc@gmx.net.
+The web keyboard was provided by uliuc@gmx.net.  
+Further a "joystick-only" operation is possible for some games.
 
 After extensive refactoring, the code should now be portable to other ESP32-S3 boards (and even other platforms).
 
@@ -149,15 +150,6 @@ The web keyboard requires the following libraries for a successful compilation: 
 The libraries AsyncTCP and ESPAsyncWebServer need to be installed from their respective GitHub pages, as the versions available
 in the standard Arduino Library Manager are outdated and incompatible with the current source code of this project.
 
-To ensure flexibility and security, the ESP32-S3 development board utilizes a dynamic Wi-Fi provisioning system.
-This avoids the need to hardcode sensitive credentials during compilation. The process follows a structured fallback logic:
-
-- Credential Retrieval: Upon startup, the system attempts to retrieve the SSID and password from the non-volatile memory (NVRAM) using the Arduino Preferences library.
-- Connection Attempt: The board attempts to establish a connection to the stored local network in Station (STA) mode.
-- Fallback to Access Point (AP): If the connection fails or no credentials are found, the board automatically initializes as an Access Point (AP). In this mode, it hosts a specialized web interface designed for network configuration. Use the default P address for an ESP32 when it's in AP mode to get this web page: http://192.168.4.1
-- Provisioning & Persistence: The web interface provides a list of available networks for the user to select and enter credentials. Once submitted, these values are securely stored in the NVRAM.
-- Reboot & Initialization: After saving the new credentials, the ESP32-S3 performs a software reset. On the subsequent boot, it uses the newly stored data to connect to the intended Wi-Fi network.
-
 #### Compile code
 
 If you installed the required Arduino core and libraries on your system (see also previous chapter),
@@ -242,14 +234,6 @@ Besides the normal C64 keys this virtual keyboard also provides some extra butto
 - RESET: reset C64
 - OFF: switch off T-HMI development board
 
-### Web keyboard
-
-The keyboard is accessed via the URL http://"ip-address-of-your-esp32s3" on standard port 80.
-If you have selected the web keyboard, the IP address of your development board will be displayed on the C64 screen at startup (top line).
-The GUI itself is self explaining.
-
-<img src="doc/webkeyboard.png" alt="Web Keyboard" width="800"/>
-
 #### DIV screen
 
 <img src="doc/THMIC64KB_Div.png" alt="DIV Screen" width="800"/>
@@ -267,6 +251,44 @@ Because it is difficult to keep an eye on the screen and press the right keys on
 the flippers of “David's Midnight Magic” have been outsourced to a separate screen.
 When you open this screen, the options "Send raw keycodes" and "Detect key release" are automatically enabled.
 When you close this screen again, both options are reset to the previous values.
+
+### Web keyboard
+
+To ensure flexibility and security, the ESP32-S3 development board utilizes a dynamic Wi-Fi provisioning system.
+This avoids the need to hardcode sensitive credentials during compilation. The process follows a structured fallback logic:
+
+- Credential Retrieval: Upon startup, the system attempts to retrieve the SSID and password from the non-volatile memory (NVRAM) using the Arduino Preferences library.
+- Connection Attempt: The board attempts to establish a connection to the stored local network in Station (STA) mode.
+- Fallback to Access Point (AP): If the connection fails or no credentials are found, the board automatically initializes as an Access Point (AP). In this mode, it hosts a specialized web interface designed for network configuration. Use the default P address for an ESP32 when it's in AP mode to get this web page: http://192.168.4.1
+- Provisioning & Persistence: The web interface provides a list of available networks for the user to select and enter credentials. Once submitted, these values are securely stored in the NVRAM.
+- Reboot & Initialization: After saving the new credentials, the ESP32-S3 performs a software reset. On the subsequent boot, it uses the newly stored data to connect to the intended Wi-Fi network.
+
+The keyboard is then accessed via the URL http://"ip-address-of-your-esp32s3" on standard port 80.
+If you have selected the web keyboard, the IP address of your development board will be displayed on the C64 screen at startup (top line).
+The GUI itself is self explaining.
+
+<img src="doc/webkeyboard.png" alt="Web Keyboard" width="800"/>
+
+### "Joystick-Only" operation
+
+For a seamless gaming experience, the emulator can be controlled entirely via joystick, eliminating the need for a keyboard:
+
+- Open OSD Menu: Press and hold fire button 2 for 2 seconds.
+- Close OSD Menu: Press fire button 1.
+
+Menu navigation (post-reset):
+
+- Browse games: Move down to scroll through your library.
+- Launch game: Move left to load and auto-run the selected game (supports .prg files only, closes menu automatically).
+- Select joystick port: Move right to toggle between port 1 and port 2.
+- Power off: Move up to shut down the development board.
+
+While a game is running, the OSD allows you to trigger essential commands:
+
+- Send "space": Move down to emulate the space bar.
+- Send "1": Move left to emulate the "1" key (common for starting games).
+- Swap ports: Move right to switch joystick ports on the fly.
+- System reset: Move up to perform a hard reset of the emulator (closes menu automatically).
 
 ### Load a program from SD card
 

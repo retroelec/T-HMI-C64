@@ -114,6 +114,7 @@ private:
   inline void checkFrameColor() __attribute__((always_inline));
   void dispOverlayInfoInt(uint8_t doiidx);
   void dispOverlayInfo();
+  void drawOverlay(uint8_t doiidx);
 
 public:
   // profiling info

@@ -575,6 +575,37 @@ void VIC::refresh() {
   cntRefreshs.fetch_add(1, std::memory_order_release);
 }
 
+void VIC::drawOverlay(uint8_t doiidx) {
+  if (!doiactive[doiidx]) {
+    return;
+  }
+  uint8_t cline = line >> 3;
+  if ((cline < doistarty[doiidx]) ||
+      (cline >= doistarty[doiidx] + doih[doiidx])) {
+    return;
+  }
+  uint8_t crow = doistartx[doiidx];
+  uint16_t bgcol = tftColorFromC64ColorArr[doibgcol[doiidx] & 15];
+  uint16_t fgcol = tftColorFromC64ColorArr[doicol[doiidx] & 15];
+  uint16_t idxdoi = line * 320 + crow * 8;
+  uint16_t tidxdoi = crow + cline * 40;
+  uint8_t rowdoi = line & 7;
+  for (uint8_t x = 0; x < doiw[doiidx]; x++) {
+    uint8_t ch = doitextmap[tidxdoi++];
+    uint16_t idxch = ch << 3;
+    uint8_t data = chrom[idxch + rowdoi];
+    uint8_t bitval = 128;
+    for (uint8_t i = 0; i < 8; i++) {
+      if (data & bitval) {
+        bitmap[idxdoi++] = fgcol;
+      } else {
+        bitmap[idxdoi++] = bgcol;
+      }
+      bitval >>= 1;
+    }
+  }
+}
+
 uint8_t VIC::nextRasterline() {
   rasterline++;
   uint8_t d011 = vicreg[0x11];
@@ -676,6 +707,9 @@ void VIC::drawRasterline() {
         drawidleline(ghostbyte);
       }
       drawSprites(rasterline - 1);
+      // draw overlay
+      drawOverlay(0);
+      drawOverlay(1);
     } else {
       drawemptyline(tftColorFromC64ColorArr[vicreg[0x20] & 15]);
     }
@@ -713,29 +747,6 @@ void VIC::dispOverlayInfoInt(uint8_t doiidx) {
   if (acttime - doistarttime[doiidx] >= doiduration[doiidx]) {
     doiactive[doiidx] = false;
     return;
-  }
-  uint16_t bgcol = tftColorFromC64ColorArr[doibgcol[doiidx] & 15];
-  uint16_t fgcol = tftColorFromC64ColorArr[doicol[doiidx] & 15];
-  for (uint8_t y = doistarty[doiidx]; y < doistarty[doiidx] + doih[doiidx];
-       y++) {
-    for (uint8_t x = doistartx[doiidx]; x < doistartx[doiidx] + doiw[doiidx];
-         x++) {
-      uint16_t idxtm = x + y * 40;
-      uint16_t idxch = 8 * doitextmap[idxtm];
-      uint16_t idxbm = (x + y * 320) << 3;
-      for (uint8_t i = 0; i < 8; i++) {
-        uint16_t idx = idxbm + i * 320;
-        uint8_t rowOfChar = chrom[idxch++];
-        bitmap[idx++] = (rowOfChar & 128) ? fgcol : bgcol;
-        bitmap[idx++] = (rowOfChar & 64) ? fgcol : bgcol;
-        bitmap[idx++] = (rowOfChar & 32) ? fgcol : bgcol;
-        bitmap[idx++] = (rowOfChar & 16) ? fgcol : bgcol;
-        bitmap[idx++] = (rowOfChar & 8) ? fgcol : bgcol;
-        bitmap[idx++] = (rowOfChar & 4) ? fgcol : bgcol;
-        bitmap[idx++] = (rowOfChar & 2) ? fgcol : bgcol;
-        bitmap[idx++] = (rowOfChar & 1) ? fgcol : bgcol;
-      }
-    }
   }
 }
 
