@@ -203,7 +203,7 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         }
       }
     } else {
-      if (joystickActive || gamemode) {
+      if (joystickActive || specialjoymode) {
         switch (key) {
         case SDLK_RIGHT:
         case SDLK_LEFT:
@@ -229,7 +229,7 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
 
 void SDLKB::init() {
   SDL_InitSubSystem(SDL_INIT_EVENTS);
-  gamemode = false;
+  specialjoymode = false;
 }
 
 void SDLKB::feedEvents() {
@@ -285,7 +285,9 @@ void SDLKB::setKBcodes(uint8_t sentdc01, uint8_t sentdc00) {
 
 void SDLKB::setDetectReleasekey(bool detectreleasekey) {}
 
-void SDLKB::setGamemode(bool gamemode) { this->gamemode = gamemode; }
+void SDLKB::setSpecialjoymode(bool specialjoymode) {
+  this->specialjoymode = specialjoymode;
+}
 
 void SDLKB::setJoystickmode(ExtCmd joystickmode) {
   this->joystickmode = joystickmode;

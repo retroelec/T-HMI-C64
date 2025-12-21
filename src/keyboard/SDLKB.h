@@ -42,7 +42,7 @@ private:
   bool keyFire = false;
   bool commodoreKeyPressed = false;
 
-  bool gamemode;
+  bool specialjoymode;
 
   bool attachwinopen = false;
   static const uint16_t DISKNAMEMAXLEN = 17;
@@ -72,7 +72,7 @@ public:
   uint8_t getKBJoyValue() override;
   void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) override;
   void setDetectReleasekey(bool detectreleasekey) override;
-  void setGamemode(bool gamemode) override;
+  void setSpecialjoymode(bool specialjoymode) override;
   void setJoystickmode(ExtCmd joystickmode) override;
 };
 #endif

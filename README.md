@@ -147,7 +147,7 @@ First adapt the file Makefile and choose
 #### Web keyboard
 
 The web keyboard requires the following libraries for a successful compilation: ArduinoJson, AsyncTCP, ESPAsyncWebServer and ESPAsyncDNSServer.
-The libraries AsyncTCP and ESPAsyncWebServer need to be installed from their respective GitHub pages, as the versions available
+The libraries AsyncTCP, ESPAsyncWebServer and ESPAsyncDNSServer need to be installed from their respective GitHub pages, as the versions available
 in the standard Arduino Library Manager are outdated and incompatible with the current source code of this project.
 
 #### Compile code
@@ -269,9 +269,9 @@ The GUI itself is self explaining.
 
 <img src="doc/webkeyboard.png" alt="Web Keyboard" width="800"/>
 
-### "Joystick-Only" operation
+### "Joystick-only" operation
 
-For a seamless gaming experience, the emulator can be controlled entirely via joystick, eliminating the need for a keyboard:
+The joystick can also be used to load and launch single filed games, eliminating the need for a keyboard:
 
 - Open OSD Menu: Press and hold fire button 2 for 2 seconds.
 - Close OSD Menu: Press fire button 1.
@@ -285,10 +285,13 @@ Menu navigation (post-reset):
 
 While a game is running, the OSD allows you to trigger essential commands:
 
-- Send "space": Move down to emulate the space bar.
-- Send "1": Move left to emulate the "1" key (common for starting games).
+- Scroll through "important" keys: Move left to scroll trough a fixed set of keys.
+- Send chosen key: Move down to emulate pressing the chosen key (closes menu automatically).
 - Swap ports: Move right to switch joystick ports on the fly.
 - System reset: Move up to perform a hard reset of the emulator (closes menu automatically).
+
+Hint: Pressing the spacebar can usually also be simulated by pressing the joystick's fire button
+(button 1 for joystick in port 1, button 2 for joystick in port 2).
 
 ### Load a program from SD card
 

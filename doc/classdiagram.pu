@@ -109,21 +109,25 @@ skinparam class {
 package "KeyboardComponent" {
 class BLEKB <<hw_specific>>
 class SDLKB <<hw_specific>>
+class WebKB <<hw_specific>>
 interface KeyboardDriver
 class KeyboardFactory <<factory>>
 
 BLEKB ..|> KeyboardDriver
 SDLKB ..|> KeyboardDriver
+WebKB ..|> KeyboardDriver
 KeyboardFactory ..> KeyboardDriver
 }
 
 package "JoystickComponent" {
 class ArduinoJoystick <<hw_specific>>
+class SDLJoystick <<hw_specific>>
 class NoJoystick
 interface JoystickDriver
 class JoystickFactory <<factory>>
 
 ArduinoJoystick ..|> JoystickDriver
+SDLJoystick ..|> JoystickDriver
 NoJoystick ..|> JoystickDriver
 JoystickFactory ..> JoystickDriver
 }

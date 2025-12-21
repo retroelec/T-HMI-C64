@@ -521,21 +521,31 @@ static uint8_t listboxhelp[] =
     "\x42\x20\x20\x20\x20\x0e\x05\x18\x14\x20\x20\x20\x20\x20\x42"
     "\x4a\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x4b";
 
-static uint8_t ingamebox[] =
+uint8_t ingamebox[] =
     "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x49"
     "\x42\x20\x20\x20\x20\x12\x05\x13\x05\x14\x20\x20\x20\x20\x42"
     "\x42\x20\x20\x20\x20\x20\x55\x44\x49\x20\x20\x20\x20\x20\x42"
-    "\x42\x20\x27\x31\x27\x20\x47\x51\x48\x20\x0a\x0f\x19\x20\x42"
+    "\x42\x20\x27\x20\x27\x20\x47\x51\x48\x20\x0a\x0f\x19\x20\x42"
     "\x42\x20\x20\x20\x20\x20\x4a\x46\x4b\x20\x20\x20\x20\x20\x42"
-    "\x42\x20\x20\x20\x20\x20\x27\x20\x27\x20\x20\x20\x20\x20\x42"
+    "\x42\x20\x20\x13\x05\x0e\x04\x20\x0b\x05\x19\x20\x20\x20\x42"
     "\x42\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x42"
     "\x42\x06\x09\x12\x05\x20\x14\x0f\x20\x05\x18\x09\x14\x20\x42"
     "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x4b";
 
+C64Sys::TextKeycode C64Sys::getNextKeycode() {
+  if (listInGameKeycodes.empty()) {
+    return {{39, 32, 39}, C64_KEYCODE_SPACE};
+  }
+  TextKeycode data = listInGameKeycodes[listInGameKeycodesIdx];
+  listInGameKeycodesIdx =
+      (listInGameKeycodesIdx + 1) % listInGameKeycodes.size();
+  return data;
+}
+
 void C64Sys::check4extcmd() {
-  bool isBasicInputMode = externalCmds->isBasicInputMode();
   bool fire2pressed = false;
-  if (specialjoymodestate == SpecialJoyModeState::NONE) {
+  if ((specialjoymodestate == SpecialJoyModeState::NONE) ||
+      (specialjoymodestate == SpecialJoyModeState::RUN)) {
     bool fire2pressing = joystick->getFire2();
     if (fire2pressing) {
       specialjoymodecnt++;
@@ -553,22 +563,27 @@ void C64Sys::check4extcmd() {
   if (extcmdbuffer != nullptr) {
     executeExtCmdKB = true;
   } else if (specialjoymodestate == SpecialJoyModeState::NONE) {
-    keyboard->setGamemode(false);
+    keyboard->setSpecialjoymode(false);
     specialjoymode = false;
     if (fire2pressed) {
       specialjoymodecnt = 0;
       specialjoymode = true;
-      keyboard->setGamemode(true);
-      if (isBasicInputMode) {
-        const char *msg = "\x10\x12\x5\x13\x13 \xa\xf\x19 \x4\xf\x17\xe  ";
-        memcpy(&listbox[22], msg, 16);
-        vic.drawDOIBox(listbox, 9, 1, 20, 3, 1, 0, 65535, 1);
-        vic.drawDOIBox(listboxhelp, 12, 6, 15, 7, 1, 0, 5, 0);
-        liststartflag = true;
-        specialjoymodestate = SpecialJoyModeState::CHOOSEFILE;
-      } else {
-        specialjoymodestate = SpecialJoyModeState::INGAME;
-      }
+      keyboard->setSpecialjoymode(true);
+      const char *msg = "\x10\x12\x5\x13\x13 \xa\xf\x19 \x4\xf\x17\xe  ";
+      memcpy(&listbox[22], msg, 16);
+      vic.drawDOIBox(listbox, 9, 1, 20, 3, 1, 0, 65535, 1);
+      vic.drawDOIBox(listboxhelp, 12, 6, 15, 7, 1, 0, 5, 0);
+      liststartflag = true;
+      specialjoymodestate = SpecialJoyModeState::CHOOSEFILE;
+    }
+  } else if (specialjoymodestate == SpecialJoyModeState::RUN) {
+    keyboard->setSpecialjoymode(false);
+    specialjoymode = false;
+    if (fire2pressed) {
+      specialjoymodecnt = 0;
+      specialjoymode = true;
+      keyboard->setSpecialjoymode(true);
+      specialjoymodestate = SpecialJoyModeState::INGAME;
     }
   } else if (specialjoymodestate == SpecialJoyModeState::CHOOSEFILE) {
     bool fire1pressing = joystick->getValue() == 0xff - (1 << 4);
@@ -610,7 +625,7 @@ void C64Sys::check4extcmd() {
         }
       }
     } else if (leftpressed) {
-      specialjoymodestate = SpecialJoyModeState::NONE;
+      specialjoymodestate = SpecialJoyModeState::RUN;
       vic.doiactive[1] = false;
       cpuhalted = true;
       if (floppy.fsinitialized) {
@@ -670,11 +685,15 @@ void C64Sys::check4extcmd() {
     bool rightpressed = rightpressing && (!gmprevright);
     gmprevright = rightpressing;
     if (downpressed) {
-      vic.drawDOIBox((uint8_t *)"\xa0", 39, 24, 1, 1, 1, 0, 2, 0);
-      setKeycodes(0xef, 0x7f); // send space
+      auto [row, col, mod] = actInGameKeycode;
+      setKeycodes(col, row);
     } else if (leftpressed) {
-      vic.drawDOIBox((uint8_t *)"\x31", 39, 24, 1, 1, 1, 0, 2, 0);
-      setKeycodes(0xfe, 0x7f); // send '1'
+      auto [text, keycode] = getNextKeycode();
+      actInGameKeycode = keycode;
+      auto [ch1, ch2, ch3] = text;
+      ingamebox[47] = ch1;
+      ingamebox[48] = ch2;
+      ingamebox[49] = ch3;
     } else if (rightpressed) {
       switch (joystickmode) {
       case 0:
@@ -694,7 +713,7 @@ void C64Sys::check4extcmd() {
       extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::RESET)};
       executeExtCmdGM = true;
     } else if (fire1pressed) {
-      specialjoymodestate = SpecialJoyModeState::NONE;
+      specialjoymodestate = SpecialJoyModeState::RUN;
       vic.doiactive[1] = false;
     }
   }
@@ -867,6 +886,11 @@ void C64Sys::initMemAndRegs() {
   gmprevright = false;
   specialjoymodestate = SpecialJoyModeState::NONE;
   specialjoymode = false;
+  listInGameKeycodesIdx = 1;
+  ingamebox[47] = 39;
+  ingamebox[48] = 32;
+  ingamebox[49] = 39;
+  actInGameKeycode = C64_KEYCODE_SPACE;
 }
 
 void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {

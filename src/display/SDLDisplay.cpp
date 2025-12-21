@@ -90,45 +90,10 @@ void SDLDisplay::drawFrame(uint16_t frameColor) {
   SDL_RenderFillRect(renderer, &right);
 }
 
-struct Overlay {
-  char digit1 = 0;
-  char digit2 = 0;
-  uint32_t startTicks = 0;
-  uint16_t duration = 2000; // in ms
-  bool active = false;
-};
-
-Overlay overlay;
-
-void SDLDisplay::dispOverlayInfoDeprecated(char digit1, char digit2) {
-  overlay.digit1 = digit1;
-  overlay.digit2 = digit2;
-  overlay.startTicks = SDL_GetTicks();
-  overlay.active = true;
-}
-
-void drawDigits(SDL_Renderer *r, uint16_t x, uint16_t y) {
-  drawChar(r, overlay.digit1, x, y, 2);
-  x += 16;
-  drawChar(r, overlay.digit2, x, y, 2);
-}
-
-void renderOverlay(SDL_Renderer *renderer) {
-  if (!overlay.active)
-    return;
-  uint32_t now = SDL_GetTicks();
-  if (now > overlay.startTicks + overlay.duration) {
-    overlay.active = false;
-    return;
-  }
-  drawDigits(renderer, 320, 220);
-}
-
 void SDLDisplay::drawBitmap(uint16_t *bitmap) {
   SDL_UpdateTexture(texture, nullptr, bitmap, 320 * sizeof(uint16_t));
   SDL_Rect dst{BORDERWIDTH, BORDERHEIGHT, 320, 200};
   SDL_RenderCopy(renderer, texture, nullptr, &dst);
-  renderOverlay(renderer);
   SDL_RenderPresent(renderer);
 }
 

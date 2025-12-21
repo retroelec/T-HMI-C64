@@ -124,14 +124,15 @@ public:
   virtual void feedEvents() {}
 
   /**
-   * @brief Sets the "gamemode" state.
+   * @brief Sets the "specialjoymode" state.
    *
    * Used for systems which emulate joystick input via the keyboard.
-   *
-   * @return true if the button 3 is pressed, false otherwise.
    */
-  virtual void setGamemode(bool gamemode) {}
+  virtual void setSpecialjoymode(bool specialjoymode) {}
 
+  /**
+   * @brief Sets the joystick mode.
+   */
   virtual void setJoystickmode(ExtCmd joystickmode) {}
 
   virtual ~KeyboardDriver() {}

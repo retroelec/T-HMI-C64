@@ -716,10 +716,6 @@ void VIC::drawRasterline() {
   }
 }
 
-void VIC::dispOverlayInfoDeprecated(char digit1, char digit2) {
-  display->dispOverlayInfoDeprecated(digit1, digit2);
-}
-
 void VIC::drawDOIBox(uint8_t *box, uint8_t x, uint8_t y, uint8_t w, uint8_t h,
                      uint8_t fgcol, uint8_t bgcol, uint16_t duration,
                      uint8_t doiidx) {

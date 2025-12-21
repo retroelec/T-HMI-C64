@@ -91,18 +91,6 @@ public:
    */
   virtual const uint16_t *getC64Colors() const { return c64Colors; }
 
-  /**
-   * @brief Displays two characters as a overlay for a certain time. The method
-   * is intended for SDL displays only.
-   *
-   * The overlay information consists of two optional characters. It can be used
-   * e.g. to display the actual volume or joystick port.
-   *
-   * @param char1 Optional character to be displayed.
-   * @param char2 Optional character to be displayed.
-   */
-  virtual void dispOverlayInfoDeprecated(char char1, char char2) {}
-
   virtual ~DisplayDriver() {}
 };
 
