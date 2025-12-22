@@ -1,11 +1,11 @@
 # choose board
-#BOARD := T_HMI
+BOARD := T_HMI
 #BOARD := T_DISPLAY_S3
-BOARD := WAVESHARE
+#BOARD := WAVESHARE
 
 # choose keyboard
-#KEYBOARD := BLE_KEYBOARD
-KEYBOARD := WEB_KEYBOARD
+KEYBOARD := BLE_KEYBOARD
+#KEYBOARD := WEB_KEYBOARD
 
 UNAME_S := $(shell uname -s)
 
@@ -17,6 +17,7 @@ else ifeq ($(UNAME_S),Darwin)
 endif
 
 ALLBOARDS := T_HMI T_DISPLAY_S3 WAVESHARE
+ALLKEYBOARDS := BLE_KEYBOARD WEB_KEYBOARD
 
 ifeq ($(BOARD), WAVESHARE)
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
@@ -32,33 +33,23 @@ HEADERFILES := $(shell find src -name '*.h')
 
 TARGET := build$(BOARD)/T-HMI-C64.ino.elf
 
-CLI_COMPILE := compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD) -DUSE_$(KEYBOARD) -DESP32" --build-path build$(BOARD) T-HMI-C64.ino
+CLI_COMPILE := compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD) -DUSE_$(KEYBOARD) -DESP32" --build-path build-$(BOARD)-$(KEYBOARD) T-HMI-C64.ino
 
 # -DESP32 is needed for ESP_Async_WebServer, Async_TCP
-$(TARGET):	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES)
+$(TARGET):	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES) Makefile
 	arduino-cli $(CLI_COMPILE)
-
-src/loadactions.h:	src/loadactions.asm
-	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/loadactions.asm -o src/loadactions.prg
-	xxd -i src/loadactions.prg > src/loadactions.h
-
-src/saveactions.h:	src/saveactions.asm
-	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/saveactions.asm -o src/saveactions.prg
-	xxd -i src/saveactions.prg > src/saveactions.h
-
-src/listactions.h:	src/listactions.asm
-	/opt/TMPx_v1.1.0-STYLE/linux-x86_64/tmpx src/listactions.asm -o src/listactions.prg
-	xxd -i src/listactions.prg > src/listactions.h
 
 compile:	$(TARGET)
 
 clean:
-	rm -rf build$(BOARD)
+	rm -rf build-$(BOARD)-$(KEYBOARD)
 
 compileAll:
 	@for board in $(ALLBOARDS); do \
-		echo "\ncompiling for $$board"; \
-		$(MAKE) clean compile BOARD=$$board KEYBOARD=BLE_KEYBOARD || exit $$?; \
+		for kbd in $(ALLKEYBOARDS); do \
+			echo "\nCompiling for Board: $$board | Keyboard: $$kbd"; \
+			$(MAKE) clean compile BOARD=$$board KEYBOARD=$$kbd || exit $$?; \
+		done \
 	done
 
 # first you have to get the docker image:
@@ -67,7 +58,7 @@ podcompile:	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES)
 	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli-thmic64 $(CLI_COMPILE)
 
 upload:
-	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build$(BOARD)/T-HMI-C64.ino.bin
+	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build-$(BOARD)-$(KEYBOARD)/T-HMI-C64.ino.bin
 
 # create file $HOME/.minirc.dfl 
 # content:

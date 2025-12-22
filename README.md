@@ -259,9 +259,11 @@ This avoids the need to hardcode sensitive credentials during compilation. The p
 
 - Credential Retrieval: Upon startup, the system attempts to retrieve the SSID and password from the non-volatile memory (NVRAM) using the Arduino Preferences library.
 - Connection Attempt: The board attempts to establish a connection to the stored local network in Station (STA) mode.
-- Fallback to Access Point (AP): If the connection fails or no credentials are found, the board automatically initializes as an Access Point (AP). In this mode, it hosts a specialized web interface designed for network configuration. Use the default P address for an ESP32 when it's in AP mode to get this web page: http://192.168.4.1
+- Fallback to Access Point (AP): If the connection fails or no credentials are found, the board automatically initializes as an Access Point (AP).
+To configure the device, you must manually disconnect your smartphone or computer from your current Wi-Fi and connect it to the ESP32's broadcasted
+network (T-HMI-C64). Once connected, use the default IP address to access the configuration interface: http://192.168.4.1.
 - Provisioning & Persistence: The web interface provides a list of available networks for the user to select and enter credentials. Once submitted, these values are securely stored in the NVRAM.
-- Reboot & Initialization: After saving the new credentials, the ESP32-S3 performs a software reset. On the subsequent boot, it uses the newly stored data to connect to the intended Wi-Fi network.
+- Reboot & Initialization: After saving the new credentials, the ESP32-S3 performs a software reset. On the subsequent boot, it uses the newly stored data to connect to your normal Wi-Fi network.
 
 The keyboard is then accessed via the URL http://"ip-address-of-your-esp32s3" on standard port 80.
 If you have selected the web keyboard, the IP address of your development board will be displayed on the C64 screen at startup (top line).

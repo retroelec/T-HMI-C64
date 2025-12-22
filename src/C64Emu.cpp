@@ -70,7 +70,7 @@ void PLATFORM_ATTR_ISR C64Emu::intervalTimerTODFunc() {
 }
 
 void PLATFORM_ATTR_ISR C64Emu::intervalTimerScanKeyboardFunc() {
-  cpu.keyboard->scanKeyboard();
+  cpu.scanKeyboard();
 }
 
 void C64Emu::cpuCode(void *parameter) {

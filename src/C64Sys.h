@@ -110,6 +110,9 @@ public:
   std::atomic<uint16_t> batteryVoltage;
   std::atomic<bool> poweroff;
 
+  std::atomic<bool> actInGameKeycodeChosen;
+  std::atomic<int> actInGameKeycodeCnt;
+
   // set by class ExternalCmds
   uint8_t joystickmode;
   uint8_t kbjoystickmode;
@@ -136,6 +139,7 @@ public:
   void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
   void exeSubroutine(uint16_t regpc);
   void setKeycodes(uint8_t keycode1, uint8_t keycode2);
+  void scanKeyboard();
 };
 
 #endif // C64SYS_H

@@ -34,6 +34,7 @@
 #include "roms/kernal.h"
 #include <atomic>
 #include <cstdint>
+#include <tuple>
 
 static const char *TAG = "CPUC64";
 
@@ -49,13 +50,21 @@ static const char *TAG = "CPUC64";
 // "(cia1.ciareg[0x00] & ddra) | (input & ~ddra);"
 
 uint8_t C64Sys::getDC01(uint8_t dc00, bool xchgports) {
+  uint8_t kbcodedc01 =
+      xchgports ? keyboard->getKBCodeDC00() : keyboard->getKBCodeDC01();
+  uint8_t kbcodedc00 =
+      xchgports ? keyboard->getKBCodeDC01() : keyboard->getKBCodeDC00();
+  if (actInGameKeycodeChosen.load(std::memory_order_acquire) && (!xchgports)) {
+    uint8_t mod;
+    std::tie(kbcodedc00, kbcodedc01, mod) = actInGameKeycode;
+  }
   if (dc00 == 0) {
-    return keyboard->getKBCodeDC01();
+    return kbcodedc01;
   }
   // special case "shift" + "commodore"
   if ((keyboard->getShiftctrlcode() & 5) == 5) {
-    if (dc00 == keyboard->getKBCodeDC00()) {
-      return keyboard->getKBCodeDC01();
+    if (dc00 == kbcodedc00) {
+      return kbcodedc01;
     } else {
       return 0xff;
     }
@@ -63,40 +72,40 @@ uint8_t C64Sys::getDC01(uint8_t dc00, bool xchgports) {
   // key combined with a "special key" (shift, ctrl, commodore)?
   if ((~dc00 & 2) &&
       (keyboard->getShiftctrlcode() & 1)) { // *query* left shift key?
-    if (keyboard->getKBCodeDC00() == 0xfd) {
+    if (kbcodedc00 == 0xfd) {
       // handle scan of key codes in the same "row"
-      return keyboard->getKBCodeDC01() & 0x7f;
+      return kbcodedc01 & 0x7f;
     } else {
       return 0x7f;
     }
   } else if ((~dc00 & 0x40) &&
              (keyboard->getShiftctrlcode() & 1)) { // *query* right shift key?
-    if (keyboard->getKBCodeDC00() == 0xbf) {
+    if (kbcodedc00 == 0xbf) {
       // handle scan of key codes in the same "row"
-      return keyboard->getKBCodeDC01() & 0xef;
+      return kbcodedc01 & 0xef;
     } else {
       return 0xef;
     }
   } else if ((~dc00 & 0x80) &&
              (keyboard->getShiftctrlcode() & 2)) { // *query* ctrl key?
-    if (keyboard->getKBCodeDC00() == 0x7f) {
+    if (kbcodedc00 == 0x7f) {
       // handle scan of key codes in the same "row"
-      return keyboard->getKBCodeDC01() & 0xfb;
+      return kbcodedc01 & 0xfb;
     } else {
       return 0xfb;
     }
   } else if ((~dc00 & 0x80) &&
              (keyboard->getShiftctrlcode() & 4)) { // *query* commodore key?
-    if (keyboard->getKBCodeDC00() == 0x7f) {
+    if (kbcodedc00 == 0x7f) {
       // handle scan of key codes in the same "row"
-      return keyboard->getKBCodeDC01() & 0xdf;
+      return kbcodedc01 & 0xdf;
     } else {
       return 0xdf;
     }
   }
   // query "main" key press
-  if (dc00 == keyboard->getKBCodeDC00()) {
-    return keyboard->getKBCodeDC01();
+  if (dc00 == kbcodedc00) {
+    return kbcodedc01;
   } else {
     return 0xff;
   }
@@ -685,8 +694,8 @@ void C64Sys::check4extcmd() {
     bool rightpressed = rightpressing && (!gmprevright);
     gmprevright = rightpressing;
     if (downpressed) {
-      auto [row, col, mod] = actInGameKeycode;
-      setKeycodes(col, row);
+      actInGameKeycodeChosen.store(true, std::memory_order_release);
+      actInGameKeycodeCnt.store(3, std::memory_order_release);
     } else if (leftpressed) {
       auto [text, keycode] = getNextKeycode();
       actInGameKeycode = keycode;
@@ -891,6 +900,7 @@ void C64Sys::initMemAndRegs() {
   ingamebox[48] = 32;
   ingamebox[49] = 39;
   actInGameKeycode = C64_KEYCODE_SPACE;
+  actInGameKeycodeChosen.store(false, std::memory_order_release);
 }
 
 void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
@@ -986,4 +996,14 @@ void C64Sys::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
 
 void C64Sys::setKeycodes(uint8_t keycode1, uint8_t keycode2) {
   keyboard->setKBcodes(keycode1, keycode2);
+}
+
+void C64Sys::scanKeyboard() {
+  keyboard->scanKeyboard();
+  if (actInGameKeycodeChosen.load(std::memory_order_acquire)) {
+    uint8_t prev = actInGameKeycodeCnt.fetch_sub(1, std::memory_order_acq_rel);
+    if (prev <= 1) {
+      actInGameKeycodeChosen.store(false, std::memory_order_release);
+    }
+  }
 }

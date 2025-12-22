@@ -18,10 +18,7 @@
 
 #include "C64Sys.h"
 #include "ExtCmd.h"
-#include "listactions.h"
-#include "loadactions.h"
 #include "platform/PlatformManager.h"
-#include "saveactions.h"
 #include <cstring>
 #include <string>
 
@@ -186,14 +183,16 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       PlatformManager::getInstance().log(LOG_INFO, TAG,
                                          "file system not initialized");
     }
-    addr = src_loadactions_prg[0] + (src_loadactions_prg[1] << 8);
-    memcpy(ram + addr, src_loadactions_prg + 2, src_loadactions_prg_len - 2);
+    addr = 0x342;
     if (fileloaded) {
-      cpu->exeSubroutine(addr, 1, 0, 0);
+      memcpy(&ram[addr], "\rLOADED\r\0", 9);
+      writeTextToC64Screen(addr, 9);
     } else if (error) {
-      cpu->exeSubroutine(addr, 0, 1, 0);
+      memcpy(&ram[addr], "\rERROR\r\0", 8);
+      writeTextToC64Screen(addr, 8);
     } else {
-      cpu->exeSubroutine(addr, 0, 0, 0);
+      memcpy(&ram[addr], "\rFILE NOT FOUND\r\0", 17);
+      writeTextToC64Screen(addr, 17);
     }
     cpu->cpuhalted = false;
     return 0;
@@ -217,12 +216,13 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       PlatformManager::getInstance().log(LOG_INFO, TAG,
                                          "file system not initialized");
     }
-    uint16_t addr = src_saveactions_prg[0] + (src_saveactions_prg[1] << 8);
-    memcpy(ram + addr, src_saveactions_prg + 2, src_saveactions_prg_len - 2);
+    uint16_t addr = 0x342;
     if (filesaved) {
-      cpu->exeSubroutine(addr, 1, 0, 0);
+      memcpy(&ram[addr], "\rSAVED\r\0", 8);
+      writeTextToC64Screen(addr, 8);
     } else {
-      cpu->exeSubroutine(addr, 0, 0, 0);
+      memcpy(&ram[addr], "\rERROR\r\0", 8);
+      writeTextToC64Screen(addr, 8);
     }
     cpu->cpuhalted = false;
     return 0;
