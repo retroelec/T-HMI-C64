@@ -5,12 +5,12 @@ The emulator was later expanded to support the
 [Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI) and the
 [ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm).
 
-Keyboard input is simulated via a custom Android app or via a web interface.  
+Keyboard input is implemented via a custom Android app or via a web interface.  
 The Android app communicates with the emulator via Bluetooth Low Energy (BLE).
 The web keyboard was provided by uliuc@gmx.net.  
 Further a "joystick-only" operation is possible for some games.
 
-After extensive refactoring, the code should now be portable to other ESP32-S3 boards (and even other platforms).
+The code should also be portable to other ESP32-S3 boards (and even other platforms).
 
 The emulator is also available as a Linux, Mac and Windows application using SDL for graphics, input, and sound.  
 On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the available sleep functions are too coarse-grained.
@@ -22,9 +22,9 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- "Joystick-only” operation
 - Enclosure for the Waveshare Board by uliuc@gmx.net
 - Web keyboard by uliuc@gmx.net
-- Rudimentary disk drive emulation
 
 ## Hardware
 
@@ -137,20 +137,16 @@ If you have any questions about the gamepad, please contact Uli directly.
   (however please be aware that you could overwrite an already installed specfic Arduino core, see also next chapter):  
   make install
 
-### Compile code (optional for Android BLE keyboard, mandatory for web keyboard)
+### Compile code (optional for T-HMI and Waveshare ESP32-S3-LCD-2.8, mandatory for T-Display S3 AMOLED)
 
 First adapt the file Makefile and choose
 
 - the board you want the code to be compiled for (adapt variable BOARD)
 - the keyboard type: Android BLE keyboard, web keyboard (adapt variable KEYBOARD)
 
-#### Web keyboard
-
 The web keyboard requires the following libraries for a successful compilation: ArduinoJson, AsyncTCP, ESPAsyncWebServer and ESPAsyncDNSServer.
 The libraries AsyncTCP, ESPAsyncWebServer and ESPAsyncDNSServer need to be installed from their respective GitHub pages, as the versions available
 in the standard Arduino Library Manager are outdated and incompatible with the current source code of this project.
-
-#### Compile code
 
 If you installed the required Arduino core and libraries on your system (see also previous chapter),
 you can compile the code using the following command:  
@@ -167,8 +163,7 @@ For this situation you can use a prepared docker image to compile the code:
 ### Upload C64 Emulator to the development board
 
 First adapt the file Makefile and choose the board you want the binary files to be uploaded for (adapt variable BOARD).
-Binary files for the Android BLE keyboard variant are also part of the git repository, so you don't have to compile them yourself if you don't want to.
-If you want to use the web keyboard, you have to compile the binary yourself.
+Binary files for the T-HMI and Waveshare ESP32-S3-LCD-2.8 development boards are also part of the git repository, so you don't have to compile them yourself if you don't want to.
 
 Afterwards you can upload the binary files:  
 make upload
@@ -192,7 +187,7 @@ You may follow these steps to install the app on your Android device (there may 
 3. After the app has been downloaded, a message appears which allows you to open the file.
    Click on open and follow the on-screen instructions to complete the installation.
 
-### Install Emulator for Linux
+### Build emulator for Linux
 
 To build the Linux version, you need to have the GNU C++ compiler and GNU Make installed.
 You also need the SDL2 development libraries, which can be installed with:  
@@ -203,6 +198,20 @@ make c64linux
 
 To start the emulator, run ./c64linux in a shell.
 Press Alt + h in the emulator window to display a simple help page on the emulated C64 screen.
+
+### Build emulator for Mac
+
+Install the GNU C++ compiler, GNU Make aud the SDL2 development libraries and compile using:  
+make c64mac
+
+### Build emulator for Windows
+
+Follow these steps to build the emulator for Windows:  
+
+- Install podman (or alternatively docker)
+- Get docker image: podman pull docker.io/retroelec42/sdl2-cross:latest
+- Create executable: make c64win.exe
+- Run executable: You also need the following dll's to run c64win.exe (you can copy them from the docker image sdl2-cross): libgcc_s_seh-1.dll, libstdc++-6.dll, libwinpthread-1.dll, SDL2.dll
 
 ## Usage
 
@@ -254,6 +263,8 @@ When you close this screen again, both options are reset to the previous values.
 
 ### Web keyboard
 
+Keyboard input can also be done using a web interface.
+
 To ensure flexibility and security, the ESP32-S3 development board utilizes a dynamic Wi-Fi provisioning system.
 This avoids the need to hardcode sensitive credentials during compilation. The process follows a structured fallback logic:
 
@@ -288,7 +299,7 @@ Menu navigation (post-reset):
 While a game is running, the OSD allows you to trigger essential commands:
 
 - Scroll through "important" keys: Move left to scroll trough a fixed set of keys.
-- Send chosen key: Move down to emulate pressing the chosen key (closes menu automatically).
+- Send chosen key: Move down to emulate pressing the chosen key.
 - Swap ports: Move right to switch joystick ports on the fly.
 - System reset: Move up to perform a hard reset of the emulator (closes menu automatically).
 
@@ -345,7 +356,7 @@ component details:
 
 ### Keyboard
 
-Keyboard inputs are sent to the ESP32-S3 via BLE. Three bytes must be sent for each key press:
+Keyboard inputs are sent to the ESP32-S3 via BLE or Wi-Fi. Three bytes must be sent for each key press:
 
 - Value for the $DC00 register
 - Value for the $DC01 register
