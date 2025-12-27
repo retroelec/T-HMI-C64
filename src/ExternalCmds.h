@@ -36,6 +36,7 @@ private:
   void setType5Notification(uint8_t batteryVolLow, uint8_t batteryVolHi);
   void dispVolume();
   void writeTextToC64Screen(uint16_t addr, int16_t sizebuffer);
+  bool isBasicInputMode();
 
 public:
   bool liststartflag;
@@ -49,7 +50,6 @@ public:
   void init(uint8_t *ram, C64Sys *cpu);
   void setVarTab(uint16_t addr);
   uint8_t executeExternalCmd(uint8_t *buffer);
-  bool isBasicInputMode();
 };
 
 #endif // EXTERNALCMDS_H

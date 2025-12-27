@@ -199,11 +199,6 @@ uint8_t BLEKB::getKBJoyValue() {
   return virtjoystickvalue.load(std::memory_order_acquire);
 }
 
-void BLEKB::setKBcodes(uint8_t sentdc01Val, uint8_t sentdc00Val) {
-  sentdc01.store(sentdc01Val, std::memory_order_release);
-  sentdc00.store(sentdc00Val, std::memory_order_release);
-}
-
 void BLEKB::setDetectReleasekey(bool detectreleasekeyVal) {
   detectreleasekey.store(detectreleasekeyVal, std::memory_order_release);
 }

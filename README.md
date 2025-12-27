@@ -211,7 +211,7 @@ Follow these steps to build the emulator for Windows:
 - Install podman (or alternatively docker)
 - Get docker image: podman pull docker.io/retroelec42/sdl2-cross:latest
 - Create executable: make c64win.exe
-- Run executable: You also need the following dll's to run c64win.exe (you can copy them from the docker image sdl2-cross): libgcc_s_seh-1.dll, libstdc++-6.dll, libwinpthread-1.dll, SDL2.dll
+- Copy necessary dll's: make copydlls
 
 ## Usage
 
@@ -277,7 +277,7 @@ network (T-HMI-C64). Once connected, use the default IP address to access the co
 - Reboot & Initialization: After saving the new credentials, the ESP32-S3 performs a software reset. On the subsequent boot, it uses the newly stored data to connect to your normal Wi-Fi network.
 
 The keyboard is then accessed via the URL http://"ip-address-of-your-esp32s3" on standard port 80.
-If you have selected the web keyboard, the IP address of your development board will be displayed on the C64 screen at startup (top line).
+If you have selected the web keyboard, the IP address of your development board will be displayed on the C64 screen at startup.
 The GUI itself is self explaining.
 
 <img src="doc/webkeyboard.png" alt="Web Keyboard" width="800"/>
@@ -313,8 +313,8 @@ You first have to copy C64 games in prg or d64 format to an SD card
 You have to insert the SD card before you power on the development board.
 
 You can load a prg file into memory using an "external command".
-To do this, you first type in the name of the program (without extension ".prg"!) so it shows up on the C64 text screen (e.g. dkong).
-You then press the LOAD button on your Android phone (cursor must be on the same line and behind or in the middle of the game title).
+To do this, first type in the name of the program (without extension ".prg"!) so it shows up on the C64 text screen (e.g. dkong).
+You then press the LOAD button (cursor must be on the same line and behind or in the middle of the game title).
 If the file is found the text "LOADED" appears on screen, otherwise the text "FILE NOT FOUND" appears.
 Afterwards, as usual, you can start the game by typing "RUN" followed by pressing the button RETURN.
 
@@ -328,16 +328,13 @@ Note: The wildcard * to load the first program does not yet work.
 
 <img src="doc/loadprg.gif" alt="class diagram" width="800"/>
 
-Hint: You can use [D64 Editor](https://www.d64editor.com/) to extract prg files from d64 files (also works unter linux using wine).
-
 ### Save a program to SD card
 
-Type in the name of the program so that it appears on the screen. Then press the SAVE button on the DIV screen to save the program.
+Type in the name of the program so that it appears on the screen. Then press the SAVE button to save the program.
 
 ### List programs on SD card
 
-Just press the LIST button on the DIV screen. If more than 23 programs are stored on the SD card,
-you can display all programs stored on the SD card by repeatedly pressing the LIST button.
+The LIST button shows the programs on the SD card in a paginated list.
 
 ### Send a program by BLE
 

@@ -214,7 +214,7 @@ struct Config {
   static const uint16_t LCD_BACKLIGHT_DUTYFACTOR = 500;
 
   // Sound
-  static const uint8_t DEFAULT_VOLUME = 200;
+  static const uint8_t DEFAULT_VOLUME = 128;
   static const uint8_t I2S_DOUT = 47;
   static const uint8_t I2S_BCLK = 48;
   static const uint8_t I2S_LRC = 38;

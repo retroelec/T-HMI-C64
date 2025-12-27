@@ -144,7 +144,6 @@ public:
    * file is copied into the provided buffer. If `start` is true, the iteration
    * starts from the first entry. If `start` is false, the iteration continues
    * from where it left off in the previous call.
-   * This method is only used for the external command LIST.
    *
    * The buffer `nextentry` must be at least 17 bytes in size. The result will
    * be a null-terminated string (C-string) containing up to 16 characters of

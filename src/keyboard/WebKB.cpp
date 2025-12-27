@@ -384,13 +384,27 @@ void startOneShotTimer(std::function<void()> timerFunction, uint64_t delay_ms) {
   ESP_ERROR_CHECK(esp_timer_start_once(handle, delay_us));
 }
 
+static uint8_t ipaddrbox[] =
+    "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+    "\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x49"
+    "\x42\x15\x13\x5 \x8\x14\x14\x10\x3a\x2f\x2f               \x42"
+    "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+    "\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x4b";
+
 void WebKB::printIPAddress() {
-  extCmdBuffer[0] =
-      static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::WRITETEXT);
-  std::string httpstr = std::string("\x13\x5WEB KEYBOARD: HTTP:\x2f\x2f") +
-                        std::string(WiFi.localIP().toString().c_str()) +
-                        std::string("\x9a\r\r\r\r\r\r\0");
-  memcpy(&extCmdBuffer[3], httpstr.c_str(), httpstr.length() + 1);
+  extCmdBuffer[3] = 6;
+  extCmdBuffer[4] = 5;
+  extCmdBuffer[5] = 28;
+  extCmdBuffer[6] = 3;
+  extCmdBuffer[7] = 1;
+  extCmdBuffer[8] = 0;
+  extCmdBuffer[9] = 10;
+  extCmdBuffer[10] = 0;
+  extCmdBuffer[11] = 1;
+  std::string ipString = std::string(WiFi.localIP().toString().c_str());
+  memcpy(&ipaddrbox[40], ipString.c_str(), ipString.length());
+  memcpy(&extCmdBuffer[12], ipaddrbox, 28 * 3);
+  extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::WRITEOSD)};
   gotExternalCmd = true;
 }
 

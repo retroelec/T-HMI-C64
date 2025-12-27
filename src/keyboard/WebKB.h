@@ -68,11 +68,6 @@ public:
   void scanKeyboard() override;
   void setDetectReleasekey(bool detectreleasekey) override {}
 
-  void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) override {
-    uint16_t packed = (static_cast<uint16_t>(sentdc01) << 8) | sentdc00;
-    dc01dc00.store(packed, std::memory_order_release);
-  }
-
 private:
   void startWebServer();
   void handleWebsocketMessage(void *arg, uint8_t *data, size_t len);
@@ -82,6 +77,11 @@ private:
   String getNetworksHTML();
   void startCaptivePortal();
   void connectToWiFi(const String &ssid, const String &pass);
+
+  void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) {
+    uint16_t packed = (static_cast<uint16_t>(sentdc01) << 8) | sentdc00;
+    dc01dc00.store(packed, std::memory_order_release);
+  }
 
   uint16_t port;
   AsyncWebServer *server;

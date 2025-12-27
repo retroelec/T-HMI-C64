@@ -91,13 +91,6 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
     }
     return;
   }
-  if (key == SDLK_TAB) {
-    if (pressed) {
-      commodoreKeyPressed = true;
-    } else {
-      commodoreKeyPressed = false;
-    }
-  }
   if (pressed) {
     if (mod & KMOD_LALT) {
       // help + quit
@@ -118,8 +111,8 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
                                "ALT-. TO INCREMENT SOUND VOLUME\r"
                                "ALT-J TO SWITCH BETWEEN JOYSTICK\r"
                                "      IN PORT 1, JOYSTICK IN PORT 2,\r"
-                               "      NO JOYSTICK. CURSOR KEYS AND\r"
-                               "      CTRL ARE USED AS JOYSTICK KEYS\r"
+                               "      NO JOYSTICK. CURSOR AND CTRL\r"
+                               "      KEYS ARE USED AS JOYSTICK KEYS\r"
                                "      IF A JOYSTICK PORT IS CHOSEN\r"
                                "ALT-N SHOW CONTENT OF CPU REGISTERS\r"
                                "ALT-D SWITCH TO DEBUG MODE AND BACK\r\x9a\0";
@@ -214,12 +207,26 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         }
       }
       // C64 keys
-      KeySpec k{key, (mod & KMOD_SHIFT), (mod & KMOD_CTRL),
-                commodoreKeyPressed};
+      KeySpec k{key, mod & KMOD_SHIFT, mod & KMOD_CTRL, mod & KMOD_RALT};
       auto it = keyMap.find(k);
       if (it != keyMap.end()) {
         auto [b1, b2, b3] = it->second;
         char2codes(b1, b2, b3);
+      } else if ((mod & KMOD_SHIFT) || (mod & KMOD_CTRL) || (mod & KMOD_RALT)) {
+        // fallback: modifier pressed but no mapping found
+        KeySpec k{key, false, false, false};
+        auto it = keyMap.find(k);
+        if (it != keyMap.end()) {
+          auto [b1, b2, b3] = it->second;
+          if (mod & KMOD_SHIFT) {
+            b3 |= 1;
+          } else if (mod & KMOD_LCTRL) {
+            b3 |= 2;
+          } else if (mod & KMOD_RALT) {
+            b3 |= 4;
+          }
+          char2codes(b1, b2, b3);
+        }
       }
     }
   } else {
@@ -276,11 +283,6 @@ void SDLKB::sendExtCmdNotification(uint8_t *data, size_t size) {
   //   PlatformManager::getInstance().log(LOG_INFO, TAG, "notification byte %d:
   //   %d", i, data[i]);
   // }
-}
-
-void SDLKB::setKBcodes(uint8_t sentdc01, uint8_t sentdc00) {
-  kbcode2 = sentdc01;
-  kbcode1 = sentdc00;
 }
 
 void SDLKB::setDetectReleasekey(bool detectreleasekey) {}

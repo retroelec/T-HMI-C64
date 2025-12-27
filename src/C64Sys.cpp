@@ -530,7 +530,7 @@ static uint8_t listboxhelp[] =
     "\x42\x20\x20\x20\x20\x0e\x05\x18\x14\x20\x20\x20\x20\x20\x42"
     "\x4a\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x40\x4b";
 
-uint8_t ingamebox[] =
+static uint8_t ingamebox[] =
     "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x49"
     "\x42\x20\x20\x20\x20\x12\x05\x13\x05\x14\x20\x20\x20\x20\x42"
     "\x42\x20\x20\x20\x20\x20\x55\x44\x49\x20\x20\x20\x20\x20\x42"
@@ -551,27 +551,27 @@ C64Sys::TextKeycode C64Sys::getNextKeycode() {
   return data;
 }
 
-void C64Sys::check4extcmd() {
-  bool fire2pressed = false;
-  if ((specialjoymodestate == SpecialJoyModeState::NONE) ||
-      (specialjoymodestate == SpecialJoyModeState::RUN)) {
-    bool fire2pressing = joystick->getFire2();
-    if (fire2pressing) {
-      specialjoymodecnt++;
-    } else {
-      specialjoymodecnt = 0;
-    }
-    if (specialjoymodecnt >= 100 * 312) {
-      fire2pressed = true;
-    }
-  }
-  bool executeExtCmdKB = false;
-  bool executeExtCmdGM = false;
-  uint8_t extCmdBuffer[120];
-  uint8_t *extcmdbuffer = keyboard->getExtCmdData();
-  if (extcmdbuffer != nullptr) {
-    executeExtCmdKB = true;
-  } else if (specialjoymodestate == SpecialJoyModeState::NONE) {
+void C64Sys::getJoystickValues() {
+  bool fire1pressing = joystick->getValue() == 0xff - (1 << 4);
+  fire1pressed = fire1pressing && (!gmprevfire1);
+  gmprevfire1 = fire1pressing;
+  bool uppressing = joystick->getValue() == 0xff - (1 << 0);
+  uppressed = uppressing && (!gmprevup);
+  gmprevup = uppressing;
+  bool downpressing = joystick->getValue() == 0xff - (1 << 1);
+  downpressed = downpressing && (!gmprevdown);
+  gmprevdown = downpressing;
+  bool leftpressing = joystick->getValue() == 0xff - (1 << 2);
+  leftpressed = leftpressing && (!gmprevleft);
+  gmprevleft = leftpressing;
+  bool rightpressing = joystick->getValue() == 0xff - (1 << 3);
+  rightpressed = rightpressing && (!gmprevright);
+  gmprevright = rightpressing;
+}
+
+uint8_t C64Sys::checkJoystickOnlyStatemachine(bool fire2pressed) {
+  uint8_t ret = 0;
+  if (specialjoymodestate == SpecialJoyModeState::NONE) {
     keyboard->setSpecialjoymode(false);
     specialjoymode = false;
     if (fire2pressed) {
@@ -595,21 +595,7 @@ void C64Sys::check4extcmd() {
       specialjoymodestate = SpecialJoyModeState::INGAME;
     }
   } else if (specialjoymodestate == SpecialJoyModeState::CHOOSEFILE) {
-    bool fire1pressing = joystick->getValue() == 0xff - (1 << 4);
-    bool fire1pressed = fire1pressing && (!gmprevfire1);
-    gmprevfire1 = fire1pressing;
-    bool uppressing = joystick->getValue() == 0xff - (1 << 0);
-    bool uppressed = uppressing && (!gmprevup);
-    gmprevup = uppressing;
-    bool downpressing = joystick->getValue() == 0xff - (1 << 1);
-    bool downpressed = downpressing && (!gmprevdown);
-    gmprevdown = downpressing;
-    bool leftpressing = joystick->getValue() == 0xff - (1 << 2);
-    bool leftpressed = leftpressing && (!gmprevleft);
-    gmprevleft = leftpressing;
-    bool rightpressing = joystick->getValue() == 0xff - (1 << 3);
-    bool rightpressed = rightpressing && (!gmprevright);
-    gmprevright = rightpressing;
+    getJoystickValues();
     if (downpressed) {
       if (floppy.fsinitialized) {
         uint8_t filename[17];
@@ -658,41 +644,24 @@ void C64Sys::check4extcmd() {
       switch (joystickmode) {
       case 0:
       case 2:
-        extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::JOYSTICKMODE1)};
-        keyboard->setJoystickmode(ExtCmd::JOYSTICKMODE1);
+        ret = static_cast<uint8_t>(ExtCmd::JOYSTICKMODE1);
         break;
       case 1:
-        extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::JOYSTICKMODE2)};
-        keyboard->setJoystickmode(ExtCmd::JOYSTICKMODE2);
+        ret = static_cast<uint8_t>(ExtCmd::JOYSTICKMODE2);
         break;
       }
-      executeExtCmdGM = true;
+      keyboard->setJoystickmode(static_cast<ExtCmd>(ret));
     } else if (uppressed) {
       specialjoymodestate = SpecialJoyModeState::NONE;
       vic.doiactive[1] = false;
-      extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::POWEROFF)};
-      executeExtCmdGM = true;
+      ret = static_cast<uint8_t>(ExtCmd::POWEROFF);
     } else if (fire1pressed) {
       specialjoymodestate = SpecialJoyModeState::NONE;
       vic.doiactive[1] = false;
     }
   } else if (specialjoymodestate == SpecialJoyModeState::INGAME) {
     vic.drawDOIBox(ingamebox, 12, 1, 15, 9, 1, 0, 65535, 1);
-    bool fire1pressing = joystick->getValue() == 0xff - (1 << 4);
-    bool fire1pressed = fire1pressing && (!gmprevfire1);
-    gmprevfire1 = fire1pressing;
-    bool uppressing = joystick->getValue() == 0xff - (1 << 0);
-    bool uppressed = uppressing && (!gmprevup);
-    gmprevup = uppressing;
-    bool downpressing = joystick->getValue() == 0xff - (1 << 1);
-    bool downpressed = downpressing && (!gmprevdown);
-    gmprevdown = downpressing;
-    bool leftpressing = joystick->getValue() == 0xff - (1 << 2);
-    bool leftpressed = leftpressing && (!gmprevleft);
-    gmprevleft = leftpressing;
-    bool rightpressing = joystick->getValue() == 0xff - (1 << 3);
-    bool rightpressed = rightpressing && (!gmprevright);
-    gmprevright = rightpressing;
+    getJoystickValues();
     if (downpressed) {
       actInGameKeycodeChosen.store(true, std::memory_order_release);
       actInGameKeycodeCnt.store(3, std::memory_order_release);
@@ -707,34 +676,58 @@ void C64Sys::check4extcmd() {
       switch (joystickmode) {
       case 0:
       case 2:
-        extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::JOYSTICKMODE1)};
-        keyboard->setJoystickmode(ExtCmd::JOYSTICKMODE1);
+        ret = static_cast<uint8_t>(ExtCmd::JOYSTICKMODE1);
         break;
       case 1:
-        extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::JOYSTICKMODE2)};
-        keyboard->setJoystickmode(ExtCmd::JOYSTICKMODE2);
+        ret = static_cast<uint8_t>(ExtCmd::JOYSTICKMODE2);
         break;
       }
-      executeExtCmdGM = true;
+      keyboard->setJoystickmode(static_cast<ExtCmd>(ret));
     } else if (uppressed) {
       specialjoymodestate = SpecialJoyModeState::NONE;
       vic.doiactive[1] = false;
-      extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::RESET)};
-      executeExtCmdGM = true;
+      ret = static_cast<uint8_t>(ExtCmd::RESET);
     } else if (fire1pressed) {
       specialjoymodestate = SpecialJoyModeState::RUN;
       vic.doiactive[1] = false;
     }
   }
+  return ret;
+}
+
+void C64Sys::check4extcmd() {
+  bool fire2pressed = false;
+  if ((specialjoymodestate == SpecialJoyModeState::NONE) ||
+      (specialjoymodestate == SpecialJoyModeState::RUN)) {
+    bool fire2pressing = joystick->getFire2();
+    if (fire2pressing) {
+      specialjoymodecnt++;
+    } else {
+      specialjoymodecnt = 0;
+    }
+    if (specialjoymodecnt >= 100 * 312) {
+      fire2pressed = true;
+    }
+  }
+  bool executeExtCmdKB = false;
+  bool executeExtCmdGM = false;
+  uint8_t extCmdBufferGM[1];
+  uint8_t *extCmdBufferKB = keyboard->getExtCmdData();
+  if (extCmdBufferKB != nullptr) {
+    executeExtCmdKB = true;
+  } else {
+    extCmdBufferGM[0] = checkJoystickOnlyStatemachine(fire2pressed);
+    executeExtCmdGM = true;
+  }
   // ececute external command?
   if (executeExtCmdKB || executeExtCmdGM) {
     uint8_t type;
     if (executeExtCmdKB) {
-      type = externalCmds->executeExternalCmd(extcmdbuffer);
+      type = externalCmds->executeExternalCmd(extCmdBufferKB);
       // sync detectreleasekey
       keyboard->setDetectReleasekey(detectreleasekey);
     } else {
-      type = externalCmds->executeExternalCmd(extCmdBuffer);
+      type = externalCmds->executeExternalCmd(extCmdBufferGM);
     }
     // send notification
     uint8_t *data;
@@ -992,10 +985,6 @@ void C64Sys::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
   sp = tsp;
   sr = tsr;
   pc = tpc;
-}
-
-void C64Sys::setKeycodes(uint8_t keycode1, uint8_t keycode2) {
-  keyboard->setKBcodes(keycode1, keycode2);
 }
 
 void C64Sys::scanKeyboard() {

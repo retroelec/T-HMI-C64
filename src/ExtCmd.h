@@ -244,13 +244,43 @@ enum class ExtCmd {
   /**
    * @brief Writes a text to the C64 text screen (only if in "C64 text mode").
    *
-   * The second and following elements of the buffer contain the text to be
-   * displayed.
+   * The text to be displayed is stored starting at buffer position 4 (from
+   * buffer[3]).
    */
   WRITETEXT = 36,
 
+  /**
+   * @brief Attach a d64 file to the floppy drive emulation.
+   *
+   * The name of the d64 file is stored starting at buffer position 4 (from
+   * buffer[3]).
+   * This command sends back a notification of type NotificationStruct1.
+   */
   ATTACHD64 = 37,
-  DETACHD64 = 38
+
+  /**
+   * @brief Detach a d64 file from the floppy drive emulation.
+   *
+   * No parameters needed.
+   * This command sends back a notification of type NotificationStruct1.
+   */
+  DETACHD64 = 38,
+
+  /**
+   * @brief Writes an OSD to the C64 screen.
+   *
+   * Parameters:
+   * - byte 3: start x position
+   * - byte 4: start y position
+   * - byte 5: width
+   * - byte 6: height
+   * - byte 7: text color
+   * - byte 8: background color
+   * - byte 9/10: duration of the display
+   * - byte 11: index of overlay (0 or 1)
+   * - byte 12-: text to be displayed
+   */
+  WRITEOSD = 39
 };
 
 #endif // EXTCMD_H

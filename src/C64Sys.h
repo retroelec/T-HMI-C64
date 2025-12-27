@@ -57,15 +57,17 @@ private:
   bool gmprevdown;
   bool gmprevleft;
   bool gmprevright;
-  uint8_t savexpos;
-  uint8_t saveypos;
+  bool fire1pressed;
+  bool downpressed;
+  bool uppressed;
+  bool leftpressed;
+  bool rightpressed;
   bool liststartflag;
   std::string actfilename;
   struct TextKeycode {
     CodeTriple text;
     CodeTriple keycode;
   };
-  CodeTriple actInGameKeycode;
   std::vector<TextKeycode> listInGameKeycodes = {
       {{39, 32, 39}, C64_KEYCODE_SPACE}, {{39, 49, 39}, C64_KEYCODE_1},
       {{39, 50, 39}, C64_KEYCODE_2},     {{39, 25, 39}, C64_KEYCODE_Y},
@@ -80,6 +82,8 @@ private:
   inline void checkciatimers(uint8_t cycles) __attribute__((always_inline));
   inline void logDebugInfo() __attribute__((always_inline));
   TextKeycode getNextKeycode();
+  void getJoystickValues();
+  uint8_t checkJoystickOnlyStatemachine(bool fire2pressed);
   void check4extcmd();
 
 public:
@@ -110,6 +114,7 @@ public:
   std::atomic<uint16_t> batteryVoltage;
   std::atomic<bool> poweroff;
 
+  CodeTriple actInGameKeycode;
   std::atomic<bool> actInGameKeycodeChosen;
   std::atomic<int> actInGameKeycodeCnt;
 
@@ -138,7 +143,6 @@ public:
   void setPC(uint16_t pc);
   void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
   void exeSubroutine(uint16_t regpc);
-  void setKeycodes(uint8_t keycode1, uint8_t keycode2);
   void scanKeyboard();
 };
 

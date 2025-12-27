@@ -48,7 +48,6 @@ public:
   uint8_t getKBCodeDC00() override;
   uint8_t getShiftctrlcode() override;
   uint8_t getKBJoyValue() override;
-  void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) override;
   void setDetectReleasekey(bool detectreleasekey) override;
 };
 

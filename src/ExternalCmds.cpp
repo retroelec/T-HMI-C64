@@ -351,7 +351,9 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     if (buffer[1] == 1) {
       // restore + run/stop
       cpu->setMem(0xdc00, 0);
-      cpu->setKeycodes(0x7f, 0);
+      cpu->actInGameKeycode = {0, 0x7f, 0};
+      cpu->actInGameKeycodeChosen.store(true, std::memory_order_release);
+      cpu->actInGameKeycodeCnt.store(3, std::memory_order_release);
     }
     cpu->restorenmi = true;
     return 0;
@@ -524,6 +526,13 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     int16_t sizebuffer = strlen((const char *)&(buffer[3]));
     memcpy(&ram[addr], &(buffer[3]), sizebuffer);
     writeTextToC64Screen(addr, sizebuffer);
+    return 0;
+  }
+  case ExtCmd::WRITEOSD: {
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "execute writeosd");
+    uint16_t duration = buffer[9] + (buffer[10] << 8);
+    cpu->vic.drawDOIBox(&(buffer[12]), buffer[3], buffer[4], buffer[5],
+                        buffer[6], buffer[7], buffer[8], duration, buffer[11]);
     return 0;
   }
   }

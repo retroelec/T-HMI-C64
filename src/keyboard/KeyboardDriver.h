@@ -100,14 +100,6 @@ public:
   virtual void sendExtCmdNotification(uint8_t *data, size_t size) = 0;
 
   /**
-   * @brief Sets specific key codes for the keyboard matrix.
-   *
-   * @param sentdc01 Value for CIA1 port B.
-   * @param sentdc00 Value for CIA1 port A.
-   */
-  virtual void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) = 0;
-
-  /**
    * @brief Enables or disables detection of key release events.
    *
    * @param detectreleasekey true to enable release detection, false to disable.

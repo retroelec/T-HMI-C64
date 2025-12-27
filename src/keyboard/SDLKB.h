@@ -40,7 +40,6 @@ private:
   bool keyUp = false;
   bool keyDown = false;
   bool keyFire = false;
-  bool commodoreKeyPressed = false;
 
   bool specialjoymode;
 
@@ -70,7 +69,6 @@ public:
   uint8_t getKBCodeDC00() override;
   uint8_t getShiftctrlcode() override;
   uint8_t getKBJoyValue() override;
-  void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) override;
   void setDetectReleasekey(bool detectreleasekey) override;
   void setSpecialjoymode(bool specialjoymode) override;
   void setJoystickmode(ExtCmd joystickmode) override;
