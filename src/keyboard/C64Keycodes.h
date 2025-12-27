@@ -100,5 +100,9 @@ const CodeTriple C64_KEYCODE_RIGHTBRACKET = {0xbf, 0xfb, 0x01};
 const CodeTriple C64_KEYCODE_LEFTARROW = {0x7f, 0xfd, 0x00};
 const CodeTriple C64_KEYCODE_POUND = {0xbf, 0xfe, 0x00};
 const CodeTriple C64_KEYCODE_UPARROW = {0xbf, 0xbf, 0x00};
+const CodeTriple C64_KEYCODE_SHIFTLEFT = {0xfd, 0x7f, 0x00};
+const CodeTriple C64_KEYCODE_SHIFTRIGHT = {0xbf, 0xef, 0x00};
+const CodeTriple C64_KEYCODE_COMMODORE = {0x7f, 0xdf, 0x00};
+const CodeTriple C64_KEYCODE_CTRL = {0x7f, 0xfb, 0x00};
 
 #endif // C64KEYCODES_H

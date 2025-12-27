@@ -28,7 +28,7 @@ static const uint8_t CHARPIXSIZE = 4;
 extern void drawChar(SDL_Renderer *ren, uint16_t c, uint16_t x, uint16_t y,
                      uint8_t size);
 
-void SDLKB::char2codes(uint8_t code1, uint8_t code2, uint8_t ctrlcode) {
+void SDLKB::setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode) {
   kbcode1 = code1;
   kbcode2 = code2;
   shiftctrlcode = ctrlcode;
@@ -211,7 +211,7 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
       auto it = keyMap.find(k);
       if (it != keyMap.end()) {
         auto [b1, b2, b3] = it->second;
-        char2codes(b1, b2, b3);
+        setCodes(b1, b2, b3);
       } else if ((mod & KMOD_SHIFT) || (mod & KMOD_CTRL) || (mod & KMOD_RALT)) {
         // fallback: modifier pressed but no mapping found
         KeySpec k{key, false, false, false};
@@ -225,12 +225,12 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
           } else if (mod & KMOD_RALT) {
             b3 |= 4;
           }
-          char2codes(b1, b2, b3);
+          setCodes(b1, b2, b3);
         }
       }
     }
   } else {
-    char2codes(0xff, 0xff, 0x00);
+    setCodes(0xff, 0xff, 0x00);
   }
 }
 

@@ -87,5 +87,10 @@ const std::map<KeySpec, CodeTriple> keyMap = {
     {{1073741824, true, false, false}, C64_KEYCODE_EXCLAIM},
     {{246, true, false, false}, C64_KEYCODE_HASH},
     {{228, true, false, false}, C64_KEYCODE_UPARROW},
+    // modifier keys
+    {{SDLK_RALT, false, false, false}, C64_KEYCODE_COMMODORE},
+    {{SDLK_LSHIFT, false, false, false}, C64_KEYCODE_SHIFTLEFT},
+    {{SDLK_RSHIFT, false, false, false}, C64_KEYCODE_SHIFTRIGHT},
+    {{SDLK_LCTRL, false, false, false}, C64_KEYCODE_CTRL},
 };
 #endif

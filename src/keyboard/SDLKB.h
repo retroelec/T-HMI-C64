@@ -56,7 +56,7 @@ private:
   std::queue<SDL_Event> eventQueue;
   std::mutex eventMutex;
 
-  void char2codes(uint8_t code1, uint8_t code2, uint8_t ctrlcode);
+  void setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode);
   void handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed);
 
 public:
