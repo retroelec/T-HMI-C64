@@ -131,7 +131,6 @@ public:
   uint16_t bitmapstart;
   uint16_t screenmemstart;
   uint16_t rasterline;
-  uint8_t syncd020;
 
   bool doiactive[2];
 

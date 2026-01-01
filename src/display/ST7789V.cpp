@@ -131,6 +131,8 @@ void ST7789V::init() {
   GPIO.out_w1ts = CSVAL;
 
   GPIO.out1_w1ts.val = (1ULL << (Config::BL - 32)); // backlight
+
+  oldFrameColor = 0;
 }
 
 void ST7789V::copyinit(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h) {
@@ -190,6 +192,10 @@ void ST7789V::copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
 }
 
 void ST7789V::drawFrame(uint16_t frameColor) {
+  if (frameColor == oldFrameColor) {
+    return;
+  }
+  oldFrameColor = frameColor;
   if (BORDERHEIGHT > 0) {
     ST7789V::copyColor(BORDERWIDTH, 0, 320, BORDERHEIGHT, frameColor);
     ST7789V::copyColor(BORDERWIDTH, 200 + BORDERHEIGHT, 320, BORDERHEIGHT,

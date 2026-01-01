@@ -63,14 +63,6 @@ uint8_t C64Sys::getDC01(uint8_t dc00, bool xchgports) {
   if (dc00 == 0) {
     return kbcodedc01;
   }
-  // special case "shift" + "commodore"
-  if ((keyboard->getShiftctrlcode() & 5) == 5) {
-    if (dc00 == kbcodedc00) {
-      return kbcodedc01;
-    } else {
-      return 0xff;
-    }
-  }
   // key combined with a "special key" (shift, ctrl, commodore)?
   if ((~dc00 & 2) &&
       (keyboard->getShiftctrlcode() & 1)) { // *query* left shift key?

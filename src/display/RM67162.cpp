@@ -27,9 +27,14 @@ void RM67162::init() {
   RM67162::framecolormem = new uint16_t[FRAMEMEMSIZE]();
   rm67162_init();
   lcd_setRotation(1);
+  oldFrameColor = 0;
 }
 
 void RM67162::drawFrame(uint16_t frameColor) {
+  if (frameColor == oldFrameColor) {
+    return;
+  }
+  oldFrameColor = frameColor;
   uint16_t cnt = FRAMEMEMSIZE;
   uint16_t *frameptr = RM67162::framecolormem;
   while (cnt--) {

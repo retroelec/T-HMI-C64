@@ -528,7 +528,6 @@ void VIC::initVarsAndRegs() {
   vicreg[0x1a] = 0xf0;
 
   cntRefreshs.store(0, std::memory_order_release);
-  syncd020 = 0;
   vicmem = 0;
   bitmapstart = 0x2000;
   screenmemstart = 1024;
@@ -560,18 +559,10 @@ void VIC::init(uint8_t *ram, const uint8_t *charrom) {
   initVarsAndRegs();
 }
 
-void VIC::checkFrameColor() {
-  uint8_t framecol = vicreg[0x20] & 15;
-  if (framecol != syncd020) {
-    syncd020 = framecol;
-    display->drawFrame(tftColorFromC64ColorArr[framecol]);
-  }
-}
-
 void VIC::refresh() {
   dispOverlayInfo();
   display->drawBitmap(bitmap);
-  checkFrameColor();
+  display->drawFrame(tftColorFromC64ColorArr[vicreg[0x20] & 15]);
   cntRefreshs.fetch_add(1, std::memory_order_release);
 }
 

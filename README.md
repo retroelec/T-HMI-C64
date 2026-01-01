@@ -197,7 +197,7 @@ Once the dependencies are installed, you can compile the emulator using:
 make c64linux
 
 To start the emulator, run ./c64linux in a shell.
-Press Alt + h in the emulator window to display a simple help page on the emulated C64 screen.
+Press RightCTRL + H in the emulator window to display a simple help page on the emulated C64 screen.
 
 ### Build emulator for Mac
 

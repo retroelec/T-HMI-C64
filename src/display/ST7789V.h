@@ -32,6 +32,8 @@ private:
   static const uint16_t FRAMEMEMSIZE =
       MAX(320 * BORDERHEIGHT, BORDERWIDTH *Config::LCDHEIGHT);
 
+  uint16_t oldFrameColor;
+
   inline static void writeCmd(uint8_t cmd) __attribute__((always_inline));
   inline static void writeData(uint8_t data) __attribute__((always_inline));
   inline static void copyinit(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h)

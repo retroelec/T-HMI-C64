@@ -32,6 +32,7 @@ private:
   static constexpr uint16_t FRAMEMEMSIZE =
       MAX(BORDERHEIGHT * Config::LCDWIDTH, BORDERWIDTH * 200);
   static uint16_t *framecolormem;
+  uint16_t oldFrameColor;
 
 public:
   void init() override;

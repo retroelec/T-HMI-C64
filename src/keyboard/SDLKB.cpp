@@ -244,22 +244,22 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
 
 static uint8_t helpbox[] =
     "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
-    "\x43\x43\x43\x43\x43\x43\x43\x43\x49"
-    "\x42 \x12\x2d\x3\x14\x12\xc\x2d\x8 \x6\xf\x12 \x8\x5\xc\x10 \x42"
+    "\x43\x43\x43\x43\x43\x43\x43\x49"
+    "\x42 \x12\x3\x14\x12\xc\x2d\x8 \x6\xf\x12 \x8\x5\xc\x10 \x42"
     "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
-    "\x43\x43\x43\x43\x43\x43\x43\x43\x4b";
+    "\x43\x43\x43\x43\x43\x43\x43\x4b";
 
 void SDLKB::printHelpHint() {
   extCmdBuffer[3] = 9;
   extCmdBuffer[4] = 5;
-  extCmdBuffer[5] = 21;
+  extCmdBuffer[5] = 20;
   extCmdBuffer[6] = 3;
   extCmdBuffer[7] = 1;
   extCmdBuffer[8] = 0;
   extCmdBuffer[9] = 5;
   extCmdBuffer[10] = 0;
   extCmdBuffer[11] = 1;
-  memcpy(&extCmdBuffer[12], helpbox, 21 * 3);
+  memcpy(&extCmdBuffer[12], helpbox, 20 * 3);
   extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::WRITEOSD)};
   gotExternalCmd = true;
 }

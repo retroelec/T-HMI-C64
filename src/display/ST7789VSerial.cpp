@@ -28,9 +28,14 @@ void ST7789VSerial::init() {
   ST7789VSerial::framecolormem = new uint16_t[FRAMEMEMSIZE]();
   LCD_Init();
   Backlight_Init();
+  oldFrameColor = 0;
 }
 
 void ST7789VSerial::drawFrame(uint16_t frameColor) {
+  if (frameColor == oldFrameColor) {
+    return;
+  }
+  oldFrameColor = frameColor;
   uint16_t cnt = FRAMEMEMSIZE;
   uint16_t *frameptr = ST7789VSerial::framecolormem;
   while (cnt--) {
