@@ -58,6 +58,7 @@ private:
 
   void setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode);
   void handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed);
+  void printHelpHint();
 
 public:
   void init() override;

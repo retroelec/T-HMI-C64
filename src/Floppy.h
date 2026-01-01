@@ -44,8 +44,6 @@ private:
     uint16_t buffersize;
   };
 
-  static std::unique_ptr<FileDriver> sysfile;
-
   std::unique_ptr<FileDriver> d64file;
   std::vector<uint8_t> buffer[5];
   uint8_t errmessage[12];
@@ -134,6 +132,8 @@ private:
   void initAttach();
 
 public:
+  static std::unique_ptr<FileDriver> sysfile;
+
   Floppy(IDebugBus *debug = nullptr) : debugBus(debug) {}
 
   bool iecindebug = false;
@@ -150,6 +150,7 @@ public:
   uint16_t load(const std::string &filename, uint8_t *ram);
   bool save(const std::string &filename, uint8_t *ram, uint16_t startaddr,
             uint16_t endaddr);
-  bool listnextentry(uint8_t *nextentry, bool start);
+  void rmPrgFromFilename(std::string &filename);
+  bool listnextentry(std::string &name, bool start);
 };
 #endif // FLOPPY_H

@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -14,20 +14,14 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef SDLKEYMAP_H
-#define SDLKEYMAP_H
+#ifndef JOYSTICKONLYTEXTKEYCODE_H
+#define JOYSTICKONLYTEXTKEYCODE_H
 
-#include "../Config.h"
-#ifdef USE_SDL_KEYBOARD
-#include "C64Keycodes.h"
-#include "CodeTripleDef.h"
-#include <SDL2/SDL.h>
-#include <map>
-#include <tuple>
+#include "keyboard/CodeTripleDef.h"
 
-using KeySpec = std::tuple<SDL_Keycode, bool, bool>; // key, shift, ralt
+struct JoystickOnlyTextKeycode {
+  CodeTripleS text;
+  CodeTripleS keycode;
+};
 
-extern const std::map<KeySpec, CodeTripleS> keyMap;
-#endif
-
-#endif // SDLKEYMAP_H
+#endif // JOYSTICKONLYTEXTKEYCODE_H

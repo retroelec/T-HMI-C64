@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2025 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -14,20 +14,15 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef SDLKEYMAP_H
-#define SDLKEYMAP_H
+#ifndef CODETRIPLEDEF_H
+#define CODETRIPLEDEF_H
 
-#include "../Config.h"
-#ifdef USE_SDL_KEYBOARD
-#include "C64Keycodes.h"
-#include "CodeTripleDef.h"
-#include <SDL2/SDL.h>
-#include <map>
-#include <tuple>
+#include <cstdint>
 
-using KeySpec = std::tuple<SDL_Keycode, bool, bool>; // key, shift, ralt
+struct CodeTripleS {
+  uint8_t dc00;
+  uint8_t dc01;
+  uint8_t modifier;
+};
 
-extern const std::map<KeySpec, CodeTripleS> keyMap;
-#endif
-
-#endif // SDLKEYMAP_H
+#endif // CODETRIPLEDEF_H

@@ -38,7 +38,7 @@ public:
   bool eof() override;
   int64_t size() override;
   void close() override;
-  bool listnextentry(uint8_t *nextentry, bool start) override;
+  bool listnextentry(std::string &name, bool start) override;
   ~SDMMCFile();
 };
 #endif

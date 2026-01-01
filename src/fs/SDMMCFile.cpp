@@ -86,7 +86,8 @@ void SDMMCFile::close() {
 
 File listroot;
 
-bool SDMMCFile::listnextentry(uint8_t *nextentry, bool start) {
+bool SDMMCFile::listnextentry(std::string &name, bool start) {
+  name = "";
   if (!SDMMCFile::initialized) {
     return false;
   }
@@ -106,23 +107,9 @@ bool SDMMCFile::listnextentry(uint8_t *nextentry, bool start) {
   }
   if (!file) {
     listroot.close();
-    nextentry[0] = '\0';
     return true;
   }
-  String filename = file.name();
-  if (filename.endsWith(".prg")) {
-    filename = filename.substring(0, filename.length() - 4);
-  }
-  const char *fname = filename.c_str();
-  for (uint8_t i = 0; i < 16; i++) {
-    uint8_t p = fname[i];
-    if ((p >= 96 + 1) && (p <= 96 + 26)) {
-      nextentry[i] = p - 32;
-    } else {
-      nextentry[i] = p;
-    }
-  }
-  nextentry[16] = '\0';
+  name = file.name();
   return true;
 }
 

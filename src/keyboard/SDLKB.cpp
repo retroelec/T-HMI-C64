@@ -92,30 +92,31 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
     return;
   }
   if (pressed) {
-    if (mod & KMOD_LALT) {
+    if (mod & KMOD_RCTRL) {
       // help + quit
       if (key == SDLK_h) {
         extCmdBuffer[0] =
             static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::WRITETEXT);
         const uint8_t help[] = "\x93\x5\r"
                                "          **** HELP PAGE ****\r\r"
-                               "ALT-H FOR THIS HELP PAGE\r"
-                               "ALT-Q TO QUIT THE EMULATOR\r"
-                               "ALT-L TO LOAD A PROGRAM\r"
-                               "      (SEE CONFIG::PATH, README.MD)\r"
-                               "ALT-S TO SAVE A PROGRAM\r"
-                               "ALT-T TO LIST PROGRAMS\r"
-                               "ALT-A TO ATTACH/DETACH A D64 FILE\r"
-                               "ALT-R TO RESET THE EMULATOR\r"
-                               "ALT-, TO DECREMENT SOUND VOLUME\r"
-                               "ALT-. TO INCREMENT SOUND VOLUME\r"
-                               "ALT-J TO SWITCH BETWEEN JOYSTICK\r"
-                               "      IN PORT 1, JOYSTICK IN PORT 2,\r"
-                               "      NO JOYSTICK. CURSOR AND CTRL\r"
-                               "      KEYS ARE USED AS JOYSTICK KEYS\r"
-                               "      IF A JOYSTICK PORT IS CHOSEN\r"
-                               "ALT-N SHOW CONTENT OF CPU REGISTERS\r"
-                               "ALT-D SWITCH TO DEBUG MODE AND BACK\r\x9a\0";
+                               "RCTRL-H FOR THIS HELP PAGE\r"
+                               "RCTRL-Q TO QUIT THE EMULATOR\r"
+                               "RCTRL-L TO LOAD A PROGRAM\r"
+                               "        (SEE CONFIG::PATH, README.MD)\r"
+                               "RCTRL-S TO SAVE A PROGRAM\r"
+                               "RCTRL-T TO LIST PROGRAMS\r"
+                               "RCTRL-A TO ATTACH/DETACH A D64 FILE\r"
+                               "RCTRL-R TO RESET THE EMULATOR\r"
+                               "RCTRL-, TO DECREMENT SOUND VOLUME\r"
+                               "RCTRL-. TO INCREMENT SOUND VOLUME\r"
+                               "RCTRL-J TO SWITCH BETWEEN JOYSTICK\r"
+                               "        IN PORT 1, JOYSTICK IN PORT 2,\r"
+                               "        NO JOYSTICK. CURSOR AND CTRL\r"
+                               "        KEYS ARE USED AS JOYSTICK KEYS\r"
+                               "        IF A JOYSTICK PORT IS CHOSEN\r"
+                               "RCTRL-N SHOW CONTENT OF CPU REGISTERS\r"
+                               "RCTRL-D SWITCH TO DEBUG MODE AND BACK\r"
+                               "COMMODORE KEY = LEFT ALT\r\x9a\0";
         memcpy(&extCmdBuffer[3], help, sizeof(help));
         gotExternalCmd = true;
       } else if (key == SDLK_q) {
@@ -207,14 +208,21 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         }
       }
       // C64 keys
-      KeySpec k{key, mod & KMOD_SHIFT, mod & KMOD_CTRL, mod & KMOD_RALT};
-      auto it = keyMap.find(k);
-      if (it != keyMap.end()) {
-        auto [b1, b2, b3] = it->second;
-        setCodes(b1, b2, b3);
-      } else if ((mod & KMOD_SHIFT) || (mod & KMOD_CTRL) || (mod & KMOD_RALT)) {
-        // fallback: modifier pressed but no mapping found
-        KeySpec k{key, false, false, false};
+      bool found = false;
+      if (!((mod & KMOD_LCTRL) || (mod & KMOD_LALT))) {
+        KeySpec k{key, mod & KMOD_SHIFT, mod & KMOD_RALT};
+        auto it = keyMap.find(k);
+        if (it != keyMap.end()) {
+          auto [b1, b2, b3] = it->second;
+          setCodes(b1, b2, b3);
+          found = true;
+        }
+      }
+      if ((!found) &&
+          ((mod & KMOD_SHIFT) || (mod & KMOD_LCTRL) || (mod & KMOD_LALT))) {
+        // fallback: no mapping found, but modifier shift, (left) ctrl or
+        // commodore (= left alt) pressed?
+        KeySpec k{key, false, false};
         auto it = keyMap.find(k);
         if (it != keyMap.end()) {
           auto [b1, b2, b3] = it->second;
@@ -222,7 +230,7 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
             b3 |= 1;
           } else if (mod & KMOD_LCTRL) {
             b3 |= 2;
-          } else if (mod & KMOD_RALT) {
+          } else if (mod & KMOD_LALT) {
             b3 |= 4;
           }
           setCodes(b1, b2, b3);
@@ -234,9 +242,32 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
   }
 }
 
+static uint8_t helpbox[] =
+    "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+    "\x43\x43\x43\x43\x43\x43\x43\x43\x49"
+    "\x42 \x12\x2d\x3\x14\x12\xc\x2d\x8 \x6\xf\x12 \x8\x5\xc\x10 \x42"
+    "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+    "\x43\x43\x43\x43\x43\x43\x43\x43\x4b";
+
+void SDLKB::printHelpHint() {
+  extCmdBuffer[3] = 9;
+  extCmdBuffer[4] = 5;
+  extCmdBuffer[5] = 21;
+  extCmdBuffer[6] = 3;
+  extCmdBuffer[7] = 1;
+  extCmdBuffer[8] = 0;
+  extCmdBuffer[9] = 5;
+  extCmdBuffer[10] = 0;
+  extCmdBuffer[11] = 1;
+  memcpy(&extCmdBuffer[12], helpbox, 21 * 3);
+  extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::WRITEOSD)};
+  gotExternalCmd = true;
+}
+
 void SDLKB::init() {
   SDL_InitSubSystem(SDL_INIT_EVENTS);
   specialjoymode = false;
+  printHelpHint();
 }
 
 void SDLKB::feedEvents() {

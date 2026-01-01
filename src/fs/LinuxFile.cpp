@@ -70,7 +70,8 @@ void LinuxFile::close() {
 
 static DIR *dir_stream = nullptr;
 
-bool LinuxFile::listnextentry(uint8_t *nextentry, bool start) {
+bool LinuxFile::listnextentry(std::string &name, bool start) {
+  name = "";
   if (start) {
     if (dir_stream != nullptr) {
       closedir(dir_stream);
@@ -92,23 +93,15 @@ bool LinuxFile::listnextentry(uint8_t *nextentry, bool start) {
     // end of directory reached
     closedir(dir_stream);
     dir_stream = nullptr;
-    nextentry[0] = '\0';
     return true;
   }
   std::string filename(entry->d_name);
   // ignore . and ..
   if (filename == "." || filename == "..") {
     // call method recursively to get next entry
-    return listnextentry(nextentry, false);
+    return listnextentry(name, false);
   }
-  if (filename.length() > 4 &&
-      filename.substr(filename.length() - 4) == ".prg") {
-    filename = filename.substr(0, filename.length() - 4);
-  }
-  std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper);
-  size_t len = std::min(filename.length(), static_cast<size_t>(16));
-  std::memcpy(nextentry, filename.c_str(), len);
-  nextentry[len] = '\0';
+  name = filename;
   return true;
 }
 

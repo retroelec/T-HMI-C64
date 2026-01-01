@@ -19,6 +19,7 @@
 #include "C64Sys.h"
 #include "ExtCmd.h"
 #include "platform/PlatformManager.h"
+#include <algorithm>
 #include <cstring>
 #include <string>
 
@@ -138,7 +139,7 @@ bool ExternalCmds::isBasicInputMode() {
 void ExternalCmds::dispVolume() {
   uint8_t volume = cpu->sid.getEmuVolume() * 100 / 256;
   uint8_t vol[] = {(uint8_t)(volume / 10 + '0'), (uint8_t)(volume % 10 + '0')};
-  cpu->vic.drawDOIBox(vol, 38, 24, 2, 1, 1, 0, 4, 0);
+  cpu->vic.drawDOIBox(vol, 37, 23, 2, 1, 1, 0, 4, 0);
 }
 
 void ExternalCmds::writeTextToC64Screen(uint16_t addr, int16_t sizebuffer) {
@@ -244,25 +245,32 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
         memcpy(&ram[addr], next, 14);
         writeTextToC64Screen(addr, 14);
       }
-      uint8_t filename[18];
       uint8_t cnt = 0;
       while (cnt < 23) {
+        std::string filename;
         bool success = cpu->floppy.listnextentry(filename, liststartflag);
-        liststartflag = false;
-        if (success && (filename[0] != '\0')) {
-          uint16_t addr = 0x342;
-          uint8_t len = strlen((char *)filename);
-          filename[len] = '\r';
-          filename[len + 1] = '\0';
-          memcpy(&ram[addr], filename, len + 2);
-          writeTextToC64Screen(addr, len + 2);
-        } else {
-          if (!success) {
-            PlatformManager::getInstance().log(LOG_ERROR, TAG,
-                                               "error reading entry");
-          }
-          liststartflag = true;
+        if (!success) {
+          PlatformManager::getInstance().log(LOG_ERROR, TAG,
+                                             "error reading entry");
           break;
+        } else if (filename.empty()) {
+          liststartflag = true;
+          const uint8_t next[] = "*** END ***\r\0";
+          uint16_t addr = 0x342;
+          memcpy(&ram[addr], next, 13);
+          writeTextToC64Screen(addr, 13);
+          break;
+        } else {
+          liststartflag = false;
+          cpu->floppy.rmPrgFromFilename(filename);
+          std::transform(filename.begin(), filename.end(), filename.begin(),
+                         ::toupper);
+          uint16_t addr = 0x342;
+          size_t len = std::min(filename.length(), static_cast<size_t>(16));
+          std::memcpy(&ram[addr], filename.c_str(), len);
+          ram[addr + len] = '\r';
+          ram[addr + len + 1] = '\0';
+          writeTextToC64Screen(addr, len + 2);
         }
         cnt++;
       }
@@ -281,10 +289,10 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
           LOG_INFO, TAG, "try to attach d64 file %s", dirname.c_str());
       bool d64attached = cpu->floppy.attach(dirname);
       if (!d64attached) {
-        cpu->vic.drawDOIBox((uint8_t *)"\xe\xf", 38, 24, 2, 1, 1, 0, 4, 0);
+        cpu->vic.drawDOIBox((uint8_t *)"\xe\xf", 37, 23, 2, 1, 1, 0, 4, 0);
         PlatformManager::getInstance().log(LOG_INFO, TAG, "d64 file not found");
       } else {
-        cpu->vic.drawDOIBox((uint8_t *)"\xf\xb", 38, 24, 2, 1, 1, 0, 4, 0);
+        cpu->vic.drawDOIBox((uint8_t *)"\xf\xb", 37, 23, 2, 1, 1, 0, 4, 0);
       }
     }
     setType1Notification();
@@ -295,7 +303,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     if (cpu->floppy.fsinitialized) {
       cpu->floppy.detach();
     }
-    cpu->vic.drawDOIBox((uint8_t *)"\xe\xf", 38, 24, 2, 1, 1, 0, 4, 0);
+    cpu->vic.drawDOIBox((uint8_t *)"\xe\xf", 37, 23, 2, 1, 1, 0, 4, 0);
     setType1Notification();
     return 1;
   }
@@ -413,7 +421,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::JOYSTICKMODE1:
     cpu->joystickmode = 1;
     cpu->kbjoystickmode = 0;
-    cpu->vic.drawDOIBox((uint8_t *)"\xa\x31", 38, 24, 2, 1, 1, 0, 3, 0);
+    cpu->vic.drawDOIBox((uint8_t *)"\xa\x31", 37, 23, 2, 1, 1, 0, 3, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
                                        cpu->joystickmode);
     setType1Notification();
@@ -421,14 +429,14 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   case ExtCmd::JOYSTICKMODE2:
     cpu->joystickmode = 2;
     cpu->kbjoystickmode = 0;
-    cpu->vic.drawDOIBox((uint8_t *)"\xa\x32", 38, 24, 2, 1, 1, 0, 3, 0);
+    cpu->vic.drawDOIBox((uint8_t *)"\xa\x32", 37, 23, 2, 1, 1, 0, 3, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
                                        cpu->joystickmode);
     setType1Notification();
     return 1;
   case ExtCmd::JOYSTICKMODEOFF:
     cpu->joystickmode = 0;
-    cpu->vic.drawDOIBox((uint8_t *)"\xb\x2", 38, 24, 2, 1, 1, 0, 3, 0);
+    cpu->vic.drawDOIBox((uint8_t *)"\xb\x2", 37, 23, 2, 1, 1, 0, 3, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
                                        cpu->joystickmode);
     setType1Notification();

@@ -113,7 +113,7 @@ void Floppy::init(uint8_t device) {
 bool Floppy::attach(const std::string &filename) {
   initChannels();
   initAttach();
-  std::string d64filename = std::string(Config::PATH) + filename;
+  std::string d64filename = Config::PATH + filename;
   d64file->close();
   if (!d64file->open(d64filename, "rb")) {
     PlatformManager::getInstance().log(
@@ -618,7 +618,7 @@ void Floppy::iecout(uint8_t value) {
 }
 
 uint16_t Floppy::load(const std::string &filename, uint8_t *ram) {
-  std::string path = std::string(Config::PATH) + filename;
+  std::string path = Config::PATH + filename;
   if (!sysfile->open(path, "rb")) {
     PlatformManager::getInstance().log(LOG_ERROR, TAG, "cannot open file %s",
                                        path.c_str());
@@ -644,7 +644,7 @@ uint16_t Floppy::load(const std::string &filename, uint8_t *ram) {
 
 bool Floppy::save(const std::string &filename, uint8_t *ram, uint16_t startaddr,
                   uint16_t endaddr) {
-  std::string path = std::string(Config::PATH) + filename;
+  std::string path = Config::PATH + filename;
   if (!sysfile->open(path, "wb")) {
     PlatformManager::getInstance().log(LOG_ERROR, TAG, "cannot open file %s",
                                        path.c_str());
@@ -666,6 +666,13 @@ bool Floppy::save(const std::string &filename, uint8_t *ram, uint16_t startaddr,
   return true;
 }
 
-bool Floppy::listnextentry(uint8_t *nextentry, bool start) {
-  return sysfile->listnextentry(nextentry, start);
+void Floppy::rmPrgFromFilename(std::string &filename) {
+  if (filename.size() > 4 &&
+      filename.compare(filename.size() - 4, 4, ".prg") == 0) {
+    filename.erase(filename.size() - 4);
+  }
+}
+
+bool Floppy::listnextentry(std::string &name, bool start) {
+  return sysfile->listnextentry(name, start);
 }

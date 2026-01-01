@@ -17,92 +17,22 @@
 #ifndef C64KEYCODES_H
 #define C64KEYCODES_H
 
-#include <tuple>
+#include "CodeTripleDef.h"
 
-using CodeTriple = std::tuple<uint8_t, uint8_t, uint8_t>;
+#define X(name, a, b, c)                                                       \
+  inline constexpr CodeTripleS C64_KEYCODE_##name{a, b, c};
+#include "C64Keycodes_inc.h"
+#undef X
 
-const CodeTriple C64_KEYCODE_BREAK = {0x7f, 0x7f, 0x80};
-const CodeTriple C64_KEYCODE_RETURN = {0xfe, 0xfd, 0x00};
-const CodeTriple C64_KEYCODE_BACKSPACE = {0xfe, 0xfe, 0x00};
-const CodeTriple C64_KEYCODE_SPACE = {0x7f, 0xef, 0x00};
-const CodeTriple C64_KEYCODE_0 = {0xef, 0xf7, 0x00};
-const CodeTriple C64_KEYCODE_1 = {0x7f, 0xfe, 0x00};
-const CodeTriple C64_KEYCODE_2 = {0x7f, 0xf7, 0x00};
-const CodeTriple C64_KEYCODE_3 = {0xfd, 0xfe, 0x00};
-const CodeTriple C64_KEYCODE_4 = {0xfd, 0xf7, 0x00};
-const CodeTriple C64_KEYCODE_5 = {0xfb, 0xfe, 0x00};
-const CodeTriple C64_KEYCODE_6 = {0xfb, 0xf7, 0x00};
-const CodeTriple C64_KEYCODE_7 = {0xf7, 0xfe, 0x00};
-const CodeTriple C64_KEYCODE_8 = {0xf7, 0xf7, 0x00};
-const CodeTriple C64_KEYCODE_9 = {0xef, 0xfe, 0x00};
-const CodeTriple C64_KEYCODE_W = {0xfd, 0xfd, 0x00};
-const CodeTriple C64_KEYCODE_A = {0xfd, 0xfb, 0x00};
-const CodeTriple C64_KEYCODE_Z = {0xfd, 0xef, 0x00};
-const CodeTriple C64_KEYCODE_S = {0xfd, 0xdf, 0x00};
-const CodeTriple C64_KEYCODE_E = {0xfd, 0xbf, 0x00};
-const CodeTriple C64_KEYCODE_R = {0xfb, 0xfd, 0x00};
-const CodeTriple C64_KEYCODE_D = {0xfb, 0xfb, 0x00};
-const CodeTriple C64_KEYCODE_C = {0xfb, 0xef, 0x00};
-const CodeTriple C64_KEYCODE_F = {0xfb, 0xdf, 0x00};
-const CodeTriple C64_KEYCODE_T = {0xfb, 0xbf, 0x00};
-const CodeTriple C64_KEYCODE_X = {0xfb, 0x7f, 0x00};
-const CodeTriple C64_KEYCODE_Y = {0xf7, 0xfd, 0x00};
-const CodeTriple C64_KEYCODE_G = {0xf7, 0xfb, 0x00};
-const CodeTriple C64_KEYCODE_B = {0xf7, 0xef, 0x00};
-const CodeTriple C64_KEYCODE_H = {0xf7, 0xdf, 0x00};
-const CodeTriple C64_KEYCODE_U = {0xf7, 0xbf, 0x00};
-const CodeTriple C64_KEYCODE_V = {0xf7, 0x7f, 0x00};
-const CodeTriple C64_KEYCODE_I = {0xef, 0xfd, 0x00};
-const CodeTriple C64_KEYCODE_J = {0xef, 0xfb, 0x00};
-const CodeTriple C64_KEYCODE_M = {0xef, 0xef, 0x00};
-const CodeTriple C64_KEYCODE_K = {0xef, 0xdf, 0x00};
-const CodeTriple C64_KEYCODE_O = {0xef, 0xbf, 0x00};
-const CodeTriple C64_KEYCODE_N = {0xef, 0x7f, 0x00};
-const CodeTriple C64_KEYCODE_P = {0xdf, 0xfd, 0x00};
-const CodeTriple C64_KEYCODE_L = {0xdf, 0xfb, 0x00};
-const CodeTriple C64_KEYCODE_MINUS = {0xdf, 0xf7, 0x00};
-const CodeTriple C64_KEYCODE_PERIOD = {0xdf, 0xef, 0x00};
-const CodeTriple C64_KEYCODE_COMMA = {0xdf, 0x7f, 0x00};
-const CodeTriple C64_KEYCODE_Q = {0x7f, 0xbf, 0x00};
-const CodeTriple C64_KEYCODE_DOLLAR = {0xfd, 0xf7, 0x01};
-const CodeTriple C64_KEYCODE_LESS = {0xdf, 0x7f, 0x01};
-const CodeTriple C64_KEYCODE_RIGHT = {0xfe, 0xfb, 0x00};
-const CodeTriple C64_KEYCODE_LEFT = {0xfe, 0xfb, 0x01};
-const CodeTriple C64_KEYCODE_DOWN = {0xfe, 0x7f, 0x00};
-const CodeTriple C64_KEYCODE_UP = {0xfe, 0x7f, 0x01};
-const CodeTriple C64_KEYCODE_F1 = {0xfe, 0xef, 0x00};
-const CodeTriple C64_KEYCODE_F3 = {0xfe, 0xdf, 0x00};
-const CodeTriple C64_KEYCODE_F5 = {0xfe, 0xbf, 0x00};
-const CodeTriple C64_KEYCODE_F7 = {0xfe, 0xf7, 0x00};
-const CodeTriple C64_KEYCODE_QUOTEDBL = {0x7f, 0xf7, 0x01};
-const CodeTriple C64_KEYCODE_PERCENT = {0xfb, 0xfe, 0x01};
-const CodeTriple C64_KEYCODE_AMPERSAND = {0xfb, 0xf7, 0x01};
-const CodeTriple C64_KEYCODE_LEFTPAREN = {0xf7, 0xf7, 0x01};
-const CodeTriple C64_KEYCODE_RIGHTPAREN = {0xef, 0xfe, 0x01};
-const CodeTriple C64_KEYCODE_GREATER = {0xdf, 0xef, 0x01};
-const CodeTriple C64_KEYCODE_QUESTION = {0xbf, 0x7f, 0x01};
-const CodeTriple C64_KEYCODE_PLUS = {0xdf, 0xfe, 0x00};
-const CodeTriple C64_KEYCODE_ASTERISK = {0xbf, 0xfd, 0x00};
-const CodeTriple C64_KEYCODE_SLASH = {0xbf, 0x7f, 0x00};
-const CodeTriple C64_KEYCODE_EQUALS = {0xbf, 0xdf, 0x00};
-const CodeTriple C64_KEYCODE_COLON = {0xdf, 0xdf, 0x00};
-const CodeTriple C64_KEYCODE_SEMICOLON = {0xbf, 0xfb, 0x00};
-const CodeTriple C64_KEYCODE_EXCLAIM = {0x7f, 0xfe, 0x01};
-const CodeTriple C64_KEYCODE_AT = {0xdf, 0xbf, 0x00};
-const CodeTriple C64_KEYCODE_HASH = {0xfd, 0xfe, 0x01};
-const CodeTriple C64_KEYCODE_QUOTE = {0xf7, 0xfe, 0x01};
-const CodeTriple C64_KEYCODE_HOME = {0xbf, 0xf7, 0x00};
-const CodeTriple C64_KEYCODE_CLR = {0xbf, 0xf7, 0x01};
-const CodeTriple C64_KEYCODE_DEL = {0xfe, 0xfe, 0x00};
-const CodeTriple C64_KEYCODE_INS = {0xfe, 0xfe, 0x01};
-const CodeTriple C64_KEYCODE_LEFTBRACKET = {0xdf, 0xdf, 0x01};
-const CodeTriple C64_KEYCODE_RIGHTBRACKET = {0xbf, 0xfb, 0x01};
-const CodeTriple C64_KEYCODE_LEFTARROW = {0x7f, 0xfd, 0x00};
-const CodeTriple C64_KEYCODE_POUND = {0xbf, 0xfe, 0x00};
-const CodeTriple C64_KEYCODE_UPARROW = {0xbf, 0xbf, 0x00};
-const CodeTriple C64_KEYCODE_SHIFTLEFT = {0xfd, 0x7f, 0x00};
-const CodeTriple C64_KEYCODE_SHIFTRIGHT = {0xbf, 0xef, 0x00};
-const CodeTriple C64_KEYCODE_COMMODORE = {0x7f, 0xdf, 0x00};
-const CodeTriple C64_KEYCODE_CTRL = {0x7f, 0xfb, 0x00};
+struct NamedKeycode {
+  const char *name;
+  CodeTripleS value;
+};
+
+inline constexpr NamedKeycode C64_KEYCODES[] = {
+#define X(name, a, b, c) {"C64_KEYCODE_" #name, {a, b, c}},
+#include "C64Keycodes_inc.h"
+#undef X
+};
 
 #endif // C64KEYCODES_H

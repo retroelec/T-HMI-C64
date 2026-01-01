@@ -83,6 +83,7 @@ struct Config {
 
   // filesystem
   static constexpr const char *PATH = "c64prgs/";
+  static constexpr const char *CONFIGFILE = ".config.json";
 };
 
 #elif defined(ESP_PLATFORM)
@@ -125,6 +126,7 @@ struct Config {
 
   // filesystem
   static constexpr const char *PATH = "";
+  static constexpr const char *CONFIGFILE = ".config.json";
 
   // SDCard
   static const uint8_t SD_MISO_PIN = 13;
@@ -162,6 +164,7 @@ struct Config {
 
   // filesystem
   static constexpr const char *PATH = "";
+  static constexpr const char *CONFIGFILE = ".config.json";
 
   // display driver
   static const uint16_t LCDWIDTH = 536;
@@ -196,6 +199,7 @@ struct Config {
 
   // filesystem
   static constexpr const char *PATH = "";
+  static constexpr const char *CONFIGFILE = ".config.json";
 
   // display driver
   static const uint16_t LCDWIDTH = 320;

@@ -40,6 +40,9 @@
  * Each implementation is responsible for proper resource management, ensuring
  * that file handles are correctly initialized, reused, and released as needed.
  */
+
+#include <string>
+
 class FileDriver {
 public:
   /**
@@ -141,22 +144,18 @@ public:
    * @brief Retrieves the next directory entry.
    *
    * Iterates over the entries in the current directory. The name of the next
-   * file is copied into the provided buffer. If `start` is true, the iteration
-   * starts from the first entry. If `start` is false, the iteration continues
-   * from where it left off in the previous call.
+   * file is returned. If `start` is true, the iteration starts from the first
+   * entry. If `start` is false, the iteration continues from where it left off
+   * in the previous call.
    *
-   * The buffer `nextentry` must be at least 17 bytes in size. The result will
-   * be a null-terminated string (C-string) containing up to 16 characters of
-   * the entry name.
-   *
-   * @param nextentry Pointer to the buffer where the next directory entry will
-   * be stored.
    * @param start If true, (re)starts from the first entry; if false, continues
    * from last.
+   * @param name String where the next directory entry will be stored. Must be
+   * empty if no more entries are left.
    * @return true if an entry was successfully written into `nextentry`,
    *         false if an error occurred.
    */
-  virtual bool listnextentry(uint8_t *nextentry, bool start) { return false; }
+  virtual bool listnextentry(std::string &name, bool start) { return false; }
 
   virtual ~FileDriver() = default;
 };

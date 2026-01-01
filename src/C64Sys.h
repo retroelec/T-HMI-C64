@@ -22,10 +22,12 @@
 #include "Floppy.h"
 #include "Hooks.h"
 #include "IDebugBus.h"
+#include "JoystickOnlyTextKeycode.h"
 #include "SID.h"
 #include "VIC.h"
 #include "joystick/JoystickDriver.h"
 #include "keyboard/C64Keycodes.h"
+#include "keyboard/CodeTripleDef.h"
 #include "keyboard/KeyboardDriver.h"
 #include <atomic>
 #include <cstdint>
@@ -64,16 +66,11 @@ private:
   bool rightpressed;
   bool liststartflag;
   std::string actfilename;
-  struct TextKeycode {
-    CodeTriple text;
-    CodeTriple keycode;
-  };
-  std::vector<TextKeycode> listInGameKeycodes = {
+  std::vector<JoystickOnlyTextKeycode> listInGameKeycodes = {
       {{39, 32, 39}, C64_KEYCODE_SPACE}, {{39, 49, 39}, C64_KEYCODE_1},
       {{39, 50, 39}, C64_KEYCODE_2},     {{39, 25, 39}, C64_KEYCODE_Y},
       {{39, 14, 39}, C64_KEYCODE_N},     {{32, 6, 49}, C64_KEYCODE_F1},
-      {{32, 6, 51}, C64_KEYCODE_F3},     {{32, 6, 53}, C64_KEYCODE_F5},
-      {{32, 6, 55}, C64_KEYCODE_F7}};
+      {{32, 6, 51}, C64_KEYCODE_F3}};
   uint8_t listInGameKeycodesIdx;
 
   uint8_t getDC01(uint8_t dc00, bool xchgports);
@@ -81,7 +78,7 @@ private:
   inline void decodeRegister1(uint8_t val) __attribute__((always_inline));
   inline void checkciatimers(uint8_t cycles) __attribute__((always_inline));
   inline void logDebugInfo() __attribute__((always_inline));
-  TextKeycode getNextKeycode();
+  JoystickOnlyTextKeycode getNextKeycode();
   void getJoystickValues();
   uint8_t checkJoystickOnlyStatemachine(bool fire2pressed);
   void check4extcmd();
@@ -114,7 +111,7 @@ public:
   std::atomic<uint16_t> batteryVoltage;
   std::atomic<bool> poweroff;
 
-  CodeTriple actInGameKeycode;
+  CodeTripleS actInGameKeycode;
   std::atomic<bool> actInGameKeycodeChosen;
   std::atomic<int> actInGameKeycodeCnt;
 

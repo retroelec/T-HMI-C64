@@ -34,7 +34,6 @@ public:
   bool eof() override { return true; }
   int64_t size() override { return 0; }
   void close() override { return; }
-  bool listnextentry(uint8_t *nextentry, bool start) override { return false; }
 };
 #endif
 

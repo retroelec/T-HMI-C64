@@ -20,6 +20,7 @@
 #include "CPU6502.h"
 #include "Config.h"
 #include "ExternalCmds.h"
+#include "FileConfig.h"
 #include "Floppy.h"
 #include "Hooks.h"
 #include "SID.h"
@@ -29,6 +30,7 @@
 #include "joystick/JoystickInitializationException.h"
 #include "keyboard/KeyboardDriver.h"
 #include "keyboard/KeyboardFactory.h"
+#include "nlohmann/json.hpp"
 #include "platform/PlatformManager.h"
 #include "roms/basic.h"
 #include "roms/kernal.h"
@@ -36,7 +38,7 @@
 #include <cstdint>
 #include <tuple>
 
-static const char *TAG = "CPUC64";
+static const char *TAG = "C64SYS";
 
 // read dc00 / dc01:
 // from
@@ -55,8 +57,8 @@ uint8_t C64Sys::getDC01(uint8_t dc00, bool xchgports) {
   uint8_t kbcodedc00 =
       xchgports ? keyboard->getKBCodeDC01() : keyboard->getKBCodeDC00();
   if (actInGameKeycodeChosen.load(std::memory_order_acquire) && (!xchgports)) {
-    uint8_t mod;
-    std::tie(kbcodedc00, kbcodedc01, mod) = actInGameKeycode;
+    kbcodedc00 = actInGameKeycode.dc00;
+    kbcodedc01 = actInGameKeycode.dc01;
   }
   if (dc00 == 0) {
     return kbcodedc01;
@@ -541,11 +543,11 @@ static uint8_t ingamebox[] =
     "\x42\x06\x09\x12\x05\x20\x14\x0f\x20\x05\x18\x09\x14\x20\x42"
     "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x4b";
 
-C64Sys::TextKeycode C64Sys::getNextKeycode() {
+JoystickOnlyTextKeycode C64Sys::getNextKeycode() {
   if (listInGameKeycodes.empty()) {
     return {{39, 32, 39}, C64_KEYCODE_SPACE};
   }
-  TextKeycode data = listInGameKeycodes[listInGameKeycodesIdx];
+  JoystickOnlyTextKeycode data = listInGameKeycodes[listInGameKeycodesIdx];
   listInGameKeycodesIdx =
       (listInGameKeycodesIdx + 1) % listInGameKeycodes.size();
   return data;
@@ -598,37 +600,49 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool fire2pressed) {
     getJoystickValues();
     if (downpressed) {
       if (floppy.fsinitialized) {
-        uint8_t filename[17];
-        bool success = floppy.listnextentry(filename, liststartflag);
-        liststartflag = false;
-        if (success && (filename[0] != '\0')) {
-          std::string temp_filename((char *)filename);
-          actfilename = temp_filename;
-          if (temp_filename.length() < 16) {
-            temp_filename.append(16 - temp_filename.length(), ' ');
+        std::string filename;
+        bool success = false;
+        while (true) {
+          success = floppy.listnextentry(filename, liststartflag);
+          if (filename.size() > 4 &&
+              filename.compare(filename.size() - 4, 4, ".prg") == 0) {
+            break;
           }
-          uint8_t i = 0;
-          for (char c : temp_filename) {
-            if (c >= 0x40) {
-              filename[i++] = c - 0x40;
-            } else {
-              filename[i++] = c;
+          if ((!success) || filename.empty()) {
+            break;
+          }
+        }
+        if (success) {
+          if (filename.empty()) {
+            liststartflag = true;
+          } else {
+            actfilename = filename;
+            floppy.rmPrgFromFilename(filename);
+            liststartflag = false;
+            if (filename.length() < 16) {
+              filename.append(16 - filename.length(), ' ');
             }
+            uint8_t filenamec[17];
+            uint8_t i = 0;
+            for (char c : filename) {
+              if (c >= 0x60) {
+                filenamec[i++] = c - 0x60;
+              } else {
+                filenamec[i++] = c;
+              }
+            }
+            memcpy(&listbox[22], filenamec, 16);
+            vic.drawDOIBox(listbox, 9, 1, 20, 3, 1, 0, 65535, 1);
           }
-          memcpy(&listbox[22], filename, 16);
-          vic.drawDOIBox(listbox, 9, 1, 20, 3, 1, 0, 65535, 1);
         }
       }
     } else if (leftpressed) {
-      specialjoymodestate = SpecialJoyModeState::RUN;
-      vic.doiactive[1] = false;
-      cpuhalted = true;
       if (floppy.fsinitialized) {
-        std::transform(actfilename.begin(), actfilename.end(),
-                       actfilename.begin(), ::tolower);
-        std::string filename = actfilename + ".prg";
-        uint16_t addr = floppy.load(filename, ram);
+        cpuhalted = true;
+        uint16_t addr = floppy.load(actfilename, ram);
         if (addr != 0) {
+          specialjoymodestate = SpecialJoyModeState::RUN;
+          vic.doiactive[1] = false;
           externalCmds->setVarTab(addr);
           ram[0xd3] = 0;
           ram[0x0277] = 'R';
@@ -638,8 +652,8 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool fire2pressed) {
           ram[0x027B] = 0x0d;
           ram[0x00C6] = 5;
         }
+        cpuhalted = false;
       }
-      cpuhalted = false;
     } else if (rightpressed) {
       switch (joystickmode) {
       case 0:
@@ -897,7 +911,7 @@ void C64Sys::initMemAndRegs() {
 }
 
 void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
-  PlatformManager::getInstance().log(LOG_INFO, TAG, "CPUC64::init");
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "init");
   vic.init(ram, charrom);
   floppy.init(8);
   this->ram = ram;
@@ -927,6 +941,13 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   externalCmds->init(ram, this);
   hooks->init(ram, this);
   hooks->patchKernal(kernal_rom);
+  FileConfig::loadConfig(*floppy.sysfile, std::string(Config::PATH) +
+                                              std::string(Config::CONFIGFILE));
+  std::vector<JoystickOnlyTextKeycode> listAdditionalInGameKeycodes =
+      FileConfig::getJoystickOnlyKeycodes();
+  listInGameKeycodes.insert(listInGameKeycodes.end(),
+                            listAdditionalInGameKeycodes.begin(),
+                            listAdditionalInGameKeycodes.end());
 }
 
 void C64Sys::exeSubroutine(uint16_t regpc) {
