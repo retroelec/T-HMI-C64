@@ -123,10 +123,9 @@ void CIA::init(bool isCIA1) {
   latchdc06 = 0;
   latchdc07 = 0;
   latchdc0d = 0;
-  timerA = 0;
-  timerB = 0;
+  timerA = 0xffff;
+  timerB = 0xffff;
 
-  isTODRunning.store(false, std::memory_order_release);
   isTODFreezed = false;
   isAlarm.store(false, std::memory_order_release);
   latchrundc08.store(0, std::memory_order_release);
@@ -141,15 +140,16 @@ void CIA::init(bool isCIA1) {
   if (isCIA1) {
     ciareg[0] = 127;
     ciareg[1] = 255;
-    ciareg[2] = 255;
   } else {
     ciareg[0] = 151;
     ciareg[1] = 255;
-    ciareg[2] = 63;
   }
 }
 
-CIA::CIA(bool isCIA1) { init(isCIA1); }
+CIA::CIA(bool isCIA1) {
+  init(isCIA1);
+  isTODRunning.store(false, std::memory_order_release);
+}
 
 uint8_t CIA::getCommonCIAReg(uint8_t ciaidx) {
   if (ciaidx == 0x04) {
@@ -223,8 +223,8 @@ void CIA::setCommonCIAReg(uint8_t ciaidx, uint8_t val) {
       latchrundc09.store(ciareg[0x09], std::memory_order_release);
       latchrundc0a.store(ciareg[0x0a], std::memory_order_release);
       latchrundc0b.store(ciareg[0x0b], std::memory_order_release);
+      isTODRunning.store(true, std::memory_order_release);
     }
-    isTODRunning.store(true, std::memory_order_release);
   } else if (ciaidx == 0x09) {
     if (ciareg[0x0f] & 128) {
       latchalarmdc09.store(val, std::memory_order_release);
@@ -238,10 +238,10 @@ void CIA::setCommonCIAReg(uint8_t ciaidx, uint8_t val) {
       ciareg[0x0a] = val;
     }
   } else if (ciaidx == 0x0b) {
-    isTODRunning.store(false, std::memory_order_release);
     if (ciareg[0x0f] & 128) {
       latchalarmdc0b.store(val, std::memory_order_release);
     } else {
+      isTODRunning.store(false, std::memory_order_release);
       ciareg[0x0b] = val;
     }
   } else if (ciaidx == 0x0c) {

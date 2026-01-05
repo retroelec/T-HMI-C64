@@ -167,6 +167,10 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
             static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::INCVOLUME);
         extCmdBuffer[1] = 10;
         gotExternalCmd = true;
+      } else if (key == SDLK_p) {
+        extCmdBuffer[0] =
+            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::PAUSE);
+        gotExternalCmd = true;
       } else if (key == SDLK_j) {
         switch (joystickmode) {
         case ExtCmd::JOYSTICKMODEOFF:

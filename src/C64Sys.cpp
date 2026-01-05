@@ -27,7 +27,6 @@
 #include "VIC.h"
 #include "joystick/JoystickDriver.h"
 #include "joystick/JoystickFactory.h"
-#include "joystick/JoystickInitializationException.h"
 #include "keyboard/KeyboardDriver.h"
 #include "keyboard/KeyboardFactory.h"
 #include "nlohmann/json.hpp"
@@ -38,7 +37,7 @@
 #include <cstdint>
 #include <tuple>
 
-static const char *TAG = "C64SYS";
+static const char *TAG = "C64Sys";
 
 // read dc00 / dc01:
 // from
@@ -924,7 +923,7 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   joystick = Joystick::create();
   try {
     joystick->init();
-  } catch (const JoystickInitializationException &e) {
+  } catch (const std::runtime_error &e) {
     PlatformManager::getInstance().log(
         LOG_INFO, TAG, "error in init. of joystick: %s - continue anyway",
         e.what());

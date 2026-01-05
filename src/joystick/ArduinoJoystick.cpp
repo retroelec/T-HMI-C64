@@ -18,10 +18,10 @@
 #include "../Config.h"
 #ifdef USE_ARDUINOJOYSTICK
 #include "../platform/PlatformManager.h"
-#include "JoystickInitializationException.h"
 #include <driver/gpio.h>
 #include <esp_adc/adc_oneshot.h>
 #include <soc/gpio_struct.h>
+#include <stdexcept>
 
 void ArduinoJoystick::init() {
   // init adc (x and y axis)
@@ -30,7 +30,7 @@ void ArduinoJoystick::init() {
                                              .ulp_mode = ADC_ULP_MODE_DISABLE};
   esp_err_t err = adc_oneshot_new_unit(&init_config, &adc2_handle);
   if (err != ESP_OK) {
-    throw JoystickInitializationException(esp_err_to_name(err));
+    throw std::runtime_error(esp_err_to_name(err));
   }
   adc_oneshot_chan_cfg_t channel_config = {.atten = ADC_ATTEN_DB_12,
                                            .bitwidth = ADC_BITWIDTH_DEFAULT};
@@ -49,7 +49,7 @@ void ArduinoJoystick::init() {
 
   err = gpio_config(&io_conf);
   if (err != ESP_OK) {
-    throw JoystickInitializationException(esp_err_to_name(err));
+    throw std::runtime_error(esp_err_to_name(err));
   }
   // init other attributes
   lastjoystickvalue = 0xff;

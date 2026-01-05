@@ -16,11 +16,11 @@
 */
 #include "../Config.h"
 #ifdef USE_ST7789V
-#include "../HardwareInitializationException.h"
 #include "ST7789V.h"
 #include <driver/gpio.h>
 #include <freertos/FreeRTOS.h>
 #include <soc/gpio_struct.h>
+#include <stdexcept>
 
 static const uint16_t CSVAL = (1 << Config::CS);
 static const uint16_t DCVAL = (1 << Config::DC);
@@ -105,8 +105,8 @@ void ST7789V::init() {
   fill_lu_pinbitmask();
   esp_err_t err = config_lcd();
   if (err != ESP_OK) {
-    throw HardwareInitializationException(
-        std::string("init. of ST7789V failed: ") + esp_err_to_name(err));
+    throw std::runtime_error(std::string("init. of ST7789V failed: ") +
+                             esp_err_to_name(err));
   }
 
   GPIO.out_w1tc = CSVAL;

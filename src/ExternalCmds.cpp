@@ -543,6 +543,15 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
                         buffer[6], buffer[7], buffer[8], duration, buffer[11]);
     return 0;
   }
+  case ExtCmd::PAUSE: {
+    if (cpu->cpuhalted) {
+      cpu->cpuhalted = false;
+    } else {
+      cpu->cpuhalted = true;
+    }
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "execute pause");
+    return 0;
+  }
   }
   return 0;
 }

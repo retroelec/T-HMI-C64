@@ -280,7 +280,8 @@ enum class ExtCmd {
    * - byte 11: index of overlay (0 or 1)
    * - byte 12-: text to be displayed
    */
-  WRITEOSD = 39
+  WRITEOSD = 39,
+  PAUSE = 40
 };
 
 #endif // EXTCMD_H

@@ -289,7 +289,7 @@ bool Floppy::readNextDirBlk() {
 bool Floppy::readNextFileBlk() {
   if (track != 0) {
     if (!d64file->seek(calcOffset(track, sector), SEEK_SET)) {
-      lastStatus = 0x02;
+      lastStatus = 0x42;
       return true;
     }
     std::vector<uint8_t> &buf = buffer[channels[currentSecondary].buffernr];
@@ -327,7 +327,7 @@ bool Floppy::readNextFileBlk() {
 bool Floppy::directLoad() {
   if (!channels[0].isOpen) {
     PlatformManager::getInstance().log(LOG_INFO, TAG, "file not found");
-    lastStatus = 0x02;
+    lastStatus = 0x42;
     return true;
   }
   std::vector<uint8_t> &buf = buffer[channels[0].buffernr];
@@ -479,7 +479,7 @@ uint8_t Floppy::iecin() {
   }
   lastStatus = 0;
   if (!channels[cursec].isOpen) {
-    lastStatus = 0x02; // file not found
+    lastStatus = 0x42; // file not found
     return 0;
   }
   // send bytes to the c64
@@ -530,6 +530,7 @@ void Floppy::iecout(uint8_t value) {
             triggercmdchannel = true;
           }
         } else {
+          lastStatus = 0;
           initIterateDirectoryBlk();
           bool found = false;
           while ((track != 0) && (!found)) {
@@ -542,7 +543,7 @@ void Floppy::iecout(uint8_t value) {
                     const uint8_t fileType) { return name == search; });
           }
           if (!found) {
-            lastStatus = 0x03; // file not found
+            lastStatus = 0x42; // file not found
           } else {
             track = startTrack;
             sector = startSector;
@@ -555,11 +556,12 @@ void Floppy::iecout(uint8_t value) {
         for (auto &c : name) {
           c = tolower(c);
         }
+        lastStatus = 0;
         std::string filename = Config::PATH + name + ".prg";
         if (!channels[0].file->open(filename, "rb")) {
           PlatformManager::getInstance().log(LOG_INFO, TAG, "cannot open file");
           channels[0].isOpen = false;
-          lastStatus = 0x03; // file not found
+          lastStatus = 0x42; // file not found
         } else {
           channels[0].isOpen = true;
           channels[0].bufferidx = 0;
@@ -577,6 +579,7 @@ void Floppy::iecout(uint8_t value) {
       listening = true;
       talking = false;
     } else if (value == 0x3f) {
+      lastStatus &= 0x40;
       listening = false;
     } else if (value == 0x40 + device) {
       talking = true;

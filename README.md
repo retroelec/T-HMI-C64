@@ -8,7 +8,7 @@ The emulator was later expanded to support the
 Keyboard input is implemented via a custom Android app or via a web interface.  
 The Android app communicates with the emulator via Bluetooth Low Energy (BLE).
 The web keyboard was provided by uliuc@gmx.net.  
-Further a "joystick-only" operation is possible for some games.
+Further a "joystick-only" operation is possible for most games.
 
 The code should also be portable to other ESP32-S3 boards (and even other platforms).
 
@@ -27,6 +27,9 @@ Contact: retroelec42@gmail.com
 - Web keyboard by uliuc@gmx.net
 
 ## Hardware
+
+<details>
+<summary>Click to expand details</summary>
 
 ### ESP32-S3
 
@@ -107,7 +110,12 @@ uliuc@gmx.net has created a gamepad for the Waveshare board.
 The files for this are located in the directory named "enclosure".
 If you have any questions about the gamepad, please contact Uli directly.
 
+</details>
+
 ## Installation
+
+<details>
+<summary>Click to expand details</summary>
 
 ### Files
 
@@ -213,7 +221,12 @@ Follow these steps to build the emulator for Windows:
 - Create executable: make c64win.exe
 - Copy necessary dll's: make copydlls
 
+</details>
+
 ## Usage
+
+<details>
+<summary>Click to expand details</summary>
 
 ### Android keyboard
 
@@ -340,7 +353,12 @@ The LIST button shows the programs on the SD card in a paginated list.
 
 You can also send a programm from your Android device to the emulator (DIV screen, SENDPRG Button).
 
+</details>
+
 ## Software
+
+<details>
+<summary>Click to expand details</summary>
 
 ### Class diagram of the emulator
 
@@ -387,4 +405,6 @@ Features not emulated (list not exhaustive) resp. known bugs:
 
 Since only a rudimentary disk drive emulation is available, only a few "multi-load" games can be played (e.g. Summer Games, World Games, The Dallas Quest).
 Most of the single filed games tested work well. A few games have minor graphics glitches and a small number of the games tested do not work at all.
+
+</details>
 

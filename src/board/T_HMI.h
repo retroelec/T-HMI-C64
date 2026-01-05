@@ -19,11 +19,11 @@
 
 #include "../Config.h"
 #ifdef BOARD_T_HMI
-#include "../HardwareInitializationException.h"
 #include "BoardDriver.h"
 #include "CalibrateBattery.h"
 #include <driver/gpio.h>
 #include <soc/gpio_struct.h>
+#include <stdexcept>
 
 class T_HMI : public BoardDriver, CalibrateBattery {
 public:
@@ -36,8 +36,8 @@ public:
     io_conf.pin_bit_mask = (1ULL << Config::PWR_ON) | (1ULL << Config::PWR_EN);
     esp_err_t err = gpio_config(&io_conf);
     if (err != ESP_OK) {
-      throw HardwareInitializationException(
-          std::string("init. of BoardDriver failed: ") + esp_err_to_name(err));
+      throw std::runtime_error(std::string("init. of BoardDriver failed: ") +
+                               esp_err_to_name(err));
     }
     GPIO.out_w1ts = (1 << Config::PWR_ON);
     GPIO.out_w1ts = (1 << Config::PWR_EN);
