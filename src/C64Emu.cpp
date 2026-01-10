@@ -119,7 +119,7 @@ void C64Emu::setup() {
 
 void C64Emu::loop() {
   cpu.vic.refresh();
-  cpu.keyboard->feedEvents();
+  cpu.keyboard->syncAndCreateAttachWinSDL();
   PlatformManager::getInstance().feedWDT();
   PlatformManager::getInstance().waitMS(Config::REFRESHDELAY);
   if (cpu.perf.load(std::memory_order_acquire) &&

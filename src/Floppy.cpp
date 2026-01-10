@@ -95,12 +95,14 @@ std::unique_ptr<FileDriver> Floppy::sysfile;
 
 void Floppy::init(uint8_t device) {
   this->device = device;
+  buffer[0] = &ram[0x300];
+  buffer[1] = &ram[0x400];
+  buffer[2] = &ram[0x500];
+  buffer[3] = &ram[0x600];
+  buffer[4] = &ram[0x700];
   if (!fsinitialized) {
     sysfile = FileSys::create();
     fsinitialized = sysfile->init();
-    for (uint8_t i = 0; i < 5; i++) {
-      buffer[i].resize(256);
-    }
     d64file = FileSys::create();
     for (auto &ch : channels) {
       ch.file = FileSys::create();
@@ -137,7 +139,7 @@ bool Floppy::attach(const std::string &filename) {
                                        "unsuccessful seek operation");
     return false;
   }
-  if (d64file->read(buffer[4].data(), 256) == 0) {
+  if (d64file->read(buffer[4], 256) == 0) {
     PlatformManager::getInstance().log(LOG_ERROR, TAG,
                                        "unsuccessful read operation");
     return false;
@@ -205,7 +207,7 @@ void addDirectoryLine(uint8_t *buf, uint16_t &idx, uint16_t &addr,
 }
 
 bool Floppy::readNextDirBlk() {
-  std::vector<uint8_t> &buf = buffer[channels[0].buffernr];
+  uint8_t *buf = buffer[channels[0].buffernr];
   uint16_t idx = 0;
   switch (diriterstate) {
   case 1: {
@@ -245,8 +247,8 @@ bool Floppy::readNextDirBlk() {
     iterateDirectoryBlk(name, buf,
                         [&](const std::string &name, const std::string &search,
                             const uint16_t blocks, const uint8_t fileType) {
-                          addDirectoryLine(buf.data(), idx, diriteraddr, blocks,
-                                           name, decodeFileType(fileType));
+                          addDirectoryLine(buf, idx, diriteraddr, blocks, name,
+                                           decodeFileType(fileType));
                           return false;
                         });
     channels[0].buffersize = idx;
@@ -292,9 +294,11 @@ bool Floppy::readNextFileBlk() {
       lastStatus = 0x42;
       return true;
     }
-    std::vector<uint8_t> &buf = buffer[channels[currentSecondary].buffernr];
-    uint8_t *bufdata = buf.data();
-    uint16_t s = d64file->read(bufdata, 256);
+    // PlatformManager::getInstance().log(LOG_INFO, TAG,
+    //                                   "readNextFileBlk, currentSecondary=%d",
+    //                                    currentSecondary);
+    uint8_t *buf = buffer[channels[currentSecondary].buffernr];
+    uint16_t s = d64file->read(buf, 256);
     if (s == 0) {
       track = 0;
       lastStatus = 0x40; // EOI
@@ -330,10 +334,9 @@ bool Floppy::directLoad() {
     lastStatus = 0x42;
     return true;
   }
-  std::vector<uint8_t> &buf = buffer[channels[0].buffernr];
-  uint8_t *bufdata = buf.data();
+  uint8_t *buf = buffer[channels[0].buffernr];
   channels[0].bufferidx = 0;
-  channels[0].buffersize = channels[0].file->read(bufdata, 256);
+  channels[0].buffersize = channels[0].file->read(buf, 256);
   if (channels[0].buffersize == 0) {
     lastStatus = 0x40; // EOI
     return true;
@@ -418,13 +421,17 @@ bool Floppy::handleCmdChannel() {
           LOG_INFO, TAG, "command %s %s", cmd->command.c_str(),
           formatUInt8ArgsToHex(cmd->rawArgs).c_str());
       if (cmd->command == "M-R") {
-        // uint16_t addr = cmd->rawArgs[0] + (cmd->rawArgs[1] << 8);
+        uint16_t addr = cmd->rawArgs[0] + (cmd->rawArgs[1] << 8);
+        if (addr == 0xffff) {
+          buffer[0][0] = 0xfe;
+        }
         uint16_t bufsize = cmd->rawArgs[2];
         if (bufsize == 0) {
           bufsize = 256;
         }
         channels[15].bufferidx = 0;
         channels[15].buffersize = bufsize;
+      } else if (cmd->command == "M-E") {
       }
     } else if (cmd->type == CommandType::TEXT) {
       PlatformManager::getInstance().log(
@@ -442,9 +449,8 @@ bool Floppy::handleCmdChannel() {
           lastStatus = 0x02;
           return true;
         }
-        std::vector<uint8_t> &buf = buffer[channels[secch1].buffernr];
-        uint8_t *bufdata = buf.data();
-        channels[secch1].buffersize = d64file->read(bufdata, 256);
+        uint8_t *buf = buffer[channels[secch1].buffernr];
+        channels[secch1].buffersize = d64file->read(buf, 256);
         channels[secch1].bufferidx = 0;
       } else {
         PlatformManager::getInstance().log(LOG_ERROR, TAG,
@@ -474,6 +480,8 @@ uint8_t Floppy::iecin() {
     return 0;
   }
   uint8_t cursec = currentSecondary;
+  // PlatformManager::getInstance().log(
+  //     LOG_INFO, TAG, "iecin, currentSecondary=%d", currentSecondary);
   if (name == "$") {
     cursec = 0;
   }
@@ -502,13 +510,36 @@ uint8_t Floppy::iecin() {
       }
     }
   }
-  std::vector<uint8_t> &buf = buffer[channels[cursec].buffernr];
+  uint8_t *buf = buffer[channels[cursec].buffernr];
   uint8_t byte = buf[channels[cursec].bufferidx];
   channels[cursec].bufferidx++;
   if (iecindebug) {
     PlatformManager::getInstance().log(LOG_INFO, TAG, "iecin byte: %x", byte);
   }
   return byte;
+}
+
+bool wildcard_match(const char *text, const char *pattern) {
+  const char *retry_text = nullptr;
+  const char *retry_pattern = nullptr;
+  while (*text) {
+    if (*pattern == '*') {
+      retry_pattern = ++pattern;
+      retry_text = text;
+    } else if (*pattern == '?' || *text == *pattern) {
+      pattern++;
+      text++;
+    } else if (retry_text) {
+      pattern = retry_pattern;
+      text = ++retry_text;
+    } else {
+      return false;
+    }
+  }
+  while (*pattern == '*') {
+    pattern++;
+  }
+  return !*pattern;
 }
 
 void Floppy::iecout(uint8_t value) {
@@ -530,17 +561,20 @@ void Floppy::iecout(uint8_t value) {
             triggercmdchannel = true;
           }
         } else {
+          // PlatformManager::getInstance().log(
+          //     LOG_INFO, TAG, "iecout, currentSecondary=%d",
+          //     currentSecondary);
           lastStatus = 0;
           initIterateDirectoryBlk();
           bool found = false;
           while ((track != 0) && (!found)) {
-            std::vector<uint8_t> &buf =
-                buffer[channels[currentSecondary].buffernr];
+            uint8_t *buf = buffer[channels[currentSecondary].buffernr];
             found = iterateDirectoryBlk(
                 name, buf,
                 [&](const std::string &name, const std::string &search,
-                    const uint16_t blocks,
-                    const uint8_t fileType) { return name == search; });
+                    const uint16_t blocks, const uint8_t fileType) {
+                  return wildcard_match(name.c_str(), search.c_str());
+                });
           }
           if (!found) {
             lastStatus = 0x42; // file not found
@@ -679,3 +713,19 @@ void Floppy::rmPrgFromFilename(std::string &filename) {
 bool Floppy::listnextentry(std::string &name, bool start) {
   return sysfile->listnextentry(name, start);
 }
+
+uint8_t Floppy::getMem(uint16_t addr) {
+  if (addr < 0x0800) {
+    return ram[addr];
+  } else {
+    return 0;
+  }
+}
+
+void Floppy::setMem(uint16_t addr, uint8_t val) {
+  if (addr < 0x0800) {
+    ram[addr] = val;
+  }
+}
+
+void Floppy::run() {}

@@ -19,10 +19,13 @@
 #ifdef USE_SDL_KEYBOARD
 #include "../ExtCmd.h"
 #include "SDLKeymap.h"
+#include "platform/PlatformManager.h"
 #include <SDL2/SDL.h>
 #include <cstdint>
 #include <mutex>
 #include <queue>
+
+static const char *TAG = "SDLKB";
 
 static const uint8_t CHARPIXSIZE = 4;
 extern void drawChar(SDL_Renderer *ren, uint16_t c, uint16_t x, uint16_t y,
@@ -68,6 +71,7 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
           SDL_DestroyWindow(attachwin);
         }
         attachwinopen = false;
+        openattachwin = false;
         if (strlen(diskname) == 0) {
           extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
               ExtCmd::DETACHD64);
@@ -136,13 +140,9 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
             static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LIST);
         gotExternalCmd = true;
       } else if (key == SDLK_a) {
-        if (!attachwinopen) {
-          attachwin = SDL_CreateWindow("attach disk, enter d64 name",
-                                       SDL_WINDOWPOS_CENTERED,
-                                       SDL_WINDOWPOS_CENTERED, 400, 200, 0);
-          attachrenderer =
-              SDL_CreateRenderer(attachwin, -1, SDL_RENDERER_ACCELERATED);
-          attachwinopen = true;
+        if (!attachwinopen && !openattachwin) {
+          std::lock_guard<std::mutex> lock(attachWinMutex);
+          openattachwin = true;
           diskname[0] = '\0';
         }
       } else if (key == SDLK_n) {
@@ -274,11 +274,28 @@ void SDLKB::init() {
   printHelpHint();
 }
 
-void SDLKB::feedEvents() {
+void SDLKB::syncAndCreateAttachWinSDL() {
+  // synchronize SDL events with the main thread
   SDL_Event ev;
   while (SDL_PollEvent(&ev)) {
     std::lock_guard<std::mutex> lock(eventMutex);
     eventQueue.push(ev);
+  }
+  // create the attach window when needed
+  if (openattachwin) {
+    std::lock_guard<std::mutex> lock(attachWinMutex);
+    openattachwin = false;
+    attachwin =
+        SDL_CreateWindow("attach disk, enter d64 name", SDL_WINDOWPOS_CENTERED,
+                         SDL_WINDOWPOS_CENTERED, 400, 200, 0);
+    if (!attachwin) {
+      PlatformManager::getInstance().log(LOG_ERROR, TAG,
+                                         "error creating attach window");
+      return;
+    }
+    attachrenderer =
+        SDL_CreateRenderer(attachwin, -1, SDL_RENDERER_ACCELERATED);
+    attachwinopen = true;
   }
 }
 

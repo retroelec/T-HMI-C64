@@ -12,9 +12,7 @@ Further a "joystick-only" operation is possible for most games.
 
 The code should also be portable to other ESP32-S3 boards (and even other platforms).
 
-The emulator is also available as a Linux, Mac and Windows application using SDL for graphics, input, and sound.  
-On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the available sleep functions are too coarse-grained.
-(The CPU time on Windows can be reduced by commenting out #WINDOWS_BUSYWAIT in Config.h, however this results in a delay in audio output.)
+The emulator is also available as a Linux, Mac and Windows application using SDL for graphics, input, and sound.
 
 [![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
 
@@ -171,6 +169,7 @@ For this situation you can use a prepared docker image to compile the code:
 ### Upload C64 Emulator to the development board
 
 First adapt the file Makefile and choose the board you want the binary files to be uploaded for (adapt variable BOARD).
+Furthermore, you may need to adjust the PORT variable.
 Binary files for the T-HMI and Waveshare ESP32-S3-LCD-2.8 development boards are also part of the git repository, so you don't have to compile them yourself if you don't want to.
 
 Afterwards you can upload the binary files:  
@@ -220,6 +219,9 @@ Follow these steps to build the emulator for Windows:
 - Get docker image: podman pull docker.io/retroelec42/sdl2-cross:latest
 - Create executable: make c64win.exe
 - Copy necessary dll's: make copydlls
+
+On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the available sleep functions are too coarse-grained.
+(The CPU time on Windows can be reduced by commenting out #WINDOWS_BUSYWAIT in Config.h, however this results in a delay in audio output.)
 
 </details>
 
@@ -337,7 +339,6 @@ This will load the file dkong.prg.
 
 Finally you can attach a ".d64" file using the ATTACH button on the DIV screen.
 You can then use LOAD"$",8 to load the directory and subsequently load a specific program.
-Note: The wildcard * to load the first program does not yet work.
 
 <img src="doc/loadprg.gif" alt="class diagram" width="800"/>
 
@@ -403,8 +404,9 @@ Features not emulated (list not exhaustive) resp. known bugs:
 - synchronization is rasterline-based, not cycle-exact
 - rarly C64 CPU is blocked after loading a game
 
-Since only a rudimentary disk drive emulation is available, only a few "multi-load" games can be played (e.g. Summer Games, World Games, The Dallas Quest).
-Most of the single filed games tested work well. A few games have minor graphics glitches and a small number of the games tested do not work at all.
+Since only a rudimentary disk drive emulation is available, only a few "multi-load" games can be played
+(e.g. Summer Games, World Games, The Dallas Quest).
+Most of the single filed games tested work well. A few games have graphics glitches and a small number of the games tested do not work at all.
 
 </details>
 

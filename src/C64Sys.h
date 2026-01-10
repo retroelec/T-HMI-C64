@@ -126,9 +126,8 @@ public:
 
   bool restorenmi;
 
-  uint8_t getMem(uint16_t addr);
-  void setMem(uint16_t addr, uint8_t val);
-
+  uint8_t getMem(uint16_t addr) override;
+  void setMem(uint16_t addr, uint8_t val) override;
   void cmd6502brk() override;
   void cmd6502halt() override;
   void run() override;

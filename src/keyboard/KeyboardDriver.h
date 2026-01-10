@@ -107,13 +107,17 @@ public:
   virtual void setDetectReleasekey(bool detectreleasekey) = 0;
 
   /**
-   * @brief Polls keyboard events and enqueues them for later processing by the
-   * method scanKeyboard(). The method is intended for SDL Keyboards only.
+   * @brief Synchronizes SDL events with the main thread and creates the attach
+   * window when needed.
    *
-   * Is called in the main thread (required on Windows) to keep input and window
-   * handling responsive.
+   * Polls keyboard events and enqueues them for later processing by the
+   * method scanKeyboard() and creates the attach window when the corresponding
+   * event is triggered.
+   *
+   * The method is intended for SDL Keyboards only. It is called in the main
+   * thread.
    */
-  virtual void feedEvents() {}
+  virtual void syncAndCreateAttachWinSDL() {}
 
   /**
    * @brief Sets the "specialjoymode" state.

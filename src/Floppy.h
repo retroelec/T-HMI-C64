@@ -17,6 +17,7 @@
 #ifndef FLOPPY_H
 #define FLOPPY_H
 
+#include "CPU6502.h"
 #include "IDebugBus.h"
 #include "fs/FileDriver.h"
 #include "platform/PlatformManager.h"
@@ -25,7 +26,7 @@
 #include <string>
 #include <vector>
 
-class Floppy {
+class Floppy : public CPU6502 {
 private:
   static constexpr uint8_t sectorsPerTrack[41] = {
       0,  21, 21, 21, 21, 21, 21, 21, 21, 21,
@@ -45,7 +46,7 @@ private:
   };
 
   std::unique_ptr<FileDriver> d64file;
-  std::vector<uint8_t> buffer[5];
+  uint8_t *buffer[5];
   uint8_t errmessage[12];
   uint8_t errmessageidx;
   uint16_t freeBlocks;
@@ -83,15 +84,15 @@ private:
   // variables used outside this method:
   // startTrack, startSector, buf, track
   template <typename Callback>
-  bool iterateDirectoryBlk(const std::string &filename,
-                           std::vector<uint8_t> &buf, Callback cb) {
+  bool iterateDirectoryBlk(const std::string &filename, uint8_t *buf,
+                           Callback cb) {
     if (track != 0) {
       if (!d64file->seek(calcOffset(track, sector), SEEK_SET)) {
         PlatformManager::getInstance().log(LOG_ERROR, "Floppy",
                                            "unsuccessful seek operation");
         return false;
       }
-      if (d64file->read(buf.data(), 256) == 0) {
+      if (d64file->read(buf, 256) == 0) {
         PlatformManager::getInstance().log(LOG_ERROR, "Floppy",
                                            "unsuccessful read operation");
         return false;
@@ -131,6 +132,8 @@ private:
   void initChannels();
   void initAttach();
 
+  uint8_t ram[0x800];
+
 public:
   static std::unique_ptr<FileDriver> sysfile;
 
@@ -152,5 +155,9 @@ public:
             uint16_t endaddr);
   void rmPrgFromFilename(std::string &filename);
   bool listnextentry(std::string &name, bool start);
+
+  uint8_t getMem(uint16_t addr) override;
+  void setMem(uint16_t addr, uint8_t val) override;
+  void run() override;
 };
 #endif // FLOPPY_H

@@ -34,7 +34,7 @@ public:
    * This method should be called once during system startup to configure
    * any hardware or software resources required to read joystick input.
    */
-  virtual void init(){};
+  virtual void init() {};
 
   /**
    * @brief Returns the current state of the joystick directions and fire

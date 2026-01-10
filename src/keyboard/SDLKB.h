@@ -44,6 +44,7 @@ private:
   bool specialjoymode;
 
   bool attachwinopen = false;
+  bool openattachwin = false;
   static const uint16_t DISKNAMEMAXLEN = 17;
   char diskname[DISKNAMEMAXLEN];
   SDL_Window *attachwin = NULL;
@@ -55,6 +56,7 @@ private:
 
   std::queue<SDL_Event> eventQueue;
   std::mutex eventMutex;
+  std::mutex attachWinMutex;
 
   void setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode);
   void handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed);
@@ -64,7 +66,7 @@ public:
   void init() override;
   uint8_t *getExtCmdData() override;
   void sendExtCmdNotification(uint8_t *data, size_t size) override;
-  void feedEvents() override;
+  void syncAndCreateAttachWinSDL() override;
   void scanKeyboard() override;
   uint8_t getKBCodeDC01() override;
   uint8_t getKBCodeDC00() override;
