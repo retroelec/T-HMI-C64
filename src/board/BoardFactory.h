@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -23,6 +23,8 @@
 #include "T_HMI.h"
 #elif defined(BOARD_T_DISPLAY_S3)
 #include "T_DISPLAY_S3.h"
+#elif defined(BOARD_CYD)
+#include "CYD.h"
 #elif defined(BOARD_WAVESHARE)
 #include "Waveshare.h"
 #elif defined(BOARD_LINUX)
@@ -37,6 +39,8 @@ BoardDriver *create() {
   return new T_HMI();
 #elif defined(BOARD_T_DISPLAY_S3)
   return new T_DISPLAY_S3();
+#elif defined(BOARD_CYD)
+  return new CYD();
 #elif defined(BOARD_WAVESHARE)
   return new Waveshare();
 #elif defined(BOARD_LINUX)

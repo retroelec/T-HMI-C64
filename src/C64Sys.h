@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -34,7 +34,7 @@
 
 class ExternalCmds; // forward declaration
 
-enum class SpecialJoyModeState { NONE, CHOOSEFILE, RUN, INGAME };
+enum class JoystickOnlyModeState { NONE, CHOOSEFILE, RUN, INGAME };
 
 class C64Sys : public CPU6502, public IDebugBus {
 private:
@@ -51,8 +51,8 @@ private:
 
   bool nmiAck;
 
-  SpecialJoyModeState specialjoymodestate;
-  uint16_t specialjoymodecnt;
+  JoystickOnlyModeState joystickOnlyModeState;
+  uint16_t joystickOnlyModeCnt;
   bool specialjoymode;
   bool gmprevfire1;
   bool gmprevup;

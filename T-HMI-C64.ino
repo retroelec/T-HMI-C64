@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -33,6 +33,7 @@ void core0Task(void *param) {
   } catch (...) {
     PlatformManager::getInstance().log(LOG_ERROR, TAG, "setup() failed");
     while (true) {
+      PlatformManager::getInstance().waitMS(500);
     }
   }
   vTaskDelay(pdMS_TO_TICKS(1000));

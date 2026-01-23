@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -19,44 +19,56 @@
 // https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED/tree/main/examples/factory
 #include "../Config.h"
 #ifdef USE_RM67162
+#include "BitmapUtils.h"
 #include "rm67162/rm67162.h"
 
-uint16_t *RM67162::framecolormem;
+static constexpr uint16_t BORDERWIDTH = (Config::LCDWIDTH - 320) / 2;
+static constexpr uint16_t BORDERHEIGHT = (Config::LCDHEIGHT - 200) / 2;
+static constexpr uint8_t BUFNUMLINES = 20;
+static constexpr uint16_t DBBUFSIZE = 320 * BUFNUMLINES;
+static constexpr uint16_t DFBUFSIZE =
+    MAX(320 * BORDERHEIGHT, BORDERWIDTH *Config::LCDHEIGHT);
+static constexpr uint16_t BUFFERSIZE = MAX(DFBUFSIZE, DBBUFSIZE);
+
+static uint16_t *buffer __attribute__((aligned(4)));
 
 void RM67162::init() {
-  RM67162::framecolormem = new uint16_t[FRAMEMEMSIZE]();
   rm67162_init();
   lcd_setRotation(1);
+  buffer = new uint16_t[BUFFERSIZE];
   oldFrameColor = 0;
 }
 
-void RM67162::drawFrame(uint16_t frameColor) {
+void RM67162::drawFrame(uint8_t frameColor) {
   if (frameColor == oldFrameColor) {
     return;
   }
   oldFrameColor = frameColor;
-  uint16_t cnt = FRAMEMEMSIZE;
-  uint16_t *frameptr = RM67162::framecolormem;
+  uint16_t cnt = DFBUFSIZE;
+  uint16_t *frameptr = buffer;
+  uint16_t frameColor16 = c64Colors[frameColor];
   while (cnt--) {
-    *frameptr = frameColor;
-    frameptr++;
+    *frameptr++ = frameColor16;
   }
   if (BORDERHEIGHT > 0) {
-    lcd_PushColors(BORDERWIDTH, 0, 320, BORDERHEIGHT, RM67162::framecolormem);
-    lcd_PushColors(BORDERWIDTH, 200 + BORDERHEIGHT, 320, BORDERHEIGHT,
-                   RM67162::framecolormem);
+    lcd_PushColors(BORDERWIDTH, 0, 320, BORDERHEIGHT, buffer);
+    lcd_PushColors(BORDERWIDTH, 200 + BORDERHEIGHT, 320, BORDERHEIGHT, buffer);
   }
   if (BORDERWIDTH > 0) {
-    lcd_PushColors(0, 0, BORDERWIDTH, Config::LCDHEIGHT,
-                   RM67162::framecolormem);
+    lcd_PushColors(0, 0, BORDERWIDTH, Config::LCDHEIGHT, buffer);
     lcd_PushColors(BORDERWIDTH + 320, 0, BORDERWIDTH, Config::LCDHEIGHT,
-                   RM67162::framecolormem);
+                   buffer);
   }
 }
 
-void RM67162::drawBitmap(uint16_t *bitmap) {
-  lcd_PushColors(BORDERWIDTH, BORDERHEIGHT, 320, 200, bitmap);
+void RM67162::drawBitmap(uint8_t *bitmap) {
+  uint16_t ystart = BORDERHEIGHT;
+  for (uint8_t i = 0; i < 200 / BUFNUMLINES; i++) {
+    BitmapUtils::getBitmap(bitmap + (i * DBBUFSIZE), buffer, c64Colors,
+                           DBBUFSIZE);
+    lcd_PushColors(BORDERWIDTH, ystart, 320, BUFNUMLINES, buffer);
+    ystart += BUFNUMLINES;
+  }
 }
 
-const uint16_t *RM67162::getC64Colors() const { return c64Colors; }
 #endif

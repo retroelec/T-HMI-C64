@@ -1,9 +1,9 @@
-# C64 Emulator for ESP32-S3 with "Android BLE keyboard" or "Web keyboard" (Lilygo T-HMI, Lilygo T-Display S3 AMOLED, Waveshare ESP32-S3-LCD-2.8)
+# C64 Emulator for ESP32-S3 (and ESP32) with "Android BLE keyboard" or "Web keyboard" (Lilygo T-HMI, Lilygo T-Display S3 AMOLED, Waveshare ESP32-S3-LCD-2.8, CYD)
 
 A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD, and an SD card slot.
 The emulator was later expanded to support the
-[Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI) and the
-[ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm).
+[Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI), the
+[ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm) and the ESP32 CYD board.
 
 Keyboard input is implemented via a custom Android app or via a web interface.  
 The Android app communicates with the emulator via Bluetooth Low Energy (BLE).
@@ -20,6 +20,7 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- Support for CYD board
 - "Joystick-only” operation
 - Enclosure for the Waveshare Board by uliuc@gmx.net
 - Web keyboard by uliuc@gmx.net
@@ -44,7 +45,7 @@ Emulation of the CPU and the custom chips (VIC, SID and CIAs) are done on core 1
 I use an "Arduino joystick shield" for the T-HMI and the Waveshare development board.
 The joystick is optional (as there exists also a virtual joystick on the Android device) but recommended.
 It has an analog 2-axis thumb joystick and several buttons.
-As there are several games which use the space bar as a second fire button (e.g. Commando), another button of the Arduino joystick
+As there are several games which use the space bar as a second fire button, another button of the Arduino joystick
 can be used to simulate the pressing of the space bar.
 
 ### Battery
@@ -53,7 +54,7 @@ You can also operate your board with a battery. The T-HMI and Waveshare developm
 the On/Off switch (next to the SD card slot). The Waveshare board can be switched off with the reset button, *if* it is powered by battery.
 Alternatively, the Android app allows the board to be switched off by pressing the Off switch in the top right-hand corner.
 
-### Lilygo T-HMI development board
+### Lilygo T-HMI
 
 From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
 
@@ -76,7 +77,7 @@ Joystick connections:
 
 Switch voltage to 3.3V on the Arduino joystick module.
 
-### T-Display S3 AMOLED board
+### T-Display S3 AMOLED
 
 The board has no SD card but you can send a programm from your Android device to the emulator (see below).
 
@@ -107,6 +108,27 @@ uliuc@gmx.net has created a gamepad for the Waveshare board.
 
 The files for this are located in the directory named "enclosure".
 If you have any questions about the gamepad, please contact Uli directly.
+
+### CYD
+
+The "Cheap Yellow Display" (CYD) board (ESP32-2432S028) runs with an ESP32 (unlike the boards above, which use an ESP32-S3).  
+The board has too little RAM to activate the BLE or Wi-Fi keyboard. Therefore, the emulator can only be operated in "joystick-only" mode.
+The "joystick-only" mode is activated pressing the fire button for two seconds.
+The CYD board only has three free GPIO pins, so there is no pin for a second fire button.  
+Furthermore, the LCD and SD card share the same SPI bus, resulting in a small amount of additional code in central routines.  
+Currently, sound output is not yet implemented.
+
+<img src="doc/CYD.png" alt="CYD" width="800"/>
+
+Joystick connections:
+
+- connect CN1, IO27 to Arduino joystick Y pin (yellow cable)
+- connect P3, IO35 to Arduino joystick X pin (red cable)
+- connect CN1, 3V3 to Arduino joystick V pin (red cable)
+- connect CN1, GND to Arduino joystick G pin (black cable)
+- connect CN1, IO22 to Arduino joystick D pin (for D button, orange cable)
+
+Switch voltage to 3.3V on the Arduino joystick module.
 
 </details>
 
@@ -143,7 +165,7 @@ If you have any questions about the gamepad, please contact Uli directly.
   (however please be aware that you could overwrite an already installed specfic Arduino core, see also next chapter):  
   make install
 
-### Compile code (optional for T-HMI and Waveshare ESP32-S3-LCD-2.8, mandatory for T-Display S3 AMOLED)
+### Compile code (optional for T-HMI, Waveshare ESP32-S3-LCD-2.8 and CYD, mandatory for T-Display S3 AMOLED)
 
 First adapt the file Makefile and choose
 
@@ -301,7 +323,7 @@ The GUI itself is self explaining.
 
 The joystick can also be used to load and launch single filed games, eliminating the need for a keyboard:
 
-- Open OSD Menu: Press and hold fire button 2 for 2 seconds.
+- Open OSD Menu: Press and hold fire button 2 (fire button 1 for the CYD board) for 2 seconds.
 - Close OSD Menu: Press fire button 1.
 
 Menu navigation (post-reset):
@@ -403,6 +425,7 @@ Features not emulated (list not exhaustive) resp. known bugs:
 - no "FLI border removal" / "sideborder removal"
 - synchronization is rasterline-based, not cycle-exact
 - rarly C64 CPU is blocked after loading a game
+- no sound for CYD board yet
 
 Since only a rudimentary disk drive emulation is available, only a few "multi-load" games can be played
 (e.g. Summer Games, World Games, The Dallas Quest).

@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -23,6 +23,8 @@
 
 #if defined(USE_SDCARD)
 #include "SDMMCFile.h"
+#elif defined(USE_SDCARDCYD)
+#include "SDCardCYD.h"
 #elif defined(USE_LINUXFS)
 #include "LinuxFile.h"
 #elif defined(USE_NOFS)
@@ -35,6 +37,8 @@ namespace FileSys {
 std::unique_ptr<FileDriver> create() {
 #if defined(USE_SDCARD)
   return std::make_unique<SDMMCFile>();
+#elif defined(USE_SDCARDCYD)
+  return std::make_unique<SDCardCYD>();
 #elif defined(USE_LINUXFS)
   return std::make_unique<LinuxFile>();
 #elif defined(USE_NOFS)

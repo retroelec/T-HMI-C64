@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -562,13 +562,13 @@ void C64Sys::getJoystickValues() {
   gmprevright = rightpressing;
 }
 
-uint8_t C64Sys::checkJoystickOnlyStatemachine(bool fire2pressed) {
+uint8_t C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
   uint8_t ret = 0;
-  if (specialjoymodestate == SpecialJoyModeState::NONE) {
+  if (joystickOnlyModeState == JoystickOnlyModeState::NONE) {
     keyboard->setSpecialjoymode(false);
     specialjoymode = false;
-    if (fire2pressed) {
-      specialjoymodecnt = 0;
+    if (jOMBpressed) {
+      joystickOnlyModeCnt = 25 * 312;
       specialjoymode = true;
       keyboard->setSpecialjoymode(true);
       const char *msg = "\x10\x12\x5\x13\x13 \xa\xf\x19 \x4\xf\x17\xe  ";
@@ -576,18 +576,22 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool fire2pressed) {
       vic.drawDOIBox(listbox, 9, 1, 20, 3, 1, 0, 65535, 1);
       vic.drawDOIBox(listboxhelp, 12, 6, 15, 7, 1, 0, 5, 0);
       liststartflag = true;
-      specialjoymodestate = SpecialJoyModeState::CHOOSEFILE;
+      joystickOnlyModeState = JoystickOnlyModeState::CHOOSEFILE;
     }
-  } else if (specialjoymodestate == SpecialJoyModeState::RUN) {
+  } else if (joystickOnlyModeState == JoystickOnlyModeState::RUN) {
     keyboard->setSpecialjoymode(false);
     specialjoymode = false;
-    if (fire2pressed) {
-      specialjoymodecnt = 0;
+    if (jOMBpressed) {
+      joystickOnlyModeCnt = 25 * 312;
       specialjoymode = true;
       keyboard->setSpecialjoymode(true);
-      specialjoymodestate = SpecialJoyModeState::INGAME;
+      joystickOnlyModeState = JoystickOnlyModeState::INGAME;
+      vic.drawDOIBox(ingamebox, 12, 1, 15, 9, 1, 0, 65535, 1);
     }
-  } else if (specialjoymodestate == SpecialJoyModeState::CHOOSEFILE) {
+  } else if (joystickOnlyModeState == JoystickOnlyModeState::CHOOSEFILE) {
+    if (joystickOnlyModeCnt > 0) {
+      joystickOnlyModeCnt--;
+    }
     getJoystickValues();
     if (downpressed) {
       if (floppy.fsinitialized) {
@@ -631,8 +635,11 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool fire2pressed) {
       if (floppy.fsinitialized) {
         cpuhalted = true;
         uint16_t addr = floppy.load(actfilename, ram);
+#if defined(BOARD_CYD)
+        vic.display->reconfigureSPI();
+#endif
         if (addr != 0) {
-          specialjoymodestate = SpecialJoyModeState::RUN;
+          joystickOnlyModeState = JoystickOnlyModeState::RUN;
           vic.doiactive[1] = false;
           externalCmds->setVarTab(addr);
           ram[0xd3] = 0;
@@ -657,15 +664,17 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool fire2pressed) {
       }
       keyboard->setJoystickmode(static_cast<ExtCmd>(ret));
     } else if (uppressed) {
-      specialjoymodestate = SpecialJoyModeState::NONE;
+      joystickOnlyModeState = JoystickOnlyModeState::NONE;
       vic.doiactive[1] = false;
       ret = static_cast<uint8_t>(ExtCmd::POWEROFF);
-    } else if (fire1pressed) {
-      specialjoymodestate = SpecialJoyModeState::NONE;
+    } else if (fire1pressed && (joystickOnlyModeCnt == 0)) {
+      joystickOnlyModeState = JoystickOnlyModeState::NONE;
       vic.doiactive[1] = false;
     }
-  } else if (specialjoymodestate == SpecialJoyModeState::INGAME) {
-    vic.drawDOIBox(ingamebox, 12, 1, 15, 9, 1, 0, 65535, 1);
+  } else if (joystickOnlyModeState == JoystickOnlyModeState::INGAME) {
+    if (joystickOnlyModeCnt > 0) {
+      joystickOnlyModeCnt--;
+    }
     getJoystickValues();
     if (downpressed) {
       actInGameKeycodeChosen.store(true, std::memory_order_release);
@@ -677,6 +686,7 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool fire2pressed) {
       ingamebox[47] = ch1;
       ingamebox[48] = ch2;
       ingamebox[49] = ch3;
+      vic.drawDOIBox(ingamebox, 12, 1, 15, 9, 1, 0, 65535, 1);
     } else if (rightpressed) {
       switch (joystickmode) {
       case 0:
@@ -689,11 +699,11 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool fire2pressed) {
       }
       keyboard->setJoystickmode(static_cast<ExtCmd>(ret));
     } else if (uppressed) {
-      specialjoymodestate = SpecialJoyModeState::NONE;
+      joystickOnlyModeState = JoystickOnlyModeState::NONE;
       vic.doiactive[1] = false;
       ret = static_cast<uint8_t>(ExtCmd::RESET);
-    } else if (fire1pressed) {
-      specialjoymodestate = SpecialJoyModeState::RUN;
+    } else if (fire1pressed && (joystickOnlyModeCnt == 0)) {
+      joystickOnlyModeState = JoystickOnlyModeState::RUN;
       vic.doiactive[1] = false;
     }
   }
@@ -701,17 +711,17 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool fire2pressed) {
 }
 
 void C64Sys::check4extcmd() {
-  bool fire2pressed = false;
-  if ((specialjoymodestate == SpecialJoyModeState::NONE) ||
-      (specialjoymodestate == SpecialJoyModeState::RUN)) {
-    bool fire2pressing = joystick->getFire2();
-    if (fire2pressing) {
-      specialjoymodecnt++;
+  bool jOMBpressed = false;
+  if ((joystickOnlyModeState == JoystickOnlyModeState::NONE) ||
+      (joystickOnlyModeState == JoystickOnlyModeState::RUN)) {
+    bool jOMBpressing = joystick->getJoyOnlyModeButton();
+    if (jOMBpressing) {
+      joystickOnlyModeCnt++;
     } else {
-      specialjoymodecnt = 0;
+      joystickOnlyModeCnt = 0;
     }
-    if (specialjoymodecnt >= 100 * 312) {
-      fire2pressed = true;
+    if (joystickOnlyModeCnt >= 100 * 312) {
+      jOMBpressed = true;
     }
   }
   bool executeExtCmdKB = false;
@@ -721,7 +731,7 @@ void C64Sys::check4extcmd() {
   if (extCmdBufferKB != nullptr) {
     executeExtCmdKB = true;
   } else {
-    extCmdBufferGM[0] = checkJoystickOnlyStatemachine(fire2pressed);
+    extCmdBufferGM[0] = checkJoystickOnlyStatemachine(jOMBpressed);
     executeExtCmdGM = true;
   }
   // ececute external command?
@@ -891,7 +901,7 @@ void C64Sys::initMemAndRegs() {
   gmprevdown = false;
   gmprevleft = false;
   gmprevright = false;
-  specialjoymodestate = SpecialJoyModeState::NONE;
+  joystickOnlyModeState = JoystickOnlyModeState::NONE;
   specialjoymode = false;
   listInGameKeycodesIdx = 1;
   ingamebox[47] = 39;
@@ -903,7 +913,12 @@ void C64Sys::initMemAndRegs() {
 
 void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   PlatformManager::getInstance().log(LOG_INFO, TAG, "init");
-  vic.init(ram, charrom);
+  try {
+    vic.init(ram, charrom);
+  } catch (const std::runtime_error &e) {
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "error in vic.init(): %s",
+                                       e.what());
+  }
   floppy.init(8);
   this->ram = ram;
   this->charrom = charrom;
@@ -934,6 +949,9 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   hooks->patchKernal(kernal_rom);
   FileConfig::loadConfig(*floppy.sysfile, std::string(Config::PATH) +
                                               std::string(Config::CONFIGFILE));
+#if defined(BOARD_CYD)
+  vic.display->reconfigureSPI();
+#endif
   std::vector<JoystickOnlyTextKeycode> listAdditionalInGameKeycodes =
       FileConfig::getJoystickOnlyKeycodes();
   listInGameKeycodes.insert(listInGameKeycodes.end(),

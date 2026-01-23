@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -172,26 +172,28 @@ void ST7789V::copyend() {
 }
 
 void ST7789V::copyColor(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
-                        uint16_t data) {
+                        uint8_t data) {
   copyinit(x0, y0, w, h);
   uint32_t clearMask = lu_pinbitmask[255];
+  uint16_t data16 = c64Colors[data & 0x0f];
   for (uint32_t i = 0; i < w * h; i++) {
-    copycopy(data, clearMask);
+    copycopy(data16, clearMask);
   }
   copyend();
 }
 
 void ST7789V::copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
-                       uint16_t *data) {
+                       uint8_t *data) {
   copyinit(x0, y0, w, h);
   uint32_t clearMask = lu_pinbitmask[255];
   for (uint32_t i = 0; i < w * h; i++) {
-    copycopy(*data++, clearMask);
+    uint16_t data16 = c64Colors[*data++ & 0x0f];
+    copycopy(data16, clearMask);
   }
   copyend();
 }
 
-void ST7789V::drawFrame(uint16_t frameColor) {
+void ST7789V::drawFrame(uint8_t frameColor) {
   if (frameColor == oldFrameColor) {
     return;
   }
@@ -208,7 +210,7 @@ void ST7789V::drawFrame(uint16_t frameColor) {
   }
 }
 
-void ST7789V::drawBitmap(uint16_t *bitmap) {
+void ST7789V::drawBitmap(uint8_t *bitmap) {
   ST7789V::copyData(BORDERWIDTH, BORDERHEIGHT, 320, 200, bitmap);
 }
 #endif

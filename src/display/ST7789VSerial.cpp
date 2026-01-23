@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -19,6 +19,7 @@
 // files Display_ST7789.cpp and Display_ST7789.h are copied from
 // https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-2.8/ESP32-S3-Touch-LCD-2.8-Demo.zip
 // and slightly adjusted
+#include "BitmapUtils.h"
 #include "ST7789VSerial.h"
 #include "st7789vserial/Display_ST7789.h"
 
@@ -31,15 +32,16 @@ void ST7789VSerial::init() {
   oldFrameColor = 0;
 }
 
-void ST7789VSerial::drawFrame(uint16_t frameColor) {
+void ST7789VSerial::drawFrame(uint8_t frameColor) {
   if (frameColor == oldFrameColor) {
     return;
   }
   oldFrameColor = frameColor;
   uint16_t cnt = FRAMEMEMSIZE;
   uint16_t *frameptr = ST7789VSerial::framecolormem;
+  uint16_t frameColor16 = c64Colors[frameColor];
   while (cnt--) {
-    *frameptr = frameColor;
+    *frameptr = frameColor16;
     frameptr++;
   }
   if (BORDERHEIGHT > 0) {
@@ -56,12 +58,22 @@ void ST7789VSerial::drawFrame(uint16_t frameColor) {
   }
 }
 
-void LCD_addWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend,
-                   uint16_t Yend, uint16_t *color);
+const uint8_t BUFNUMLINES = 20;
+static uint16_t transferBuffer[320 * BUFNUMLINES] __attribute__((aligned(4)));
 
-void ST7789VSerial::drawBitmap(uint16_t *bitmap) {
-  LCD_addWindow(BORDERWIDTH, BORDERHEIGHT, 319 + BORDERWIDTH,
-                199 + BORDERHEIGHT, bitmap);
+void ST7789VSerial::drawBitmap(uint8_t *bitmap) {
+  uint16_t xstart = BORDERWIDTH;
+  uint16_t ystart = BORDERHEIGHT;
+  uint16_t xend = 319 + BORDERWIDTH;
+  uint16_t yend = BORDERHEIGHT + BUFNUMLINES - 1;
+  const uint16_t BUFSIZE = 320 * BUFNUMLINES;
+  for (uint8_t i = 0; i < 200 / BUFNUMLINES; i++) {
+    BitmapUtils::getBitmap(bitmap + (i * BUFSIZE), transferBuffer, c64Colors,
+                           BUFSIZE);
+    LCD_addWindow(xstart, ystart, xend, yend, transferBuffer);
+    ystart += BUFNUMLINES;
+    yend += BUFNUMLINES;
+  }
 }
 
 #endif

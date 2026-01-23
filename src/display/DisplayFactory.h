@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -23,6 +23,8 @@
 #include "ST7789V.h"
 #elif defined(USE_RM67162)
 #include "RM67162.h"
+#elif defined(USE_ILI9341)
+#include "ILI9341.h"
 #elif defined(USE_ST7789VSERIAL)
 #include "ST7789VSerial.h"
 #elif defined(USE_SDL_DISPLAY)
@@ -37,6 +39,8 @@ DisplayDriver *create() {
   return new ST7789V();
 #elif defined(USE_RM67162)
   return new RM67162();
+#elif defined(USE_ILI9341)
+  return new ILI9341();
 #elif defined(USE_ST7789VSERIAL)
   return new ST7789VSerial();
 #elif defined(USE_SDL_DISPLAY)

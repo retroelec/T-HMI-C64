@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -18,7 +18,9 @@
 #define PLATFORMFACTORY_H
 
 #include "Platform.h"
-#if defined(ESP_PLATFORM)
+#if defined(ESP_PLATFORM) && defined(BOARD_CYD)
+#include "PlatformCYD.h"
+#elif defined(ESP_PLATFORM)
 #include "PlatformESP32.h"
 #elif defined(PLATFORM_LINUX)
 #include "PlatformLinux.h"
@@ -30,7 +32,9 @@
 
 namespace PlatformNS {
 Platform *create() {
-#if defined(ESP_PLATFORM)
+#if defined(ESP_PLATFORM) && defined(BOARD_CYD)
+  return new PlatformCYD();
+#elif defined(ESP_PLATFORM)
   return new PlatformESP32();
 #elif defined(PLATFORM_LINUX)
   return new PlatformLinux();

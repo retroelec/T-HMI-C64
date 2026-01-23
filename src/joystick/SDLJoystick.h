@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -26,6 +26,7 @@ class SDLJoystick : public JoystickDriver {
 public:
   uint8_t getValue() override;
   bool getFire2() override;
+  bool getJoyOnlyModeButton() override;
 };
 #endif
 

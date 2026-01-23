@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -45,6 +45,11 @@
 #define USE_RM67162
 #define USE_NOFS
 #define USE_NOJOYSTICK
+#define USE_NOSOUND
+#elif defined(BOARD_CYD)
+#define USE_ILI9341
+#define USE_SDCARDCYD
+#define USE_ARDUINOJOYSTICKCYD
 #define USE_NOSOUND
 #elif defined(BOARD_WAVESHARE)
 #define USE_ST7789VSERIAL
@@ -177,6 +182,39 @@ struct Config {
       "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
 };
 
+#elif defined(BOARD_CYD)
+
+struct Config {
+  // --- constants to be defined for each board ---
+
+  // delay until next display refresh
+  static const uint8_t REFRESHDELAY = 0;
+
+  // "heuristic performance factor"
+  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
+
+  // --- driver specific constants ---
+
+  // filesystem
+  static constexpr const char *PATH = "";
+  static constexpr const char *CONFIGFILE = ".config.json";
+
+  // display driver
+  static const uint16_t LCDWIDTH = 320;
+  static const uint16_t LCDHEIGHT = 240;
+
+  // SDCard
+  static const uint8_t SD_MISO_PIN = 19;
+  static const uint8_t SD_MOSI_PIN = 23;
+  static const uint8_t SD_SCLK_PIN = 18;
+  static const uint8_t SD_CS_PIN = 5;
+
+  // Joystick
+  static const adc_channel_t ADC_JOYSTICK_X = ADC_CHANNEL_7;
+  static const adc_channel_t ADC_JOYSTICK_Y = ADC_CHANNEL_7;
+  static const uint8_t JOYSTICK_FIRE_PIN = 22;
+};
+
 #elif defined(BOARD_WAVESHARE)
 
 #define HAS_DEFAULT_VOLUME
@@ -185,10 +223,10 @@ struct Config {
   // --- constants to be defined for each board ---
 
   // delay until next display refresh
-  static const uint8_t REFRESHDELAY = 11;
+  static const uint8_t REFRESHDELAY = 5;
 
   // "heuristic performance factor"
-  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 0.7;
+  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 0.5;
 
   // --- driver specific constants ---
 

@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -24,11 +24,10 @@
 class VIC {
 private:
   uint8_t *ram;
-  uint16_t *bitmap;
+  uint8_t *bitmap;
   uint8_t spritespritecoll[320];
   bool spritedatacoll[320];
   uint8_t startbyte;
-  DisplayDriver *display;
   bool vertborder;
   uint8_t lineC64map;
   bool denbadline;
@@ -56,36 +55,34 @@ private:
   uint8_t deltax;
 
   inline void drawByteStdData(uint8_t data, uint16_t &idx, uint16_t &xp,
-                              uint16_t col, uint16_t bgcol, uint8_t dx)
+                              uint8_t col, uint8_t bgcol, uint8_t dx)
       __attribute__((always_inline));
   inline void drawByteMCData(uint8_t data, uint16_t &idx, uint16_t &xp,
-                             uint16_t *tftColArr, bool *collArr, uint8_t dx)
+                             uint8_t *tftColArr, bool *collArr, uint8_t dx)
       __attribute__((always_inline));
-  void drawemptyline(uint16_t colBM);
+  void drawemptyline();
   void drawidleline(uint8_t ghostbyte);
-  inline bool shiftDy(uint16_t bgcol) __attribute__((always_inline));
-  inline void shiftDx(uint16_t bgcol, uint16_t &idx)
-      __attribute__((always_inline));
+  inline bool shiftDy(uint8_t bgcol) __attribute__((always_inline));
+  inline void shiftDx(uint8_t bgcol) __attribute__((always_inline));
   inline void drawOnly38ColsFrame(uint16_t tmpidx)
       __attribute__((always_inline));
-  inline void drawStdCharModeInt(uint8_t *screenMap, uint16_t bgcol,
-                                 uint8_t row, uint8_t dx, uint16_t &xp,
-                                 uint16_t idxmap, uint16_t &idx)
-      __attribute__((always_inline));
+  inline void drawStdCharModeInt(uint8_t *screenMap, uint8_t bgcol, uint8_t row,
+                                 uint8_t dx, uint16_t &xp, uint16_t idxmap,
+                                 uint16_t &idx) __attribute__((always_inline));
   void drawStdCharMode(uint8_t *screenMap, uint8_t bgColor);
   inline void drawExtBGColCharModeInt(uint8_t *screenMap, uint8_t *bgColArr,
                                       uint8_t row, uint8_t dx, uint16_t &xp,
                                       uint16_t idxmap, uint16_t &idx)
       __attribute__((always_inline));
   void drawExtBGColCharMode(uint8_t *screenMap, uint8_t *bgColArr);
-  inline void drawMCCharModeInt(uint8_t *screenMap, uint16_t bgcol,
-                                uint16_t *tftColArr, uint8_t row, uint8_t dx,
+  inline void drawMCCharModeInt(uint8_t *screenMap, uint8_t bgcol,
+                                uint8_t *tftColArr, uint8_t row, uint8_t dx,
                                 uint16_t &xp, uint16_t idxmap, uint16_t &idx)
       __attribute__((always_inline));
   void drawMCCharMode(uint8_t *screenMap, uint8_t bgColor1, uint8_t bgColor2,
                       uint8_t bgColor3);
   inline void drawMCBitmapModeInt(uint8_t *multicolorBitmap, uint8_t *colorMap1,
-                                  uint16_t *tftColArr, uint16_t cidx,
+                                  uint8_t *tftColArr, uint16_t cidx,
                                   uint16_t mcidx, uint8_t row, uint8_t dx,
                                   uint16_t &xp, uint16_t &idx)
       __attribute__((always_inline));
@@ -102,7 +99,7 @@ private:
   void drawSpriteDataSCDS(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                           uint8_t *data, uint8_t color);
   inline void drawSpriteDataMC2Bits(uint8_t idxc, uint16_t &idx, int16_t &xpos,
-                                    uint8_t bitnr, uint16_t *tftcolor)
+                                    uint8_t bitnr, uint8_t *tftcolor)
       __attribute__((always_inline));
   void drawSpriteDataMC(uint8_t bitnr, int16_t xpos, uint8_t ypos,
                         uint8_t *data, uint8_t color10, uint8_t color01,
@@ -117,6 +114,9 @@ private:
   void drawOverlay(uint8_t doiidx);
 
 public:
+  // public only for CYD special logic
+  DisplayDriver *display;
+
   // profiling info
   std::atomic<uint8_t> cntRefreshs;
 

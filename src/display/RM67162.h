@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -50,18 +50,12 @@ private:
       c64_orange, c64_brown,      c64_lightred,  c64_grey1,
       c64_grey2,  c64_lightgreen, c64_lightblue, c64_grey3};
 
-  static const uint16_t BORDERWIDTH = (Config::LCDWIDTH - 320) / 2;
-  static const uint16_t BORDERHEIGHT = (Config::LCDHEIGHT - 200) / 2;
-  static const uint16_t FRAMEMEMSIZE =
-      MAX(320 * BORDERHEIGHT, BORDERWIDTH *Config::LCDHEIGHT);
-  static uint16_t *framecolormem;
-  uint16_t oldFrameColor;
+  uint8_t oldFrameColor;
 
 public:
   void init() override;
-  void drawFrame(uint16_t frameColor) override;
-  void drawBitmap(uint16_t *bitmap) override;
-  const uint16_t *getC64Colors() const override;
+  void drawFrame(uint8_t frameColor) override;
+  void drawBitmap(uint8_t *bitmap) override;
 };
 #endif
 

@@ -1,6 +1,7 @@
 #include "../Config.h"
 #ifdef USE_SDL_DISPLAY
 #include "../roms/charset.h"
+#include "BitmapUtils.h"
 #include "SDLDisplay.h"
 #include <SDL2/SDL.h>
 
@@ -69,6 +70,7 @@ void SDLDisplay::init() {
   if (!texture) {
     throw std::runtime_error("SDL_CreateTexture failed");
   }
+  bitmap16 = new uint16_t[320 * 200];
 }
 
 static inline void setDrawColor565(SDL_Renderer *r, uint16_t c) {
@@ -78,8 +80,9 @@ static inline void setDrawColor565(SDL_Renderer *r, uint16_t c) {
   SDL_SetRenderDrawColor(r, R, G, B, 255);
 }
 
-void SDLDisplay::drawFrame(uint16_t frameColor) {
-  setDrawColor565(renderer, frameColor);
+void SDLDisplay::drawFrame(uint8_t frameColor) {
+  uint16_t frameColor16 = c64Colors[frameColor];
+  setDrawColor565(renderer, frameColor16);
   SDL_Rect top{0, 0, Config::LCDWIDTH, BORDERHEIGHT};
   SDL_RenderFillRect(renderer, &top);
   SDL_Rect bottom{0, BORDERHEIGHT + 200, Config::LCDWIDTH, BORDERHEIGHT};
@@ -90,12 +93,11 @@ void SDLDisplay::drawFrame(uint16_t frameColor) {
   SDL_RenderFillRect(renderer, &right);
 }
 
-void SDLDisplay::drawBitmap(uint16_t *bitmap) {
-  SDL_UpdateTexture(texture, nullptr, bitmap, 320 * sizeof(uint16_t));
+void SDLDisplay::drawBitmap(uint8_t *bitmap) {
+  BitmapUtils::getBitmap(bitmap, bitmap16, c64Colors, 320 * 200);
+  SDL_UpdateTexture(texture, nullptr, bitmap16, 320 * sizeof(uint16_t));
   SDL_Rect dst{BORDERWIDTH, BORDERHEIGHT, 320, 200};
   SDL_RenderCopy(renderer, texture, nullptr, &dst);
   SDL_RenderPresent(renderer);
 }
-
-const uint16_t *SDLDisplay::getC64Colors() const { return c64Colors; }
 #endif

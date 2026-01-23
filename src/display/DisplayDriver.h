@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -28,7 +28,7 @@
  * display, drawing frames and rendering bitmaps.
  */
 class DisplayDriver {
-private:
+protected:
   static const uint16_t c64_black = 0x0000;
   static const uint16_t c64_white = 0xffff;
   static const uint16_t c64_red = 0x8000;
@@ -46,7 +46,7 @@ private:
   static const uint16_t c64_lightblue = 0x043f;
   static const uint16_t c64_grey3 = 0xb5d6;
 
-  const uint16_t c64Colors[16] = {
+  static constexpr uint16_t c64Colors[16] = {
       c64_black,  c64_white,      c64_red,       c64_turquoise,
       c64_purple, c64_green,      c64_blue,      c64_yellow,
       c64_orange, c64_brown,      c64_lightred,  c64_grey1,
@@ -64,34 +64,24 @@ public:
   /**
    * @brief Draws the frame with a uniform color.
    *
-   * @param frameColor 16-bit color value.
+   * @param frameColor 8-bit C64 color value.
    */
-  virtual void drawFrame(uint16_t frameColor) = 0;
+  virtual void drawFrame(uint8_t frameColor) = 0;
 
   /**
    * @brief Draws the provided bitmap.
    *
-   * The bitmap contains pixel data in 16-bit RGB565 format.
+   * The bitmap contains pixel data in 8-bit C64 color data format.
    *
    * @param bitmap Pointer to the bitmap data.
    */
-  virtual void drawBitmap(uint16_t *bitmap) = 0;
-
-  /**
-   * @brief Provides access to the C64 palette in display-native format.
-   *
-   * By default, this method returns a pointer to a statically defined
-   * array of 16 entries, representing the Commodore 64 color palette
-   * in RGB565 format.
-   *
-   * Derived classes may override this method to provide a custom palette
-   * or a different color format if required by the display backend.
-   *
-   * @return Pointer to a constant array of 16-bit color values (RGB565).
-   */
-  virtual const uint16_t *getC64Colors() const { return c64Colors; }
+  virtual void drawBitmap(uint8_t *bitmap) = 0;
 
   virtual ~DisplayDriver() {}
+
+#if defined(BOARD_CYD)
+  virtual void reconfigureSPI() = 0;
+#endif
 };
 
 #endif // DISPLAYDRIVER_H

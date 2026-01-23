@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -45,4 +45,10 @@ bool SDLJoystick::getFire2() {
   const uint8_t *state = SDL_GetKeyboardState(NULL);
   return state[SDL_SCANCODE_RCTRL];
 }
+
+bool SDLJoystick::getJoyOnlyModeButton() {
+  const uint8_t *state = SDL_GetKeyboardState(NULL);
+  return state[SDL_SCANCODE_RCTRL];
+}
+
 #endif

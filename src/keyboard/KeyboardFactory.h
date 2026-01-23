@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -25,6 +25,8 @@
 #include "SDLKB.h"
 #elif defined(USE_WEB_KEYBOARD)
 #include "WebKB.h"
+#elif defined(USE_NO_KEYBOARD)
+#include "NoKB.h"
 #else
 #error "no valid keyboard driver defined"
 #endif
@@ -37,6 +39,8 @@ KeyboardDriver *create() {
   return new SDLKB();
 #elif defined(USE_WEB_KEYBOARD)
   return new WebKB(80);
+#elif defined(USE_NO_KEYBOARD)
+  return new NoKB();
 #endif
 }
 } // namespace Keyboard

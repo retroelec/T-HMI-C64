@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -19,6 +19,10 @@
 
 #include <cstdint>
 #include <functional>
+
+#if defined(BOARD_CYD)
+#include <freertos/FreeRTOS.h>
+#endif
 
 #ifdef ESP_PLATFORM
 #define PLATFORM_ATTR_ISR IRAM_ATTR
@@ -107,6 +111,30 @@ public:
                          uint8_t prio) = 0;
 
   virtual ~Platform(){};
+
+#if defined(BOARD_CYD)
+  virtual bool lock(TickType_t wait = portMAX_DELAY) = 0;
+  virtual void unlock() = 0;
+#endif
 };
+
+#if defined(BOARD_CYD)
+class PlatformLock {
+private:
+  Platform &_p;
+  bool _locked;
+
+public:
+  explicit PlatformLock(Platform &p, TickType_t wait = portMAX_DELAY)
+      : _p(p), _locked(p.lock(wait)) {}
+  ~PlatformLock() {
+    if (_locked)
+      _p.unlock();
+  }
+  bool operator()() const { return _locked; }
+  PlatformLock(const PlatformLock &) = delete;
+  PlatformLock &operator=(const PlatformLock &) = delete;
+};
+#endif
 
 #endif // PLATFORM_H

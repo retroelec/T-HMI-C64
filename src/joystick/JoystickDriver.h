@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -64,6 +64,17 @@ public:
    * @return true if the second fire button is pressed, false otherwise.
    */
   virtual bool getFire2() { return false; }
+
+  /**
+   * @brief Returns the state of the "joystick only mode" button.
+   *
+   * Usually this method returns the state of the second fire button if
+   * available.
+   *
+   * @return true if the "joystick only mode" button is pressed, false
+   * otherwise.
+   */
+  virtual bool getJoyOnlyModeButton() { return false; }
 
   virtual ~JoystickDriver() {}
 };

@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -90,6 +90,10 @@ uint8_t ArduinoJoystick::getValue() {
 }
 
 bool ArduinoJoystick::getFire2() {
+  return ((GPIO.in >> Config::JOYSTICK_FIRE2_PIN) & 0x01) == 0;
+}
+
+bool ArduinoJoystick::getJoyOnlyModeButton() {
   return ((GPIO.in >> Config::JOYSTICK_FIRE2_PIN) & 0x01) == 0;
 }
 #endif

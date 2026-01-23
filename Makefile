@@ -1,17 +1,29 @@
 # choose board
-BOARD := T_HMI
+#BOARD := T_HMI
 #BOARD := T_DISPLAY_S3
 #BOARD := WAVESHARE
+BOARD := CYD
 
 # choose keyboard
 #KEYBOARD := BLE_KEYBOARD
-KEYBOARD := WEB_KEYBOARD
+#KEYBOARD := WEB_KEYBOARD
+KEYBOARD := NO_KEYBOARD
+
+ifeq ($(BOARD),CYD)
+  ifneq ($(KEYBOARD),NO_KEYBOARD)
+    $(error FEHLER: If BOARD is set to CYD, KEYBOARD MUST have the value NO_KEYBOARD. (current: $(KEYBOARD)))
+  endif
+endif
 
 UNAME_S := $(shell uname -s)
 
 # choose port
 ifeq ($(UNAME_S),Linux)
-  PORT := /dev/ttyACM0
+  ifeq ($(BOARD),CYD)
+    PORT := /dev/ttyUSB0
+  else
+    PORT := /dev/ttyACM0
+  endif
 else ifeq ($(UNAME_S),Darwin)
   PORT := /dev/tty.usbmodem1101
 endif
@@ -22,7 +34,11 @@ ALLKEYBOARDS := BLE_KEYBOARD WEB_KEYBOARD
 ifeq ($(BOARD), WAVESHARE)
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
 else
-  FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info
+  ifeq ($(BOARD),CYD)
+    FQBN := esp32:esp32:esp32:FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,LoopCore=0,DebugLevel=info
+  else
+    FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info
+  endif
 endif
 
 .DEFAULT_GOAL := compile
@@ -31,7 +47,7 @@ SRCDIR := src
 SOURCEFILES := $(shell find src -name '*.cpp')
 HEADERFILES := $(shell find src -name '*.h')
 
-TARGET := build$(BOARD)/T-HMI-C64.ino.elf
+TARGET := build-$(BOARD)-$(KEYBOARD)/T-HMI-C64.ino.elf
 
 CLI_COMPILE := compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD) -DUSE_$(KEYBOARD) -DESP32" --build-path build-$(BOARD)-$(KEYBOARD) T-HMI-C64.ino
 

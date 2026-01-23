@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -42,14 +42,14 @@ private:
       __attribute__((always_inline));
   inline static void copyend() __attribute__((always_inline));
   static void copyColor(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
-                        uint16_t data);
+                        uint8_t data);
   static void copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
-                       uint16_t *data);
+                       uint8_t *data);
 
 public:
   void init() override;
-  void drawFrame(uint16_t frameColor) override;
-  void drawBitmap(uint16_t *bitmap) override;
+  void drawFrame(uint8_t frameColor) override;
+  void drawBitmap(uint8_t *bitmap) override;
 };
 #endif
 

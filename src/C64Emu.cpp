@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -118,7 +118,13 @@ void C64Emu::setup() {
 }
 
 void C64Emu::loop() {
+#if defined(BOARD_CYD)
+  PlatformManager::getInstance().lock();
+#endif
   cpu.vic.refresh();
+#if defined(BOARD_CYD)
+  PlatformManager::getInstance().unlock();
+#endif
   cpu.keyboard->syncAndCreateAttachWinSDL();
   PlatformManager::getInstance().feedWDT();
   PlatformManager::getInstance().waitMS(Config::REFRESHDELAY);
@@ -140,5 +146,8 @@ void C64Emu::loop() {
     PlatformManager::getInstance().log(
         LOG_INFO, TAG, "voltage: %d",
         cpu.batteryVoltage.load(std::memory_order_acquire));
+    // PlatformManager::getInstance().log(LOG_INFO, TAG, "free memory: %d, max:
+    // %d", ESP.getFreeHeap(),
+    // heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
   }
 }

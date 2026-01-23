@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -21,6 +21,8 @@
 #include "JoystickDriver.h"
 #if defined(USE_ARDUINOJOYSTICK)
 #include "ArduinoJoystick.h"
+#elif defined(USE_ARDUINOJOYSTICKCYD)
+#include "ArduinoJoystickCYD.h"
 #elif defined(USE_NOJOYSTICK)
 #include "NoJoystick.h"
 #elif defined(USE_SDLJOYSTICK)
@@ -33,6 +35,8 @@ namespace Joystick {
 JoystickDriver *create() {
 #if defined(USE_ARDUINOJOYSTICK)
   return new ArduinoJoystick();
+#elif defined(USE_ARDUINOJOYSTICKCYD)
+  return new ArduinoJoystickCYD();
 #elif defined(USE_SDLJOYSTICK)
   return new SDLJoystick();
 #elif defined(USE_NOJOYSTICK)

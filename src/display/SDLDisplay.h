@@ -18,14 +18,14 @@ private:
   SDL_Window *window = nullptr;
   SDL_Renderer *renderer = nullptr;
   SDL_Texture *texture = nullptr;
+  uint16_t *bitmap16;
 
 public:
   SDLDisplay();
   ~SDLDisplay();
   void init() override;
-  void drawFrame(uint16_t frameColor) override;
-  void drawBitmap(uint16_t *bitmap) override;
-  const uint16_t *getC64Colors() const override;
+  void drawFrame(uint8_t frameColor) override;
+  void drawBitmap(uint8_t *bitmap) override;
 };
 #endif
 

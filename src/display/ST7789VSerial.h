@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2024-2025 retroelec <retroelec42@gmail.com>
+ Copyright (C) 2024-2026 retroelec <retroelec42@gmail.com>
 
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the
@@ -32,12 +32,12 @@ private:
   static constexpr uint16_t FRAMEMEMSIZE =
       MAX(BORDERHEIGHT * Config::LCDWIDTH, BORDERWIDTH * 200);
   static uint16_t *framecolormem;
-  uint16_t oldFrameColor;
+  uint8_t oldFrameColor;
 
 public:
   void init() override;
-  void drawFrame(uint16_t frameColor) override;
-  void drawBitmap(uint16_t *bitmap) override;
+  void drawFrame(uint8_t frameColor) override;
+  void drawBitmap(uint8_t *bitmap) override;
 };
 #endif
 
