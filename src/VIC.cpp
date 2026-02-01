@@ -537,9 +537,6 @@ void VIC::init(uint8_t *ram, const uint8_t *charrom) {
 
   // allocate bitmap memory to be transfered to LCD
   bitmap = new uint8_t[320 * 200];
-  if (bitmap == nullptr) {
-    throw std::runtime_error("could not allocate memory for bitmap");
-  }
 
   // init display
   display = Display::create();
@@ -547,9 +544,6 @@ void VIC::init(uint8_t *ram, const uint8_t *charrom) {
 
   // div init
   colormap = new uint8_t[1024]();
-  if (colormap == nullptr) {
-    throw std::runtime_error("could not allocate memory for colormap");
-  }
   initVarsAndRegs();
 }
 

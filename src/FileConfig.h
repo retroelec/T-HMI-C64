@@ -34,6 +34,8 @@ example json file:
 {
   "version": 1,
 
+  "autostart": "dkong",
+
   "joystickOnly": {
     "keycodes": [
       {
@@ -106,11 +108,13 @@ inline void from_json(const json &j, JoystickOnlyConfig &cfg) {
 
 struct RootConfig {
   int version = 1;
+  std::string autostart;
   JoystickOnlyConfig joystickOnly;
 };
 
 inline void from_json(const json &j, RootConfig &cfg) {
   cfg.version = j.value("version", 1);
+  cfg.autostart = j.value("autostart", std::string{});
   if (j.contains("joystickOnly")) {
     cfg.joystickOnly = j.at("joystickOnly").get<JoystickOnlyConfig>();
   }
@@ -142,6 +146,18 @@ private:
   }
 
 public:
+  static std::string getAutostartGame() {
+    if (!configAvailable) {
+      return {};
+    }
+    try {
+      RootConfig cfg = configJson.get<RootConfig>();
+      return cfg.autostart;
+    } catch (...) {
+      return {};
+    }
+  }
+
   static std::vector<JoystickOnlyTextKeycode> getJoystickOnlyKeycodes() {
     if (!configAvailable) {
       return {};

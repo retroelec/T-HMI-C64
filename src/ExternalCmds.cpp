@@ -156,9 +156,30 @@ void ExternalCmds::writeTextToC64Screen(uint16_t addr, int16_t sizebuffer) {
   }
 }
 
-uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
-  ExtCmd cmd = static_cast<ExtCmd>(buffer[0]);
-  switch (cmd) {
+void ExternalCmds::queueExternalCmd(uint8_t *buffer) {
+  ExternalCmd cmd;
+  cmd.cmd = static_cast<ExtCmd>(buffer[0]);
+  std::memcpy(cmd.param, buffer + 1, sizeof(cmd.param));
+  extcmdQueue.push(cmd);
+}
+
+void ExternalCmds::queueExternalCmd(ExternalCmd &extcmd) {
+  extcmdQueue.push(extcmd);
+}
+
+uint8_t ExternalCmds::executeNextExternalCmd() {
+  if (extcmdQueue.empty()) {
+    return 0;
+  }
+  ExternalCmd *cmd = extcmdQueue.waitTestAndDec();
+  if (cmd->cmd == ExtCmd::WAIT) {
+    if (cmd->param[0] == 0) {
+      extcmdQueue.pop();
+    }
+    return 0;
+  }
+  cmd = extcmdQueue.pop();
+  switch (cmd->cmd) {
   case ExtCmd::NOEXTCMD:
     return 0;
   case ExtCmd::LOAD: {
@@ -283,7 +304,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
   }
   case ExtCmd::ATTACHD64: {
     if (cpu->floppy.fsinitialized) {
-      std::string dirname(reinterpret_cast<char *>(&buffer[3]));
+      std::string dirname(reinterpret_cast<char *>(&cmd->param[2]));
       dirname += ".d64";
       PlatformManager::getInstance().log(
           LOG_INFO, TAG, "try to attach d64 file %s", dirname.c_str());
@@ -320,32 +341,32 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     // - first block: byte 3 - 4: start address, 5 - 252: data
     // - next block: byte 3 - 252: data
     // - last block: byte 3: length of last block, byte 4 - (length+4-1): data
-    uint8_t cmddetail = buffer[1];
+    uint8_t cmddetail = cmd->param[0];
     if (cmddetail == 0) {
       // next block
       PlatformManager::getInstance().log(LOG_INFO, TAG, "next block: %x",
                                          actaddrreceivecmd);
-      for (uint8_t i = 3; i < 253; i++) {
-        ram[actaddrreceivecmd + i - 3] = buffer[i];
+      for (uint8_t i = 2; i < 252; i++) {
+        ram[actaddrreceivecmd + i - 2] = cmd->param[i];
       }
       actaddrreceivecmd += 250;
     } else if (cmddetail == 1) {
       // first block
-      uint16_t addr = buffer[3] + (buffer[4] << 8);
+      uint16_t addr = cmd->param[2] + (cmd->param[3] << 8);
       actaddrreceivecmd = addr;
       PlatformManager::getInstance().log(LOG_INFO, TAG, "first block: %x",
                                          actaddrreceivecmd);
-      for (uint8_t i = 5; i < 253; i++) {
-        ram[actaddrreceivecmd + i - 5] = buffer[i];
+      for (uint8_t i = 4; i < 252; i++) {
+        ram[actaddrreceivecmd + i - 4] = cmd->param[i];
       }
       actaddrreceivecmd += 253 - 5;
     } else if (cmddetail == 2) {
       // last block
-      uint8_t len = buffer[3];
+      uint8_t len = cmd->param[2];
       PlatformManager::getInstance().log(LOG_INFO, TAG, "last block: %x",
                                          actaddrreceivecmd);
-      for (uint8_t i = 4; i < (len + 4); i++) {
-        ram[actaddrreceivecmd + i - 4] = buffer[i];
+      for (uint8_t i = 3; i < (len + 3); i++) {
+        ram[actaddrreceivecmd + i - 3] = cmd->param[i];
       }
       actaddrreceivecmd += len;
       setVarTab(actaddrreceivecmd);
@@ -356,7 +377,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 4;
   }
   case ExtCmd::RESTORE:
-    if (buffer[1] == 1) {
+    if (cmd->param[0] == 1) {
       // restore + run/stop
       cpu->setMem(0xdc00, 0);
       cpu->actInGameKeycode = {0, 0x7f, 0};
@@ -389,7 +410,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
         type2notification.dd0d, type2notification.dd0e, type2notification.dd0f);
     return 2;
   case ExtCmd::SHOWMEM: {
-    uint16_t addr = buffer[3] + (buffer[4] << 8);
+    uint16_t addr = cmd->param[2] + (cmd->param[3] << 8);
     // use addr also as debugging start address
     cpu->debugstartaddr = addr;
     PlatformManager::getInstance().log(LOG_INFO, TAG, "addr: %x", addr);
@@ -503,10 +524,10 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     cpu->poweroff.store(true, std::memory_order_release);
     return 0;
   case ExtCmd::SETVOLUME:
-    cpu->sid.setEmuVolume(buffer[1]);
+    cpu->sid.setEmuVolume(cmd->param[0]);
     return 0;
   case ExtCmd::INCVOLUME: {
-    int16_t newVolume = cpu->sid.getEmuVolume() + buffer[1];
+    int16_t newVolume = cpu->sid.getEmuVolume() + cmd->param[0];
     if (newVolume > 255) {
       newVolume = 255;
     }
@@ -516,7 +537,7 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     return 1;
   }
   case ExtCmd::DECVOLUME: {
-    int16_t newVolume = cpu->sid.getEmuVolume() - buffer[1];
+    int16_t newVolume = cpu->sid.getEmuVolume() - cmd->param[0];
     if (newVolume < 0) {
       newVolume = 0;
     }
@@ -531,16 +552,17 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
     }
     PlatformManager::getInstance().log(LOG_INFO, TAG, "execute writetext");
     uint16_t addr = 0xc000;
-    int16_t sizebuffer = strlen((const char *)&(buffer[3]));
-    memcpy(&ram[addr], &(buffer[3]), sizebuffer);
+    int16_t sizebuffer = strlen((const char *)&(cmd->param[2]));
+    memcpy(&ram[addr], &(cmd->param[2]), sizebuffer);
     writeTextToC64Screen(addr, sizebuffer);
     return 0;
   }
   case ExtCmd::WRITEOSD: {
     PlatformManager::getInstance().log(LOG_INFO, TAG, "execute writeosd");
-    uint16_t duration = buffer[9] + (buffer[10] << 8);
-    cpu->vic.drawDOIBox(&(buffer[12]), buffer[3], buffer[4], buffer[5],
-                        buffer[6], buffer[7], buffer[8], duration, buffer[11]);
+    uint16_t duration = cmd->param[8] + (cmd->param[9] << 8);
+    cpu->vic.drawDOIBox(&(cmd->param[11]), cmd->param[2], cmd->param[3],
+                        cmd->param[4], cmd->param[5], cmd->param[6],
+                        cmd->param[7], duration, cmd->param[10]);
     return 0;
   }
   case ExtCmd::PAUSE: {
@@ -550,6 +572,35 @@ uint8_t ExternalCmds::executeExternalCmd(uint8_t *buffer) {
       cpu->cpuhalted = true;
     }
     PlatformManager::getInstance().log(LOG_INFO, TAG, "execute pause");
+    return 0;
+  }
+  case ExtCmd::AUTOSTART: {
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "execute autostart");
+    if (cpu->floppy.fsinitialized) {
+      cpu->cpuhalted = true;
+      std::string filename(reinterpret_cast<char *>(&cmd->param[2]));
+      filename += ".prg";
+      uint16_t addr = cpu->floppy.load(filename, ram);
+#if defined(BOARD_CYD)
+      cpu->vic.display->reconfigureSPI();
+#endif
+      if (addr != 0) {
+        cpu->joystickOnlyModeState = JoystickOnlyModeState::RUN;
+        setVarTab(addr);
+        ram[0xd3] = 0;
+        ram[0x0277] = 'R';
+        ram[0x0278] = 'U';
+        ram[0x0279] = 'N';
+        ram[0x027A] = ':';
+        ram[0x027B] = 0x0d;
+        ram[0x00C6] = 5;
+      }
+      cpu->cpuhalted = false;
+    }
+    return 0;
+  }
+  case ExtCmd::WAIT: {
+    // WAIT is handled before case statement
     return 0;
   }
   }

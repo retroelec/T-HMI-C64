@@ -568,7 +568,7 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
     keyboard->setSpecialjoymode(false);
     specialjoymode = false;
     if (jOMBpressed) {
-      joystickOnlyModeCnt = 25 * 312;
+      joystickOnlyModeCnt = 25;
       specialjoymode = true;
       keyboard->setSpecialjoymode(true);
       const char *msg = "\x10\x12\x5\x13\x13 \xa\xf\x19 \x4\xf\x17\xe  ";
@@ -582,7 +582,7 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
     keyboard->setSpecialjoymode(false);
     specialjoymode = false;
     if (jOMBpressed) {
-      joystickOnlyModeCnt = 25 * 312;
+      joystickOnlyModeCnt = 25;
       specialjoymode = true;
       keyboard->setSpecialjoymode(true);
       joystickOnlyModeState = JoystickOnlyModeState::INGAME;
@@ -720,7 +720,7 @@ void C64Sys::check4extcmd() {
     } else {
       joystickOnlyModeCnt = 0;
     }
-    if (joystickOnlyModeCnt >= 100 * 312) {
+    if (joystickOnlyModeCnt >= 100) {
       jOMBpressed = true;
     }
   }
@@ -732,49 +732,55 @@ void C64Sys::check4extcmd() {
     executeExtCmdKB = true;
   } else {
     extCmdBufferGM[0] = checkJoystickOnlyStatemachine(jOMBpressed);
-    executeExtCmdGM = true;
+    if (extCmdBufferGM[0] != 0) {
+      executeExtCmdGM = true;
+    }
   }
-  // ececute external command?
+  // queue external command?
   if (executeExtCmdKB || executeExtCmdGM) {
-    uint8_t type;
     if (executeExtCmdKB) {
-      type = externalCmds->executeExternalCmd(extCmdBufferKB);
+      externalCmds->queueExternalCmd(extCmdBufferKB);
       // sync detectreleasekey
       keyboard->setDetectReleasekey(detectreleasekey);
     } else {
-      type = externalCmds->executeExternalCmd(extCmdBufferGM);
+      externalCmds->queueExternalCmd(extCmdBufferGM);
     }
-    // send notification
-    uint8_t *data;
-    size_t size;
-    switch (type) {
-    case 1:
-      data = reinterpret_cast<uint8_t *>(&(externalCmds->type1notification));
-      size = sizeof(externalCmds->type1notification);
-      break;
-    case 2:
-      data = reinterpret_cast<uint8_t *>(&(externalCmds->type2notification));
-      size = sizeof(externalCmds->type2notification);
-      break;
-    case 3:
-      data = reinterpret_cast<uint8_t *>(&(externalCmds->type3notification));
-      size = sizeof(externalCmds->type3notification);
-      break;
-    case 4:
-      data = reinterpret_cast<uint8_t *>(&(externalCmds->type4notification));
-      size = sizeof(externalCmds->type4notification);
-      break;
-    case 5:
-      data = reinterpret_cast<uint8_t *>(&(externalCmds->type5notification));
-      size = sizeof(externalCmds->type5notification);
-      break;
-    default:
-      type = 0;
-    }
-    if (type > 0) {
-      keyboard->sendExtCmdNotification(data, size);
-      PlatformManager::getInstance().log(LOG_INFO, TAG, "notification sent");
-    }
+  }
+  // execute external command?
+  uint8_t type = externalCmds->executeNextExternalCmd();
+  if (type == 0) {
+    return;
+  }
+  // send notification
+  uint8_t *data;
+  size_t size;
+  switch (type) {
+  case 1:
+    data = reinterpret_cast<uint8_t *>(&(externalCmds->type1notification));
+    size = sizeof(externalCmds->type1notification);
+    break;
+  case 2:
+    data = reinterpret_cast<uint8_t *>(&(externalCmds->type2notification));
+    size = sizeof(externalCmds->type2notification);
+    break;
+  case 3:
+    data = reinterpret_cast<uint8_t *>(&(externalCmds->type3notification));
+    size = sizeof(externalCmds->type3notification);
+    break;
+  case 4:
+    data = reinterpret_cast<uint8_t *>(&(externalCmds->type4notification));
+    size = sizeof(externalCmds->type4notification);
+    break;
+  case 5:
+    data = reinterpret_cast<uint8_t *>(&(externalCmds->type5notification));
+    size = sizeof(externalCmds->type5notification);
+    break;
+  default:
+    type = 0;
+  }
+  if (type > 0) {
+    keyboard->sendExtCmdNotification(data, size);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "notification sent");
   }
 }
 
@@ -790,11 +796,10 @@ void C64Sys::run() {
   uint8_t adjustcycles = 0;
   int64_t lastMeasuredTime = PlatformManager::getInstance().getTimeUS();
   while (true) {
-    // check for "external commands" once per frame
-    check4extcmd();
-
     // cpu halted?
     if (cpuhalted) {
+      PlatformManager::getInstance().waitMS(500);
+      check4extcmd();
       continue;
     }
 
@@ -874,6 +879,8 @@ void C64Sys::run() {
     if (vic.rasterline == 311) {
       lastMeasuredTime = PlatformManager::getInstance().getTimeUS();
       sid.playAudio();
+      // check for "external commands" once per frame
+      check4extcmd();
     }
   }
 }
@@ -884,7 +891,7 @@ void C64Sys::startLogCPUCmds(const long numOfCmds) {
 }
 
 void C64Sys::initMemAndRegs() {
-  PlatformManager::getInstance().log(LOG_INFO, TAG, "CPUC64::initMemAndRegs");
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "initMemAndRegs");
   setMem(0, 0x2f);
   setMem(1, 0x37);
   setMem(0x8004, 0);
@@ -915,7 +922,7 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   PlatformManager::getInstance().log(LOG_INFO, TAG, "init");
   try {
     vic.init(ram, charrom);
-  } catch (const std::runtime_error &e) {
+  } catch (const std::bad_alloc &e) {
     PlatformManager::getInstance().log(LOG_INFO, TAG, "error in vic.init(): %s",
                                        e.what());
   }
@@ -933,8 +940,6 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   perf.store(false, std::memory_order_release);
   batteryVoltage.store(0, std::memory_order_release);
   poweroff.store(false, std::memory_order_release);
-  keyboard = Keyboard::create();
-  keyboard->init();
   joystick = Joystick::create();
   try {
     joystick->init();
@@ -957,6 +962,22 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   listInGameKeycodes.insert(listInGameKeycodes.end(),
                             listAdditionalInGameKeycodes.begin(),
                             listAdditionalInGameKeycodes.end());
+  std::string autostartGame = FileConfig::getAutostartGame();
+  if (!autostartGame.empty() && floppy.fsinitialized) {
+    PlatformManager::getInstance().log(LOG_INFO, TAG,
+                                       "load and start autostart program %s",
+                                       autostartGame.c_str());
+    ExternalCmd extCmd;
+    extCmd.cmd = ExtCmd::WAIT;
+    extCmd.param[0] = 150;
+    externalCmds->queueExternalCmd(extCmd);
+    extCmd.cmd = ExtCmd::AUTOSTART;
+    size_t copied = autostartGame.copy((char *)&extCmd.param[2], 16);
+    extCmd.param[2 + copied] = '\0';
+    externalCmds->queueExternalCmd(extCmd);
+  }
+  keyboard = Keyboard::create();
+  keyboard->init();
 }
 
 void C64Sys::exeSubroutine(uint16_t regpc) {

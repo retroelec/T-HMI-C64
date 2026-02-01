@@ -50,7 +50,7 @@
 #define USE_ILI9341
 #define USE_SDCARDCYD
 #define USE_ARDUINOJOYSTICKCYD
-#define USE_NOSOUND
+#define USE_I2SSOUND
 #elif defined(BOARD_WAVESHARE)
 #define USE_ST7789VSERIAL
 #define USE_SDCARD
@@ -202,6 +202,12 @@ struct Config {
   // display driver
   static const uint16_t LCDWIDTH = 320;
   static const uint16_t LCDHEIGHT = 240;
+
+  // Sound
+  static const uint8_t DEFAULT_VOLUME = 128;
+  static const uint8_t I2S_DOUT = 25;
+  static const uint8_t I2S_BCLK = 27;
+  static const uint8_t I2S_LRC = 26;
 
   // SDCard
   static const uint8_t SD_MISO_PIN = 19;

@@ -51,8 +51,7 @@ private:
 
   bool nmiAck;
 
-  JoystickOnlyModeState joystickOnlyModeState;
-  uint16_t joystickOnlyModeCnt;
+  uint8_t joystickOnlyModeCnt;
   bool specialjoymode;
   bool gmprevfire1;
   bool gmprevup;
@@ -123,6 +122,7 @@ public:
   uint16_t debugstartaddr;
   long debugNumOfSteps;
   bool detectreleasekey;
+  JoystickOnlyModeState joystickOnlyModeState;
 
   bool restorenmi;
 

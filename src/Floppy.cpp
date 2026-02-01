@@ -394,7 +394,7 @@ std::optional<GeneralCommand> handleCommand(const std::string &data) {
     return cmd;
   } else if (isTextCmd(data)) {
     cmd.type = CommandType::TEXT;
-    auto pos = data.find(':');
+    auto pos = data.find_first_of(": ");
     if (pos == std::string::npos) {
       cmd.command = data;
       return cmd;
@@ -417,11 +417,12 @@ bool Floppy::handleCmdChannel() {
   auto cmd = handleCommand(name);
   if (cmd) {
     if (cmd->type == CommandType::MEMORY) {
+      uint16_t addr = cmd->rawArgs[0] + (cmd->rawArgs[1] << 8);
       PlatformManager::getInstance().log(
-          LOG_INFO, TAG, "command %s %s", cmd->command.c_str(),
-          formatUInt8ArgsToHex(cmd->rawArgs).c_str());
+          LOG_INFO, TAG, "command: %s, args: %s, addr: %d",
+          cmd->command.c_str(), formatUInt8ArgsToHex(cmd->rawArgs).c_str(),
+          addr);
       if (cmd->command == "M-R") {
-        uint16_t addr = cmd->rawArgs[0] + (cmd->rawArgs[1] << 8);
         if (addr == 0xffff) {
           buffer[0][0] = 0xfe;
         }
@@ -432,12 +433,14 @@ bool Floppy::handleCmdChannel() {
         channels[15].bufferidx = 0;
         channels[15].buffersize = bufsize;
       } else if (cmd->command == "M-E") {
+        // exeSubroutine(addr);
       }
     } else if (cmd->type == CommandType::TEXT) {
       PlatformManager::getInstance().log(
-          LOG_INFO, TAG, "command %s %s", cmd->command.c_str(),
+          LOG_INFO, TAG, "command: %s, args: %s", cmd->command.c_str(),
           formatStringArgsToHex(cmd->textArgs).c_str());
-      if (cmd->command == "U1") {
+      if ((cmd->command == "U1") || (cmd->command == "B-R") ||
+          (cmd->command == "B-E")) {
         uint8_t track1 = static_cast<uint8_t>(std::stoul(cmd->textArgs[2]));
         uint8_t sector1 = static_cast<uint8_t>(std::stoul(cmd->textArgs[3]));
         uint8_t secch1 = static_cast<uint8_t>(std::stoul(cmd->textArgs[0]));
@@ -445,13 +448,26 @@ bool Floppy::handleCmdChannel() {
             LOG_INFO, TAG, "track1 = %d, sector1 = %d, secch1=%d, buffernr=%d",
             (int)track1, (int)sector1, (int)secch1,
             (int)channels[secch1].buffernr);
-        if (!d64file->seek(calcOffset(track1, sector1), SEEK_SET)) {
+        uint8_t addOffset = 0;
+        uint16_t numOfBytes = 256;
+        if ((cmd->command == "B-R") || (cmd->command == "B-E")) {
+          addOffset = 2;
+          numOfBytes = 254;
+        }
+        if (!d64file->seek(calcOffset(track1, sector1) + addOffset, SEEK_SET)) {
           lastStatus = 0x02;
           return true;
         }
         uint8_t *buf = buffer[channels[secch1].buffernr];
-        channels[secch1].buffersize = d64file->read(buf, 256);
-        channels[secch1].bufferidx = 0;
+        if (cmd->command == "B-E") {
+          d64file->read(buf, numOfBytes);
+          PlatformManager::getInstance().log(LOG_INFO, TAG, "exeSubroutine %d",
+                                             buf - ram);
+          exeSubroutine(buf - ram);
+        } else {
+          channels[secch1].buffersize = d64file->read(buf, numOfBytes);
+          channels[secch1].bufferidx = 0;
+        }
       } else {
         PlatformManager::getInstance().log(LOG_ERROR, TAG,
                                            "unknown command: %s", name.c_str());
@@ -661,6 +677,9 @@ uint16_t Floppy::load(const std::string &filename, uint8_t *ram) {
                                        path.c_str());
     return 0;
   }
+#if defined(BOARD_CYD)
+  vTaskDelay(0);
+#endif
   uint8_t buf[256];
   if (sysfile->read(buf, 2) != 2) {
     PlatformManager::getInstance().log(LOG_ERROR, TAG,
@@ -670,12 +689,21 @@ uint16_t Floppy::load(const std::string &filename, uint8_t *ram) {
   uint8_t addrLow = buf[0], addrHigh = buf[1];
   uint16_t addr = addrLow | (addrHigh << 8);
   uint16_t bytesRead;
+#if defined(BOARD_CYD)
+  vTaskDelay(0);
+#endif
   while ((bytesRead = sysfile->read(buf, sizeof(buf))) > 0) {
+#if defined(BOARD_CYD)
+    vTaskDelay(0);
+#endif
     for (uint16_t i = 0; i < bytesRead; i++) {
       ram[addr++] = buf[i];
     }
   }
   sysfile->close();
+#if defined(BOARD_CYD)
+  vTaskDelay(100);
+#endif
   return addr;
 }
 
@@ -725,6 +753,25 @@ uint8_t Floppy::getMem(uint16_t addr) {
 void Floppy::setMem(uint16_t addr, uint8_t val) {
   if (addr < 0x0800) {
     ram[addr] = val;
+  }
+}
+
+void Floppy::logDebugInfo() {
+  PlatformManager::getInstance().log(
+      LOG_INFO, TAG, "pc: %2x, cmd: %s, a: %x, x: %x, y: %x, sp: %x, sr: %x",
+      pc, cmdName[getMem(pc)], a, x, y, sp, sr);
+}
+
+void Floppy::exeSubroutine(uint16_t regpc) {
+  uint8_t tsp = sp;
+  pc = regpc;
+  while (true) {
+    logDebugInfo();
+    uint8_t nextopc = getMem(pc++);
+    execute(nextopc);
+    if ((sp == tsp) && (nextopc == 0x60)) { // rts
+      break;
+    }
   }
 }
 

@@ -67,6 +67,8 @@ compileAll:
 			$(MAKE) clean compile BOARD=$$board KEYBOARD=$$kbd || exit $$?; \
 		done \
 	done
+	echo "\nCompiling for Board: CYD"; \
+	$(MAKE) clean compile BOARD=CYD KEYBOARD=NO_KEYBOARD || exit $$?; \
 
 # first you have to get the docker image:
 # podman pull docker.io/retroelec42/arduino-cli-thmic64:latest

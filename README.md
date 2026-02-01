@@ -123,10 +123,10 @@ Currently, sound output is not yet implemented.
 Joystick connections:
 
 - connect CN1, IO27 to Arduino joystick Y pin (yellow cable)
-- connect P3, IO35 to Arduino joystick X pin (red cable)
+- connect P3, IO35 to Arduino joystick X pin (yellow/white cable)
 - connect CN1, 3V3 to Arduino joystick V pin (red cable)
 - connect CN1, GND to Arduino joystick G pin (black cable)
-- connect CN1, IO22 to Arduino joystick D pin (for D button, orange cable)
+- connect CN1, IO22 to Arduino joystick D pin (for D button, blue cable)
 
 Switch voltage to 3.3V on the Arduino joystick module.
 
@@ -190,7 +190,8 @@ For this situation you can use a prepared docker image to compile the code:
 
 ### Upload C64 Emulator to the development board
 
-First adapt the file Makefile and choose the board you want the binary files to be uploaded for (adapt variable BOARD).
+First adapt the file Makefile and choose the board and the keyboard type you want the binary files to be uploaded for
+(adapt variables BOARD and KEYBOARD).
 Furthermore, you may need to adjust the PORT variable.
 Binary files for the T-HMI and Waveshare ESP32-S3-LCD-2.8 development boards are also part of the git repository, so you don't have to compile them yourself if you don't want to.
 
@@ -199,7 +200,7 @@ make upload
 
 ### Install Android App
 
-I wrote an Android app which provides a C64 keyboard for the emulator.
+I wrote an Android app which provides a BLE keyboard for the emulator.
 
 <img src="doc/THMIC64KB.png" alt="THMIC64KB" width="800"/>
 
@@ -254,7 +255,8 @@ On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the
 
 ### Android keyboard
 
-The emulator starts a BLE (Bluetooth Low Energy) server to receive keystrokes from the Android client.
+If you choosed the BLE keyboard (Makefile: KEYBOARD := BLE_KEYBOARD), the emulator starts a BLE server to receive
+keystrokes from the Android client.
 
 Once the app is installed and launched, you must accept the requested permissions once
 (access to the precise location (*not* coarse location), permission to search for BLE devices).
@@ -300,7 +302,8 @@ When you close this screen again, both options are reset to the previous values.
 
 ### Web keyboard
 
-Keyboard input can also be done using a web interface.
+If you choosed the web keyboard (Makefile: KEYBOARD := WEB_KEYBOARD), the emulator starts a web server to allow
+keyboard input using a web interface.
 
 To ensure flexibility and security, the ESP32-S3 development board utilizes a dynamic Wi-Fi provisioning system.
 This avoids the need to hardcode sensitive credentials during compilation. The process follows a structured fallback logic:
@@ -425,7 +428,7 @@ Features not emulated (list not exhaustive) resp. known bugs:
 - no "FLI border removal" / "sideborder removal"
 - synchronization is rasterline-based, not cycle-exact
 - rarly C64 CPU is blocked after loading a game
-- no sound for CYD board yet
+- sound for the CYD board has not yet been tested
 
 Since only a rudimentary disk drive emulation is available, only a few "multi-load" games can be played
 (e.g. Summer Games, World Games, The Dallas Quest).

@@ -281,7 +281,9 @@ enum class ExtCmd {
    * - byte 12-: text to be displayed
    */
   WRITEOSD = 39,
-  PAUSE = 40
+  PAUSE = 40,
+  WAIT = 41,
+  AUTOSTART = 42,
 };
 
 #endif // EXTCMD_H

@@ -67,6 +67,8 @@ private:
   bool triggercmdchannel = false;
   IDebugBus *debugBus;
 
+  uint8_t ram[0x800];
+
   int64_t calcOffset(uint8_t track, uint8_t sector) {
     int64_t off = 0;
     for (uint8_t t = 1; t < track; ++t) {
@@ -131,8 +133,8 @@ private:
   bool directLoad();
   void initChannels();
   void initAttach();
-
-  uint8_t ram[0x800];
+  void logDebugInfo();
+  void exeSubroutine(uint16_t regpc);
 
 public:
   static std::unique_ptr<FileDriver> sysfile;
