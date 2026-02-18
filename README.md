@@ -2,8 +2,8 @@
 
 A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD, and an SD card slot.
 The emulator was later expanded to support the
-[Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI), the
-[ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm) and the ESP32 CYD board.
+[Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI), the [ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm)
+and the [ESP32 CYD board](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display).
 
 Keyboard input is implemented via a custom Android app or via a web interface.  
 The Android app communicates with the emulator via Bluetooth Low Energy (BLE).
@@ -139,7 +139,6 @@ Switch voltage to 3.3V on the Arduino joystick module.
 
 ### Files
 
-- build\*/\*.bin : Binary files of the C64 emulator to be uploaded to the respective development board
 - THMIC64KB/thmic64kb.apk : Android APK file to be uploaded to your Android smartphone
 - T-HMI-C64.ino : Arduino .ino file of the C64 emulator
 - src/* : C64 emulator source code
@@ -165,7 +164,7 @@ Switch voltage to 3.3V on the Arduino joystick module.
   (however please be aware that you could overwrite an already installed specfic Arduino core, see also next chapter):  
   make install
 
-### Compile code (optional for T-HMI, Waveshare ESP32-S3-LCD-2.8 and CYD, mandatory for T-Display S3 AMOLED)
+### Compile code (optional)
 
 First adapt the file Makefile and choose
 
@@ -193,7 +192,9 @@ For this situation you can use a prepared docker image to compile the code:
 First adapt the file Makefile and choose the board and the keyboard type you want the binary files to be uploaded for
 (adapt variables BOARD and KEYBOARD).
 Furthermore, you may need to adjust the PORT variable.
-Binary files for the T-HMI and Waveshare ESP32-S3-LCD-2.8 development boards are also part of the git repository, so you don't have to compile them yourself if you don't want to.
+Binary files for the development boards can be downloaded from https://github.com/retroelec/T-HMI-C64/actions
+(select the latest run to see the artifacts),
+so you don't have to compile them yourself if you don't want to.
 
 Afterwards you can upload the binary files:  
 make upload
@@ -428,7 +429,7 @@ Features not emulated (list not exhaustive) resp. known bugs:
 - no "FLI border removal" / "sideborder removal"
 - synchronization is rasterline-based, not cycle-exact
 - rarly C64 CPU is blocked after loading a game
-- sound for the CYD board has not yet been tested
+- bad sound for the CYD board, deactivated by default
 
 Since only a rudimentary disk drive emulation is available, only a few "multi-load" games can be played
 (e.g. Summer Games, World Games, The Dallas Quest).

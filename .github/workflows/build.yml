@@ -1,0 +1,83 @@
+name: build
+on: [push]
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build EXE with Docker
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/build docker.io/retroelec42/sdl2-cross sh -c "
+            make -f windows/Makefile && \
+            cp /usr/lib/gcc/x86_64-w64-mingw32/12-posix/libstdc++-6.dll /build/windows/ && \
+            cp /usr/lib/gcc/x86_64-w64-mingw32/12-posix/libgcc_s_seh-1.dll /build/windows/ && \
+            cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll /build/windows/ && \
+            cp /opt/sdl2-windows/SDL2/x86_64-w64-mingw32/bin/SDL2.dll /build/windows/
+          "
+
+      - name: Upload Executable and DLLs
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-executable
+          path: |
+            windows/c64win.exe
+            windows/*.dll
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: windows/c64win.exe
+
+  build-esp32:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: T_HMI
+            keyboard: BLE_KEYBOARD
+            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
+          - board: T_HMI
+            keyboard: WEB_KEYBOARD
+            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
+          - board: T_DISPLAY_S3
+            keyboard: BLE_KEYBOARD
+            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
+          - board: T_DISPLAY_S3
+            keyboard: WEB_KEYBOARD
+            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
+          - board: WAVESHARE
+            keyboard: BLE_KEYBOARD
+            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info"
+          - board: WAVESHARE
+            keyboard: WEB_KEYBOARD
+            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info"
+          - board: CYD
+            keyboard: NO_KEYBOARD
+            fqbn: "esp32:esp32:esp32:FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,LoopCore=0,DebugLevel=info"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build ESP32 Binaries with Docker
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace/T-HMI-C64 docker.io/retroelec42/arduino-cli-thmic64 \
+            compile --warnings all \
+            --fqbn "${{ matrix.fqbn }}" \
+            --build-property "build.extra_flags=-DBOARD_${{ matrix.board }} -DUSE_${{ matrix.keyboard }} -DESP32" \
+            --build-path "build/${{ matrix.board }}_${{ matrix.keyboard }}" T-HMI-C64.ino
+
+      - name: Upload ESP32 Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32-firmware-${{ matrix.board }}-${{ matrix.keyboard }}
+          path: |
+            build/${{ matrix.board }}_${{ matrix.keyboard }}/T-HMI-C64.ino.bin
+            build/${{ matrix.board }}_${{ matrix.keyboard }}/T-HMI-C64.ino.bootloader.bin
+            build/${{ matrix.board }}_${{ matrix.keyboard }}/T-HMI-C64.ino.partitions.bin
+
