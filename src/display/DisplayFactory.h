@@ -29,6 +29,8 @@
 #include "ST7789VSerial.h"
 #elif defined(USE_SDL_DISPLAY)
 #include "SDLDisplay.h"
+#elif defined(USE_LEDMATRIXDISPLAY)
+#include "LEDMatrixDisplay.h"
 #else
 #error "no valid display driver defined"
 #endif
@@ -45,6 +47,8 @@ DisplayDriver *create() {
   return new ST7789VSerial();
 #elif defined(USE_SDL_DISPLAY)
   return new SDLDisplay();
+#elif defined(USE_LEDMATRIXDISPLAY)
+  return new LEDMatrixDisplay();
 #endif
 }
 } // namespace Display

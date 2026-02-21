@@ -19,6 +19,9 @@
 #ifdef USE_ILI9341
 #include "BitmapUtils.h"
 #include "ILI9341.h"
+// files ili9341/lcd.cpp and ili9341/lcd.h are copied from
+// https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display
+// and slightly adjusted
 #include "ili9341/lcd.h"
 
 static constexpr uint16_t BORDERWIDTH = (Config::LCDWIDTH - 320) / 2;
@@ -60,7 +63,7 @@ void ILI9341::drawFrame(uint8_t frameColor) {
   }
 }
 
-void ILI9341::drawBitmap(uint8_t *bitmap) {
+void ILI9341::drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) {
   uint16_t xstart = BORDERWIDTH;
   uint16_t ystart = BORDERHEIGHT;
   uint16_t xend = 319 + BORDERWIDTH;
@@ -76,6 +79,6 @@ void ILI9341::drawBitmap(uint8_t *bitmap) {
   LCD_WriteDate(buffer, DBBUFSIZE);
 }
 
-void ILI9341::reconfigureSPI() { LCD_Restore_Interface(); }
+void ILI9341::reconfigureSPICYD() { LCD_Restore_Interface(); }
 
 #endif

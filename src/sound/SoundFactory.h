@@ -23,6 +23,8 @@
 #include "I2SSound.h"
 #elif defined(USE_SDLSOUND)
 #include "SDLSound.h"
+#elif defined(USE_CYDSOUND)
+#include "CYDSound.h"
 #elif defined(USE_NOSOUND)
 #include "NoSound.h"
 #else
@@ -35,6 +37,8 @@ SoundDriver *create() {
   return new I2SSound();
 #elif defined(USE_SDLSOUND)
   return new SDLSound();
+#elif defined(USE_CYDSOUND)
+  return new CYDSound();
 #elif defined(USE_NOSOUND)
   return new NoSound();
 #endif

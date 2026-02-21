@@ -41,6 +41,7 @@
 #define USE_SDCARD
 #define USE_ARDUINOJOYSTICK
 #define USE_NOSOUND
+// #define USE_PSRAM
 #elif defined(BOARD_T_DISPLAY_S3)
 #define USE_RM67162
 #define USE_NOFS
@@ -50,12 +51,18 @@
 #define USE_ILI9341
 #define USE_SDCARDCYD
 #define USE_ARDUINOJOYSTICKCYD
-#define USE_I2SSOUND
+#define USE_NOSOUND
 #elif defined(BOARD_WAVESHARE)
 #define USE_ST7789VSERIAL
 #define USE_SDCARD
 #define USE_ARDUINOJOYSTICK
 #define USE_I2SSOUND
+#elif defined(BOARD_LEDMATRIX)
+#define USE_LEDMATRIXDISPLAY
+#define USE_NOFS
+#define USE_NOJOYSTICK
+#define USE_NOSOUND
+#define USE_PSRAM
 #endif
 
 #endif
@@ -205,9 +212,7 @@ struct Config {
 
   // Sound
   static const uint8_t DEFAULT_VOLUME = 128;
-  static const uint8_t I2S_DOUT = 25;
-  static const uint8_t I2S_BCLK = 27;
-  static const uint8_t I2S_LRC = 26;
+  static const uint8_t I2S_DOUT = 26;
 
   // SDCard
   static const uint8_t SD_MISO_PIN = 19;
@@ -278,6 +283,56 @@ struct Config {
   static const adc_channel_t ADC_JOYSTICK_Y = ADC_CHANNEL_7;
   static const uint8_t JOYSTICK_FIRE_PIN = 11;
   static const uint8_t JOYSTICK_FIRE2_PIN = 10;
+
+  // BLEKB
+  static constexpr const char *SERVICE_UUID =
+      "695ba701-a48c-43f6-9028-3c885771f19f";
+  static constexpr const char *CHARACTERISTIC_UUID =
+      "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
+};
+
+#elif defined(BOARD_LEDMATRIX)
+
+struct Config {
+  // delay until next display refresh
+  static const uint8_t REFRESHDELAY = 15;
+
+  // "heuristic performance factor"
+  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
+
+  // filesystem
+  static constexpr const char *PATH = "";
+  static constexpr const char *CONFIGFILE = ".config.json";
+
+  // display driver
+  static const uint16_t C64WIDTH = 320;
+  static const uint16_t C64HEIGHT = 240;
+  static const uint16_t LEDMATRIXWIDTH = 64;
+  static const uint16_t LEDMATRIXHEIGHT = 64;
+  static const uint8_t IGNBORDERX = 32;
+  static const uint8_t IGNBORDERY = 4;
+  static const uint8_t LEDMATRIXSCALEX =
+      (C64WIDTH - (2 * IGNBORDERX)) / LEDMATRIXWIDTH;
+  static const uint8_t LEDMATRIXSCALEY =
+      (C64HEIGHT - (2 * IGNBORDERY)) / LEDMATRIXHEIGHT;
+  static const uint8_t LEDMATRIXBRIGHTNESS = 128;
+  static const uint8_t NUMPANELS = 1;
+
+  // LEDMatrixDisplay
+  static const uint8_t R1 = 4;
+  static const uint8_t G1 = 17;
+  static const uint8_t B1 = 5;
+  static const uint8_t R2 = 6;
+  static const uint8_t G2 = 18;
+  static const uint8_t B2 = 7;
+  static const uint8_t CH_A = 15;
+  static const uint8_t CH_B = 3;
+  static const uint8_t CH_C = 16;
+  static const uint8_t CH_D = 46;
+  static const uint8_t CH_E = 8;
+  static const uint8_t LAT = 40;
+  static const uint8_t OE = 39;
+  static const uint8_t CLK = 41;
 
   // BLEKB
   static constexpr const char *SERVICE_UUID =

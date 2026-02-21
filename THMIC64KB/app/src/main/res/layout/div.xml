@@ -23,11 +23,11 @@
             android:layout_height="wrap_content"
             android:text="Commando hack" />
 
-        <Switch
+        <!--Switch
             android:id="@+id/toggleDebug"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Monitor CPU" />
+            android:text="Monitor CPU" /-->
 
         <Switch
             android:id="@+id/togglePerf"
@@ -82,26 +82,29 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="10dp"
             android:layout_weight="1"
+            android:backgroundTint="#cc7777"
             android:text="SENDPRG"
             android:theme="@style/ButtonTheme" />
 
         <Button
-            android:id="@+id/keystatus"
+            android:id="@+id/keyspecial1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
             android:layout_weight="1"
-            android:text="STATUS"
+            android:backgroundTint="#cc7777"
+            android:text="SPECIAL1"
             android:theme="@style/ButtonTheme" />
 
         <Button
-            android:id="@+id/keymemory"
+            android:id="@+id/keyspecial2"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_weight="1"
-            android:text="MEMORY"
+            android:backgroundTint="#cc7777"
+            android:text="SPECIAL2"
             android:theme="@style/ButtonTheme" />
 
         <TextView

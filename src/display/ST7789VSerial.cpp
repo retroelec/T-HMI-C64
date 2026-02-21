@@ -61,7 +61,7 @@ void ST7789VSerial::drawFrame(uint8_t frameColor) {
 const uint8_t BUFNUMLINES = 20;
 static uint16_t transferBuffer[320 * BUFNUMLINES] __attribute__((aligned(4)));
 
-void ST7789VSerial::drawBitmap(uint8_t *bitmap) {
+void ST7789VSerial::drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) {
   uint16_t xstart = BORDERWIDTH;
   uint16_t ystart = BORDERHEIGHT;
   uint16_t xend = 319 + BORDERWIDTH;

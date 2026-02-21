@@ -19,6 +19,7 @@
 #include "CIA.h"
 #include "CPU6502.h"
 #include "Config.h"
+#include "ExtCmdQueue.h"
 #include "ExternalCmds.h"
 #include "FileConfig.h"
 #include "Floppy.h"
@@ -562,8 +563,8 @@ void C64Sys::getJoystickValues() {
   gmprevright = rightpressing;
 }
 
-uint8_t C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
-  uint8_t ret = 0;
+void C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
+  ExtCmd cmd = ExtCmd::NOEXTCMD;
   if (joystickOnlyModeState == JoystickOnlyModeState::NONE) {
     keyboard->setSpecialjoymode(false);
     specialjoymode = false;
@@ -635,9 +636,7 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
       if (floppy.fsinitialized) {
         cpuhalted = true;
         uint16_t addr = floppy.load(actfilename, ram);
-#if defined(BOARD_CYD)
-        vic.display->reconfigureSPI();
-#endif
+        vic.display->reconfigureSPICYD();
         if (addr != 0) {
           joystickOnlyModeState = JoystickOnlyModeState::RUN;
           vic.doiactive[1] = false;
@@ -656,17 +655,17 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
       switch (joystickmode) {
       case 0:
       case 2:
-        ret = static_cast<uint8_t>(ExtCmd::JOYSTICKMODE1);
+        cmd = ExtCmd::JOYSTICKMODE1;
         break;
       case 1:
-        ret = static_cast<uint8_t>(ExtCmd::JOYSTICKMODE2);
+        cmd = ExtCmd::JOYSTICKMODE2;
         break;
       }
-      keyboard->setJoystickmode(static_cast<ExtCmd>(ret));
+      keyboard->setJoystickmode(cmd);
     } else if (uppressed) {
       joystickOnlyModeState = JoystickOnlyModeState::NONE;
       vic.doiactive[1] = false;
-      ret = static_cast<uint8_t>(ExtCmd::POWEROFF);
+      cmd = ExtCmd::POWEROFF;
     } else if (fire1pressed && (joystickOnlyModeCnt == 0)) {
       joystickOnlyModeState = JoystickOnlyModeState::NONE;
       vic.doiactive[1] = false;
@@ -691,26 +690,31 @@ uint8_t C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
       switch (joystickmode) {
       case 0:
       case 2:
-        ret = static_cast<uint8_t>(ExtCmd::JOYSTICKMODE1);
+        cmd = ExtCmd::JOYSTICKMODE1;
         break;
       case 1:
-        ret = static_cast<uint8_t>(ExtCmd::JOYSTICKMODE2);
+        cmd = ExtCmd::JOYSTICKMODE2;
         break;
       }
-      keyboard->setJoystickmode(static_cast<ExtCmd>(ret));
+      keyboard->setJoystickmode(cmd);
     } else if (uppressed) {
       joystickOnlyModeState = JoystickOnlyModeState::NONE;
       vic.doiactive[1] = false;
-      ret = static_cast<uint8_t>(ExtCmd::RESET);
+      cmd = ExtCmd::RESET;
     } else if (fire1pressed && (joystickOnlyModeCnt == 0)) {
       joystickOnlyModeState = JoystickOnlyModeState::RUN;
       vic.doiactive[1] = false;
     }
   }
-  return ret;
+  if (cmd != ExtCmd::NOEXTCMD) {
+    ExtCmdQueue::ExternalCmd extcmd;
+    extcmd.cmd = cmd;
+    ExtCmdQueue::getInstance().push(extcmd);
+  }
 }
 
 void C64Sys::check4extcmd() {
+  // check joystick only state machine
   bool jOMBpressed = false;
   if ((joystickOnlyModeState == JoystickOnlyModeState::NONE) ||
       (joystickOnlyModeState == JoystickOnlyModeState::RUN)) {
@@ -724,28 +728,7 @@ void C64Sys::check4extcmd() {
       jOMBpressed = true;
     }
   }
-  bool executeExtCmdKB = false;
-  bool executeExtCmdGM = false;
-  uint8_t extCmdBufferGM[1];
-  uint8_t *extCmdBufferKB = keyboard->getExtCmdData();
-  if (extCmdBufferKB != nullptr) {
-    executeExtCmdKB = true;
-  } else {
-    extCmdBufferGM[0] = checkJoystickOnlyStatemachine(jOMBpressed);
-    if (extCmdBufferGM[0] != 0) {
-      executeExtCmdGM = true;
-    }
-  }
-  // queue external command?
-  if (executeExtCmdKB || executeExtCmdGM) {
-    if (executeExtCmdKB) {
-      externalCmds->queueExternalCmd(extCmdBufferKB);
-      // sync detectreleasekey
-      keyboard->setDetectReleasekey(detectreleasekey);
-    } else {
-      externalCmds->queueExternalCmd(extCmdBufferGM);
-    }
-  }
+  checkJoystickOnlyStatemachine(jOMBpressed);
   // execute external command?
   uint8_t type = externalCmds->executeNextExternalCmd();
   if (type == 0) {
@@ -954,9 +937,7 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   hooks->patchKernal(kernal_rom);
   FileConfig::loadConfig(*floppy.sysfile, std::string(Config::PATH) +
                                               std::string(Config::CONFIGFILE));
-#if defined(BOARD_CYD)
-  vic.display->reconfigureSPI();
-#endif
+  vic.display->reconfigureSPICYD();
   std::vector<JoystickOnlyTextKeycode> listAdditionalInGameKeycodes =
       FileConfig::getJoystickOnlyKeycodes();
   listInGameKeycodes.insert(listInGameKeycodes.end(),
@@ -967,14 +948,14 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
     PlatformManager::getInstance().log(LOG_INFO, TAG,
                                        "load and start autostart program %s",
                                        autostartGame.c_str());
-    ExternalCmd extCmd;
+    ExtCmdQueue::ExternalCmd extCmd;
     extCmd.cmd = ExtCmd::WAIT;
     extCmd.param[0] = 150;
-    externalCmds->queueExternalCmd(extCmd);
+    ExtCmdQueue::getInstance().push(extCmd);
     extCmd.cmd = ExtCmd::AUTOSTART;
     size_t copied = autostartGame.copy((char *)&extCmd.param[2], 16);
     extCmd.param[2 + copied] = '\0';
-    externalCmds->queueExternalCmd(extCmd);
+    ExtCmdQueue::getInstance().push(extCmd);
   }
   keyboard = Keyboard::create();
   keyboard->init();

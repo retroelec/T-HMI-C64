@@ -18,6 +18,7 @@
 #include "../Config.h"
 #ifdef USE_SDL_KEYBOARD
 #include "../ExtCmd.h"
+#include "../ExtCmdQueue.h"
 #include "SDLKeymap.h"
 #include "platform/PlatformManager.h"
 #include <SDL2/SDL.h>
@@ -38,6 +39,7 @@ void SDLKB::setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode) {
 }
 
 void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
+  ExtCmdQueue::ExternalCmd extcmd;
   if (attachwinopen) {
     SDL_SetRenderDrawColor(attachrenderer, 0, 0, 50, 255);
     SDL_RenderClear(attachrenderer);
@@ -73,15 +75,13 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         attachwinopen = false;
         openattachwin = false;
         if (strlen(diskname) == 0) {
-          extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-              ExtCmd::DETACHD64);
+          extcmd.cmd = ExtCmd::DETACHD64;
         } else {
-          extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-              ExtCmd::ATTACHD64);
+          extcmd.cmd = ExtCmd::ATTACHD64;
           std::copy(diskname, diskname + strlen(diskname) + 1,
-                    extCmdBuffer + 3);
+                    &extcmd.param[3]);
         }
-        gotExternalCmd = true;
+        ExtCmdQueue::getInstance().push(extcmd);
       } else {
         if (strlen(diskname) < DISKNAMEMAXLEN - 1) {
           uint8_t ch = (uint8_t)key;
@@ -99,8 +99,6 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
     if (mod & KMOD_RCTRL) {
       // help + quit
       if (key == SDLK_h) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::WRITETEXT);
         const uint8_t help[] = "\x93\x5\r"
                                "          **** HELP PAGE ****\r\r"
                                "RCTRL-H FOR THIS HELP PAGE\r"
@@ -121,24 +119,28 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
                                "RCTRL-N SHOW CONTENT OF CPU REGISTERS\r"
                                "RCTRL-D SWITCH TO DEBUG MODE AND BACK\r"
                                "COMMODORE KEY = LEFT ALT\r\x9a\0";
-        memcpy(&extCmdBuffer[3], help, sizeof(help));
-        gotExternalCmd = true;
+        extcmd.cmd = ExtCmd::WRITETEXT;
+        int16_t helpsize = sizeof(help);
+        uint8_t *helpptr = (uint8_t *)help;
+        while (helpsize > 0) {
+          memcpy(&extcmd.param[2], helpptr, (helpsize > 250) ? 250 : helpsize);
+          ExtCmdQueue::getInstance().push(extcmd);
+          helpsize -= 250;
+          helpptr += 250;
+        }
       } else if (key == SDLK_q) {
         exit(0);
       }
       // "external command" keys
       else if (key == SDLK_l) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LOAD);
-        gotExternalCmd = true;
+        extcmd.cmd = ExtCmd::LOAD;
+        ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_s) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::SAVE);
-        gotExternalCmd = true;
+        extcmd.cmd = ExtCmd::SAVE;
+        ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_t) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LIST);
-        gotExternalCmd = true;
+        extcmd.cmd = ExtCmd::LIST;
+        ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_a) {
         if (!attachwinopen && !openattachwin) {
           std::lock_guard<std::mutex> lock(attachWinMutex);
@@ -146,50 +148,42 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
           diskname[0] = '\0';
         }
       } else if (key == SDLK_n) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::SHOWREG);
-        gotExternalCmd = true;
+        extcmd.cmd = ExtCmd::SHOWREG;
+        ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_r) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESET);
-        gotExternalCmd = true;
+        extcmd.cmd = ExtCmd::RESET;
+        ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_d) {
-        extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-            ExtCmd::SWITCHDEBUG);
-        gotExternalCmd = true;
+        extcmd.cmd = ExtCmd::SWITCHDEBUG;
+        ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_COMMA) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::DECVOLUME);
-        extCmdBuffer[1] = 10;
-        gotExternalCmd = true;
+        extcmd.cmd = ExtCmd::DECVOLUME;
+        extcmd.param[0] = 10;
+        ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_PERIOD) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::INCVOLUME);
-        extCmdBuffer[1] = 10;
-        gotExternalCmd = true;
+        extcmd.cmd = ExtCmd::INCVOLUME;
+        extcmd.param[0] = 10;
+        ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_p) {
-        extCmdBuffer[0] =
-            static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::PAUSE);
-        gotExternalCmd = true;
+        extcmd.cmd = ExtCmd::PAUSE;
+        ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_j) {
         switch (joystickmode) {
         case ExtCmd::JOYSTICKMODEOFF:
           joystickmode = ExtCmd::JOYSTICKMODE1;
-          extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-              ExtCmd::JOYSTICKMODE1);
-          gotExternalCmd = true;
+          extcmd.cmd = ExtCmd::JOYSTICKMODE1;
+          ExtCmdQueue::getInstance().push(extcmd);
           break;
         case ExtCmd::JOYSTICKMODE1:
           joystickmode = ExtCmd::JOYSTICKMODE2;
-          extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-              ExtCmd::JOYSTICKMODE2);
-          gotExternalCmd = true;
+          extcmd.cmd = ExtCmd::JOYSTICKMODE2;
+          ExtCmdQueue::getInstance().push(extcmd);
+          break;
           break;
         case ExtCmd::JOYSTICKMODE2:
           joystickmode = ExtCmd::JOYSTICKMODEOFF;
-          extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-              ExtCmd::JOYSTICKMODEOFF);
-          gotExternalCmd = true;
+          extcmd.cmd = ExtCmd::JOYSTICKMODEOFF;
+          ExtCmdQueue::getInstance().push(extcmd);
           break;
         default:
           break;
@@ -254,18 +248,19 @@ static uint8_t helpbox[] =
     "\x43\x43\x43\x43\x43\x43\x43\x4b";
 
 void SDLKB::printHelpHint() {
-  extCmdBuffer[3] = 9;
-  extCmdBuffer[4] = 5;
-  extCmdBuffer[5] = 20;
-  extCmdBuffer[6] = 3;
-  extCmdBuffer[7] = 1;
-  extCmdBuffer[8] = 0;
-  extCmdBuffer[9] = 5;
-  extCmdBuffer[10] = 0;
-  extCmdBuffer[11] = 1;
-  memcpy(&extCmdBuffer[12], helpbox, 20 * 3);
-  extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::WRITEOSD)};
-  gotExternalCmd = true;
+  ExtCmdQueue::ExternalCmd extcmd;
+  extcmd.cmd = ExtCmd::WRITEOSD;
+  extcmd.param[2] = 9;
+  extcmd.param[3] = 5;
+  extcmd.param[4] = 20;
+  extcmd.param[5] = 3;
+  extcmd.param[6] = 1;
+  extcmd.param[7] = 0;
+  extcmd.param[8] = 5;
+  extcmd.param[9] = 0;
+  extcmd.param[10] = 1;
+  memcpy(&extcmd.param[11], helpbox, 20 * 3);
+  ExtCmdQueue::getInstance().push(extcmd);
 }
 
 void SDLKB::init() {
@@ -318,26 +313,6 @@ uint8_t SDLKB::getKBCodeDC01() { return kbcode2; }
 uint8_t SDLKB::getKBCodeDC00() { return kbcode1; }
 
 uint8_t SDLKB::getShiftctrlcode() { return shiftctrlcode; }
-
-uint8_t SDLKB::getKBJoyValue() { return 0xff; }
-
-uint8_t *SDLKB::getExtCmdData() {
-  if (gotExternalCmd) {
-    gotExternalCmd = false;
-    extCmdBuffer[2] = 0x80;
-    return extCmdBuffer;
-  }
-  return nullptr;
-}
-
-void SDLKB::sendExtCmdNotification(uint8_t *data, size_t size) {
-  // for (uint8_t i = 0; i < size; i++) {
-  //   PlatformManager::getInstance().log(LOG_INFO, TAG, "notification byte %d:
-  //   %d", i, data[i]);
-  // }
-}
-
-void SDLKB::setDetectReleasekey(bool detectreleasekey) {}
 
 void SDLKB::setSpecialjoymode(bool specialjoymode) {
   this->specialjoymode = specialjoymode;

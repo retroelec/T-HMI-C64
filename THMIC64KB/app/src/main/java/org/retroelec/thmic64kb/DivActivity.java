@@ -31,7 +31,7 @@ import java.nio.charset.StandardCharsets;
 public class DivActivity extends AppCompatActivity implements SettingsObserver, NotificationObserver {
     private Switch toggleDeactivateTempSwitch;
     private Switch toggleSendRawKeyCodes;
-    private Switch toggleDebug;
+    // private Switch toggleDebug;
     private Switch togglePerf;
     private Switch toggleDetectReleaseKey;
     private Slider volumeSlider;
@@ -204,14 +204,13 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
         runOnUiThread(() -> {
             toggleDeactivateTempSwitch.setChecked(settings.isDeactivateTemp());
             toggleSendRawKeyCodes.setChecked(settings.isSendRawKeyCodes());
-            toggleDebug.setChecked(settings.isDebug());
+            // toggleDebug.setChecked(settings.isDebug());
             togglePerf.setChecked(settings.isPerf());
             toggleDetectReleaseKey.setChecked(settings.isDetectReleaseKey());
             volumeSlider.setValue(settings.getVolume() * 100 / 255);
             if (settings.isd64attached()) {
                 keyattach.setBackgroundColor(Config.KEYBGDCOLORD64ATTACHED);
-            }
-            else {
+            } else {
                 keyattach.setBackgroundColor(Config.KEYBGDCOLORACTION);
             }
         });
@@ -288,8 +287,8 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
         toggleSendRawKeyCodes = findViewById(R.id.toggleSendRawKeyCodes);
         toggleSendRawKeyCodes.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SENDRAWKEYS, (byte) 0x00, (byte) 0x80}, false));
 
-        toggleDebug = findViewById(R.id.toggleDebug);
-        toggleDebug.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHDEBUG, (byte) 0x00, (byte) 0x80}, false));
+//        toggleDebug = findViewById(R.id.toggleDebug);
+//        toggleDebug.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHDEBUG, (byte) 0x00, (byte) 0x80}, false));
 
         togglePerf = findViewById(R.id.togglePerf);
         togglePerf.setOnClickListener(v -> bleUtils.send(new byte[]{Config.SWITCHPERF, (byte) 0x00, (byte) 0x80}, false));
@@ -337,17 +336,19 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
         final Button send = findViewById(R.id.send);
         send.setOnClickListener(view -> openFilePicker());
 
-        final Button keystatus = findViewById(R.id.keystatus);
-        keystatus.setOnClickListener(view -> {
-            Intent i = new Intent(this, StatusActivity.class);
-            startActivity(i);
-        });
+        final Button keyspecial1 = findViewById(R.id.keyspecial1);
+        keyspecial1.setOnTouchListener(bleUtils.createButtonTouchListener(keyspecial1, new byte[]{Config.SPECIAL1, (byte) 0x00, (byte) 0x80}, Config.KEYSELECTEDCOLORACTION, Config.KEYBGDCOLORACTION, true));
+//        keyspecial1.setOnClickListener(view -> {
+//            Intent i = new Intent(this, StatusActivity.class);
+//            startActivity(i);
+//        });
 
-        final Button keymemory = findViewById(R.id.keymemory);
-        keymemory.setOnClickListener(view -> {
-            Intent i = new Intent(this, MemoryActivity.class);
-            startActivity(i);
-        });
+        final Button keyspecial2 = findViewById(R.id.keyspecial2);
+        keyspecial2.setOnTouchListener(bleUtils.createButtonTouchListener(keyspecial2, new byte[]{Config.SPECIAL2, (byte) 0x00, (byte) 0x80}, Config.KEYSELECTEDCOLORACTION, Config.KEYBGDCOLORACTION, true));
+//        keyspecial2.setOnClickListener(view -> {
+//            Intent i = new Intent(this, MemoryActivity.class);
+//            startActivity(i);
+//        });
 
         final Button keysave = findViewById(R.id.keysave);
         keysave.setOnTouchListener(bleUtils.createButtonTouchListener(keysave, new byte[]{Config.SAVE, (byte) 0x00, (byte) 0x80}, Config.KEYSELECTEDCOLORACTION, Config.KEYBGDCOLORACTION, true));

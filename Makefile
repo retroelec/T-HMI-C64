@@ -2,15 +2,16 @@
 #BOARD := T_HMI
 #BOARD := T_DISPLAY_S3
 #BOARD := WAVESHARE
-BOARD := CYD
+#BOARD := CYD
+BOARD := LEDMATRIX
 
 # choose keyboard
-#KEYBOARD := BLE_KEYBOARD
+KEYBOARD := BLE_KEYBOARD
 #KEYBOARD := WEB_KEYBOARD
-KEYBOARD := NO_KEYBOARD
+#KEYBOARD := NO_KEYBOARD
 
-ifeq ($(BOARD),CYD)
-  ifneq ($(KEYBOARD),NO_KEYBOARD)
+ifeq ($(BOARD), CYD)
+  ifneq ($(KEYBOARD), NO_KEYBOARD)
     $(error FEHLER: If BOARD is set to CYD, KEYBOARD MUST have the value NO_KEYBOARD. (current: $(KEYBOARD)))
   endif
 endif
@@ -18,26 +19,33 @@ endif
 UNAME_S := $(shell uname -s)
 
 # choose port
-ifeq ($(UNAME_S),Linux)
-  ifeq ($(BOARD),CYD)
+ifeq ($(UNAME_S), Linux)
+  ifeq ($(BOARD), CYD)
     PORT := /dev/ttyUSB0
   else
     PORT := /dev/ttyACM0
   endif
-else ifeq ($(UNAME_S),Darwin)
+else ifeq ($(UNAME_S), Darwin)
   PORT := /dev/tty.usbmodem1101
 endif
 
 ALLBOARDS := T_HMI T_DISPLAY_S3 WAVESHARE
 ALLKEYBOARDS := BLE_KEYBOARD WEB_KEYBOARD
 
+BUILD_EXTRA_FLAGS := -DBOARD_$(BOARD) -DUSE_$(KEYBOARD) -DESP32
+
 ifeq ($(BOARD), WAVESHARE)
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
+  BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
+else ifeq ($(BOARD), LEDMATRIX)
+  FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=enabled,PartitionScheme=default_8MB
+  BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
 else
   ifeq ($(BOARD),CYD)
     FQBN := esp32:esp32:esp32:FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,LoopCore=0,DebugLevel=info
   else
     FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info
+    BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
   endif
 endif
 
@@ -49,7 +57,7 @@ HEADERFILES := $(shell find src -name '*.h')
 
 TARGET := build-$(BOARD)-$(KEYBOARD)/T-HMI-C64.ino.elf
 
-CLI_COMPILE := compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=-DBOARD_$(BOARD) -DUSE_$(KEYBOARD) -DESP32" --build-path build-$(BOARD)-$(KEYBOARD) T-HMI-C64.ino
+CLI_COMPILE := compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=$(BUILD_EXTRA_FLAGS)" --build-path build-$(BOARD)-$(KEYBOARD) T-HMI-C64.ino
 
 # -DESP32 is needed for ESP_Async_WebServer, Async_TCP
 $(TARGET):	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES)
@@ -69,6 +77,8 @@ compileAll:
 	done
 	echo "\nCompiling for Board: CYD"; \
 	$(MAKE) clean compile BOARD=CYD KEYBOARD=NO_KEYBOARD || exit $$?; \
+	echo "\nCompiling for LEDMatrix"; \
+	$(MAKE) clean compile BOARD=LEDMATRIX KEYBOARD=BLE_KEYBOARD || exit $$?; \
 
 # first you have to get the docker image:
 # podman pull docker.io/retroelec42/arduino-cli-thmic64:latest
@@ -94,11 +104,14 @@ install:	check_install
 	arduino-cli config set network.connection_timeout 600s
 	arduino-cli core update-index
 	arduino-cli core install esp32:esp32@3.2.0
-	arduino-cli lib install ArduinoJson
+	arduino-cli lib install ArduinoJson # used to read config file
 	arduino-cli config set library.enable_unsafe_install true
-	arduino-cli lib install --git-url https://github.com/ESP32Async/AsyncTCP.git
-	arduino-cli lib install --git-url https://github.com/ESP32Async/ESPAsyncWebServer.git
-	arduino-cli lib install --git-url https://github.com/devyte/ESPAsyncDNSServer.git
+	arduino-cli lib install --git-url https://github.com/ESP32Async/AsyncTCP.git # used for web keyboard
+	arduino-cli lib install --git-url https://github.com/ESP32Async/ESPAsyncWebServer.git # used for web keyboard
+	arduino-cli lib install --git-url https://github.com/devyte/ESPAsyncDNSServer.git # used for web keyboard
+	arduino-cli lib install --git-url https://github.com/mrcodetastic/ESP32-HUB75-MatrixPanel-DMA.git # used for LED matrix panel
+	arduino-cli lib install --git-url https://github.com/adafruit/Adafruit-GFX-Library.git # used for LED matrix panel
+	arduino-cli lib install --git-url https://github.com/adafruit/Adafruit_BusIO # used for LED matrix panel
 
 check_install:
 	@echo -n "Are you sure? [y/N] " && read ans && [ $${ans:-N} = y ]

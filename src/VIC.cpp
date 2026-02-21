@@ -19,7 +19,12 @@
 #include "display/DisplayFactory.h"
 #include "platform/PlatformManager.h"
 #include <cstring>
+#ifdef USE_PSRAM
+#include <esp32-hal-psram.h>
+#endif
 #include <stdexcept>
+
+static const char *TAG = "VIC";
 
 static bool collArr[4] = {false, true, true, true};
 
@@ -536,9 +541,21 @@ void VIC::init(uint8_t *ram, const uint8_t *charrom) {
   this->chrom = charrom;
 
   // allocate bitmap memory to be transfered to LCD
+#ifdef USE_PSRAM
+  if (psramFound()) {
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "use PSRAM for bitmap");
+    bitmap = (uint8_t *)ps_malloc(320 * 200);
+  } else {
+    PlatformManager::getInstance().log(LOG_WARN, TAG,
+                                       "no PSRAM available, allocate SRAM");
+    bitmap = new uint8_t[320 * 200];
+  }
+#else
   bitmap = new uint8_t[320 * 200];
+#endif
 
   // init display
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "init display");
   display = Display::create();
   display->init();
 
@@ -549,7 +566,7 @@ void VIC::init(uint8_t *ram, const uint8_t *charrom) {
 
 void VIC::refresh() {
   dispOverlayInfo();
-  display->drawBitmap(bitmap);
+  display->drawBitmap(bitmap, vicreg);
   display->drawFrame(vicreg[0x20] & 15);
   cntRefreshs.fetch_add(1, std::memory_order_release);
 }

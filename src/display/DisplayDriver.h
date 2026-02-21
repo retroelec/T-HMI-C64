@@ -74,14 +74,44 @@ public:
    * The bitmap contains pixel data in 8-bit C64 color data format.
    *
    * @param bitmap Pointer to the bitmap data.
+   * @param vicreg Pointer to the VIC registers (usually ignored, used be
+   * LEDMatrixDisplay).
    */
-  virtual void drawBitmap(uint8_t *bitmap) = 0;
+  virtual void drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) = 0;
+
+  /**
+   * @brief Sets a hardware-specific operational mode for the display.
+   *
+   * As this project supports various display types, this method acts as a
+   * generic interface to trigger device-specific configurations.
+   *
+   * @param mode A hardware-specific identifier for the desired operation mode.
+   */
+  virtual void setSpecial1() {}
+
+  /**
+   * @brief Sets a hardware-specific operational mode for the display.
+   *
+   * As this project supports various display types, this method acts as a
+   * generic interface to trigger device-specific configurations.
+   *
+   * @param mode A hardware-specific identifier for the desired operation mode.
+   */
+  virtual void setSpecial2() {}
+
+  /**
+   * @brief Used only for the CYD. Reconfigures the SPI bus parameters
+   * specifically for the LCD operation.
+   *
+   * On the CYD (Cheap Yellow Display), the LCD and SD card share the same
+   * physical SPI bus. Since SD card operations change the SPI frequency, bit
+   * order, or data mode, this method restores the bus configuration to the
+   * requirements of the display controller.
+   *
+   */
+  virtual void reconfigureSPICYD() {}
 
   virtual ~DisplayDriver() {}
-
-#if defined(BOARD_CYD)
-  virtual void reconfigureSPI() = 0;
-#endif
 };
 
 #endif // DISPLAYDRIVER_H

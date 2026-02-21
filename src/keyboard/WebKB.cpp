@@ -20,6 +20,7 @@
 #ifdef USE_WEB_KEYBOARD
 
 #include "../ExtCmd.h"
+#include "../ExtCmdQueue.h"
 #include "../platform/PlatformManager.h"
 #include "SDLKeymap.h"
 #include <ArduinoJson.h>
@@ -392,20 +393,20 @@ static uint8_t ipaddrbox[] =
     "\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x4b";
 
 void WebKB::printIPAddress() {
-  extCmdBuffer[3] = 6;
-  extCmdBuffer[4] = 5;
-  extCmdBuffer[5] = 28;
-  extCmdBuffer[6] = 3;
-  extCmdBuffer[7] = 1;
-  extCmdBuffer[8] = 0;
-  extCmdBuffer[9] = 10;
-  extCmdBuffer[10] = 0;
-  extCmdBuffer[11] = 1;
+  extcmd.param[2] = 6;
+  extcmd.param[3] = 5;
+  extcmd.param[4] = 28;
+  extcmd.param[5] = 3;
+  extcmd.param[6] = 1;
+  extcmd.param[7] = 0;
+  extcmd.param[8] = 10;
+  extcmd.param[9] = 0;
+  extcmd.param[10] = 1;
   std::string ipString = std::string(WiFi.localIP().toString().c_str());
   memcpy(&ipaddrbox[40], ipString.c_str(), ipString.length());
-  memcpy(&extCmdBuffer[12], ipaddrbox, 28 * 3);
-  extCmdBuffer[0] = {static_cast<uint8_t>(ExtCmd::WRITEOSD)};
-  gotExternalCmd = true;
+  memcpy(&extcmd.param[11], ipaddrbox, 28 * 3);
+  extcmd.cmd = ExtCmd::WRITEOSD;
+  ExtCmdQueue::getInstance().push(extcmd);
 }
 
 void WebKB::init() {
@@ -429,7 +430,10 @@ void WebKB::init() {
       PlatformManager::getInstance().log(LOG_INFO, TAG,
                                          "Wifi connected. IP address: %s",
                                          WiFi.localIP().toString());
-      startOneShotTimer([this]() { this->printIPAddress(); }, 4000);
+      extcmd.cmd = ExtCmd::WAIT;
+      extcmd.param[0] = 150;
+      ExtCmdQueue::getInstance().push(extcmd);
+      printIPAddress();
       startWebServer();
     }
   });
@@ -446,9 +450,8 @@ void WebKB::init() {
   }
 
   // start with joystickmode 2 at startup
-  extCmdBuffer[0] =
-      static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::JOYSTICKMODE2);
-  gotExternalCmd = true;
+  extcmd.cmd = ExtCmd::JOYSTICKMODE2;
+  ExtCmdQueue::getInstance().push(extcmd);
 }
 
 // scan for wifi networks
@@ -637,60 +640,51 @@ void WebKB::processSingleKey(const char *type, const char *keyId, bool shift,
   // check for external commands, only on key-down
   if (strcmp(type, "key-down") == 0) {
     if (strcmp(keyId, "char:RESET") == 0) {
-      extCmdBuffer[0] =
-          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESET);
-      gotExternalCmd = true;
+      extcmd.cmd = ExtCmd::RESET;
+      ExtCmdQueue::getInstance().push(extcmd);
       return;
     }
     if (strcmp(keyId, "char:LOAD") == 0) {
-      extCmdBuffer[0] =
-          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LOAD);
-      gotExternalCmd = true;
+      extcmd.cmd = ExtCmd::LOAD;
+      ExtCmdQueue::getInstance().push(extcmd);
       return;
     }
     if (strcmp(keyId, "char:SAVE") == 0) {
-      extCmdBuffer[0] =
-          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::SAVE);
-      gotExternalCmd = true;
+      extcmd.cmd = ExtCmd::SAVE;
+      ExtCmdQueue::getInstance().push(extcmd);
       return;
     }
     if (strcmp(keyId, "char:LIST") == 0) {
-      extCmdBuffer[0] =
-          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::LIST);
-      gotExternalCmd = true;
+      extcmd.cmd = ExtCmd::LIST;
+      ExtCmdQueue::getInstance().push(extcmd);
       return;
     }
     if (strcmp(keyId, "char:PageUp") == 0) {
-      extCmdBuffer[0] =
-          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::RESTORE);
-      extCmdBuffer[1] = 0x00;
-      gotExternalCmd = true;
+      extcmd.cmd = ExtCmd::RESTORE;
+      extcmd.param[0] = 0x00;
+      ExtCmdQueue::getInstance().push(extcmd);
       return;
     }
     if (strcmp(keyId, "char:INCVOLUME") == 0) {
-      extCmdBuffer[0] =
-          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::INCVOLUME);
-      extCmdBuffer[1] = 10;
-      gotExternalCmd = true;
+      extcmd.cmd = ExtCmd::INCVOLUME;
+      extcmd.param[0] = 10;
+      ExtCmdQueue::getInstance().push(extcmd);
       return;
     }
     if (strcmp(keyId, "char:DECVOLUME") == 0) {
-      extCmdBuffer[0] =
-          static_cast<std::underlying_type<ExtCmd>::type>(ExtCmd::DECVOLUME);
-      extCmdBuffer[1] = 10;
-      gotExternalCmd = true;
+      extcmd.cmd = ExtCmd::DECVOLUME;
+      extcmd.param[0] = 10;
+      ExtCmdQueue::getInstance().push(extcmd);
       return;
     }
     if (strcmp(keyId, "char:JOYMODE1") == 0) {
-      extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-          ExtCmd::JOYSTICKMODE1);
-      gotExternalCmd = true;
+      extcmd.cmd = ExtCmd::JOYSTICKMODE1;
+      ExtCmdQueue::getInstance().push(extcmd);
       return;
     }
     if (strcmp(keyId, "char:JOYMODE2") == 0) {
-      extCmdBuffer[0] = static_cast<std::underlying_type<ExtCmd>::type>(
-          ExtCmd::JOYSTICKMODE2);
-      gotExternalCmd = true;
+      extcmd.cmd = ExtCmd::JOYSTICKMODE2;
+      ExtCmdQueue::getInstance().push(extcmd);
       return;
     }
   }
@@ -781,19 +775,5 @@ void WebKB::scanKeyboard() {
     shiftctrlcode.store(0, std::memory_order_release);
   }
 }
-
-// ----------------------------------------------------
-// external commands
-// ----------------------------------------------------
-uint8_t *WebKB::getExtCmdData() {
-  if (gotExternalCmd) {
-    gotExternalCmd = false;
-    extCmdBuffer[2] = 0x80;
-    return extCmdBuffer;
-  }
-  return nullptr;
-}
-
-void WebKB::sendExtCmdNotification(uint8_t *data, size_t size) {}
 
 #endif

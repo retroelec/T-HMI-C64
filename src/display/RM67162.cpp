@@ -61,7 +61,7 @@ void RM67162::drawFrame(uint8_t frameColor) {
   }
 }
 
-void RM67162::drawBitmap(uint8_t *bitmap) {
+void RM67162::drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) {
   uint16_t ystart = BORDERHEIGHT;
   for (uint8_t i = 0; i < 200 / BUFNUMLINES; i++) {
     BitmapUtils::getBitmap(bitmap + (i * DBBUFSIZE), buffer, c64Colors,

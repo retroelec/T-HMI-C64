@@ -183,7 +183,7 @@ void ST7789V::copyColor(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
 }
 
 void ST7789V::copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
-                       uint8_t *data) {
+                       const uint8_t *data) {
   copyinit(x0, y0, w, h);
   uint32_t clearMask = lu_pinbitmask[255];
   for (uint32_t i = 0; i < w * h; i++) {
@@ -210,7 +210,7 @@ void ST7789V::drawFrame(uint8_t frameColor) {
   }
 }
 
-void ST7789V::drawBitmap(uint8_t *bitmap) {
+void ST7789V::drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) {
   ST7789V::copyData(BORDERWIDTH, BORDERHEIGHT, 320, 200, bitmap);
 }
 #endif

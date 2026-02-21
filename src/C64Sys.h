@@ -79,7 +79,7 @@ private:
   inline void logDebugInfo() __attribute__((always_inline));
   JoystickOnlyTextKeycode getNextKeycode();
   void getJoystickValues();
-  uint8_t checkJoystickOnlyStatemachine(bool fire2pressed);
+  void checkJoystickOnlyStatemachine(bool fire2pressed);
   void check4extcmd();
 
 public:

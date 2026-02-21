@@ -78,18 +78,7 @@ public:
    *
    * @return 8-bit value encoding joystick directions and fire button.
    */
-  virtual uint8_t getKBJoyValue() = 0;
-
-  /**
-   * @brief Retrieves an external command including corresponding data.
-   *
-   * Is called once per frame.
-   *
-   * @return Pointer to the data containing the external command including
-   * parameters. The null pointer is returned if no command is requested.
-   * See enum class ExtCmd for the content of the data buffer.
-   */
-  virtual uint8_t *getExtCmdData() = 0;
+  virtual uint8_t getKBJoyValue() { return 0xff; }
 
   /**
    * @brief Sends an external command notification to the client.
@@ -97,14 +86,14 @@ public:
    * @param data Pointer to the data to send.
    * @param size Number of bytes to send.
    */
-  virtual void sendExtCmdNotification(uint8_t *data, size_t size) = 0;
+  virtual void sendExtCmdNotification(uint8_t *data, size_t size) {}
 
   /**
    * @brief Enables or disables detection of key release events.
    *
    * @param detectreleasekey true to enable release detection, false to disable.
    */
-  virtual void setDetectReleasekey(bool detectreleasekey) = 0;
+  virtual void setDetectReleasekey(bool detectreleasekey) {}
 
   /**
    * @brief Synchronizes SDL events with the main thread and creates the attach

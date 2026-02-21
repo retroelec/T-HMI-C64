@@ -28,13 +28,9 @@ public:
 
   void init() override {}
   void scanKeyboard() override {}
-  uint8_t getKBCodeDC01() override { return 0; }
-  uint8_t getKBCodeDC00() override { return 0; }
+  uint8_t getKBCodeDC01() override { return 0xff; }
+  uint8_t getKBCodeDC00() override { return 0xff; }
   uint8_t getShiftctrlcode() override { return 0; }
-  uint8_t getKBJoyValue() override { return 0; }
-  uint8_t *getExtCmdData() override { return 0; }
-  void sendExtCmdNotification(uint8_t *data, size_t size) override {}
-  void setDetectReleasekey(bool detectreleasekey) override {}
 };
 
 #endif

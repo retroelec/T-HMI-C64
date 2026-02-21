@@ -20,14 +20,15 @@
 #include "../Config.h"
 #ifdef USE_WEB_KEYBOARD
 
+#include "../ExtCmdQueue.h"
 #include "KeyboardDriver.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
 #include <Arduino.h>
 #include <ESPAsyncDNSServer.h>
 #include <ESPAsyncWebServer.h>
 #include <Preferences.h>
 #include <atomic>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 #include <queue>
 
 using CodeTriple = std::tuple<uint8_t, uint8_t, uint8_t>;
@@ -62,11 +63,7 @@ public:
     return joyvalue.load(std::memory_order_acquire);
   }
 
-  uint8_t *getExtCmdData() override;
-  void sendExtCmdNotification(uint8_t *data, size_t size) override;
-
   void scanKeyboard() override;
-  void setDetectReleasekey(bool detectreleasekey) override {}
 
 private:
   void startWebServer();
@@ -93,7 +90,7 @@ private:
   std::atomic<uint8_t> shiftctrlcode{0};
   std::atomic<uint8_t> joyvalue{0};
   std::atomic<bool> gotExternalCmd = false;
-  uint8_t extCmdBuffer[1024];
+  ExtCmdQueue::ExternalCmd extcmd;
   bool shiftlock = false;
   std::queue<CodeTriple> eventQueue;
   SemaphoreHandle_t queueSem;

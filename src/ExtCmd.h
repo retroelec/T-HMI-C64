@@ -20,12 +20,11 @@
 /**
  * @brief External commands for the emulator.
  *
- * External commands are sent to the emulator in a uint8_t buffer, see class
- * KeyboardDriver, method getExtCmdData. The first element (buf[0]) of the
- * buffer contains the command, i.e. a constant of the following enum. Some
- * commands need parameters which have to be placed in the following elements of
- * the buffer. The size of the buffer is implementation specfic.
- * Some commands (see description) send back a notification, see class
+ * External commands are sent to the emulator in a uint8_t buffer. The first
+ * element (buf[0]) of the buffer contains the command, i.e. a constant of the
+ * following enum. Some commands need parameters which have to be placed in the
+ * following elements of the buffer. The size of the buffer is implementation
+ * specfic. Some commands (see description) send back a notification, see class
  * KeyboardDriver, method sendExtCmdNotification. The structure of the different
  * notifications is defined in NotificationStruct.h.
  */
@@ -92,8 +91,7 @@ enum class ExtCmd {
   LOAD = 11,
 
   /**
-   * @brief Receives a program using consecutive calls of
-   * KeyboardDriver.getExtCmdData() and put it to memory.
+   * @brief Receives a program by gettimg chunks of data and put it to memory.
    *
    * A simple protocol is used to receive the whole program in blocks of 250
    * bytes (in buffer):
@@ -284,6 +282,8 @@ enum class ExtCmd {
   PAUSE = 40,
   WAIT = 41,
   AUTOSTART = 42,
+  SPECIAL1 = 43,
+  SPECIAL2 = 44,
 };
 
 #endif // EXTCMD_H

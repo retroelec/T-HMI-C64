@@ -41,7 +41,6 @@ public:
 
   BLEKB();
   void init() override;
-  uint8_t *getExtCmdData() override;
   void sendExtCmdNotification(uint8_t *data, size_t size) override;
   void scanKeyboard() override;
   uint8_t getKBCodeDC01() override;

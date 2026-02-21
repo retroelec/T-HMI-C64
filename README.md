@@ -1,9 +1,10 @@
-# C64 Emulator for ESP32-S3 (and ESP32) with "Android BLE keyboard" or "Web keyboard" (Lilygo T-HMI, Lilygo T-Display S3 AMOLED, Waveshare ESP32-S3-LCD-2.8, CYD)
+# C64 Emulator for ESP32-S3 (and ESP32) with "Android BLE keyboard" or "Web keyboard"
 
 A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD, and an SD card slot.
 The emulator was later expanded to support the
 [Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI), the [ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm)
 and the [ESP32 CYD board](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display).
+The emulator is also running on an ESP32-S3-WROOM with a 64x64 LED matrix panel.
 
 Keyboard input is implemented via a custom Android app or via a web interface.  
 The Android app communicates with the emulator via Bluetooth Low Energy (BLE).
@@ -20,10 +21,8 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- Support for LED matrix panel
 - Support for CYD board
-- "Joystick-only” operation
-- Enclosure for the Waveshare Board by uliuc@gmx.net
-- Web keyboard by uliuc@gmx.net
 
 ## Hardware
 
@@ -130,6 +129,44 @@ Joystick connections:
 
 Switch voltage to 3.3V on the Arduino joystick module.
 
+### ESP32-S3-WROOM with a 64x64 LED matrix panel
+
+The following pins of a standard ESP32-S3-WROOM module are connected to a 64x64 LED matrix panel as follows:
+
+| Wroom pin | HUB75 pin |
+| --------- | --------- |
+| 4         | R1        |
+| 5         | B1        |
+| 6         | R2        |
+| 7         | B2        |
+| 15        | CH_A      |
+| 16        | CH_C      |
+| 41        | CLK       |
+| 39        | OE        |
+| 17        | G1        |
+| GND       | GND       |
+| 18        | G2        |
+| 8         | CH_E      |
+| 3         | CH_B      |
+| 46        | CH_D      |
+| 40        | LAT       |
+| GND       | GND       |
+
+Because the resolution of the LED matrix display is too small, either only a section is displayed or it is "scaled".
+The following modes are available:
+
+- pixel area follows sprite (slow)
+- pixel area follows sprite (fast)
+- scale mode "merge x pixels"
+- scale mode "extract each x. pixel"
+
+The modes can be changed using the BLE keyboard, DIV screen, SPECIAL1 button.
+For the "pixel area follows sprite" modes the sprite to be followed can be determined using the BLE keyboard, DIV screen, SPECIAL2 button.
+
+<img src="doc/ledmatrix_miner_area.png" alt="ledmatrix_miner_area" width="800"/>
+<img src="doc/ledmatrix_loderun_area.png" alt="ledmatrix_loderun_area" width="800"/>
+<img src="doc/ledmatrix_frogger_scaled.png" alt="ledmatrix_frogger_scaled" width="800"/>
+
 </details>
 
 ## Installation
@@ -152,8 +189,6 @@ Switch voltage to 3.3V on the Arduino joystick module.
   unpack the binary and place it in a directory included in the search path of executables (e.g. /usr/local/bin on linux).
 - You may have to install python3 and python3-serial if not already installed. On my linux system I had to install python3-serial:  
   sudo apt install python3-serial
-- You may have to install esptool to flash the microcontroller if not already installed:  
-  pip install esptool
 - You may have to install GNU make if not already installed.
 - You may have to adapt the file Makefile and change the name of the serial port (adapt variable PORT).
 - On a linux system you may have to add the group dialout to your user to be able to upload code as a normal user:  

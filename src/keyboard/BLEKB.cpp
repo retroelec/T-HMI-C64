@@ -17,6 +17,7 @@
 #include "BLEKB.h"
 #include "../Config.h"
 #ifdef USE_BLE_KEYBOARD
+#include "../ExtCmdQueue.h"
 #include "../platform/PlatformManager.h"
 #include <BLEDevice.h>
 #include <BLEServer.h>
@@ -150,19 +151,6 @@ void BLEKB::init() {
   esp_ble_gap_update_conn_params(&conn_params);
 }
 
-uint8_t *BLEKB::getExtCmdData() {
-  if (shiftctrlcode.load(std::memory_order_acquire) & 128) {
-    shiftctrlcode.store(0, std::memory_order_release);
-    sentdc01.store(0xff, std::memory_order_release);
-    sentdc00.store(0xff, std::memory_order_release);
-    keypresseddowncnt.store(NUMOFCYCLES_KEYPRESSEDDOWN,
-                            std::memory_order_release);
-    keypresseddown.store(false, std::memory_order_release);
-    return buffer;
-  }
-  return nullptr;
-}
-
 void BLEKB::sendExtCmdNotification(uint8_t *data, size_t size) {
   pCharacteristic->setValue(data, size);
   pCharacteristic->notify();
@@ -170,7 +158,6 @@ void BLEKB::sendExtCmdNotification(uint8_t *data, size_t size) {
 }
 
 void BLEKB::scanKeyboard() {
-  // "external" commands are handled in getExtCmdData()
   if (!(shiftctrlcode.load(std::memory_order_acquire) & 128)) {
     if ((detectreleasekey.load(std::memory_order_acquire) &&
          keypresseddown.load(std::memory_order_acquire)) ||
@@ -186,6 +173,17 @@ void BLEKB::scanKeyboard() {
       sentdc01.store(0xff, std::memory_order_release);
       sentdc00.store(0xff, std::memory_order_release);
     }
+  } else {
+    shiftctrlcode.store(0, std::memory_order_release);
+    sentdc01.store(0xff, std::memory_order_release);
+    sentdc00.store(0xff, std::memory_order_release);
+    keypresseddowncnt.store(NUMOFCYCLES_KEYPRESSEDDOWN,
+                            std::memory_order_release);
+    keypresseddown.store(false, std::memory_order_release);
+    ExtCmdQueue::ExternalCmd extcmd;
+    extcmd.cmd = static_cast<ExtCmd>(buffer[0]);
+    memcpy(&extcmd.param[0], &buffer[1], 255);
+    ExtCmdQueue::getInstance().push(extcmd);
   }
 }
 

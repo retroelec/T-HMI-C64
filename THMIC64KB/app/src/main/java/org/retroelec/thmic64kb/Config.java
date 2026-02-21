@@ -56,4 +56,7 @@ public class Config {
     public static final byte SETVOLUME = 33;
     public static final byte ATTACHD64 = 37;
     public static final byte DETACHD64 = 38;
+    public static final byte PAUSE = 40;
+    public static final byte SPECIAL1 = 43;
+    public static final byte SPECIAL2 = 44;
 }

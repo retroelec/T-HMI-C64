@@ -44,12 +44,12 @@ private:
   static void copyColor(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
                         uint8_t data);
   static void copyData(uint16_t x0, uint16_t y0, uint16_t w, uint16_t h,
-                       uint8_t *data);
+                       const uint8_t *data);
 
 public:
   void init() override;
   void drawFrame(uint8_t frameColor) override;
-  void drawBitmap(uint8_t *bitmap) override;
+  void drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) override;
 };
 #endif
 

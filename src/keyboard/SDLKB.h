@@ -29,9 +29,6 @@
 
 class SDLKB : public KeyboardDriver {
 private:
-  std::atomic<bool> gotExternalCmd = false;
-  uint8_t extCmdBuffer[1024];
-
   bool joystickActive = false;
   ExtCmd joystickmode = ExtCmd::JOYSTICKMODEOFF;
 
@@ -64,15 +61,11 @@ private:
 
 public:
   void init() override;
-  uint8_t *getExtCmdData() override;
-  void sendExtCmdNotification(uint8_t *data, size_t size) override;
   void syncAndCreateAttachWinSDL() override;
   void scanKeyboard() override;
   uint8_t getKBCodeDC01() override;
   uint8_t getKBCodeDC00() override;
   uint8_t getShiftctrlcode() override;
-  uint8_t getKBJoyValue() override;
-  void setDetectReleasekey(bool detectreleasekey) override;
   void setSpecialjoymode(bool specialjoymode) override;
   void setJoystickmode(ExtCmd joystickmode) override;
 };

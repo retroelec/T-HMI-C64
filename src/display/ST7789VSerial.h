@@ -37,7 +37,7 @@ private:
 public:
   void init() override;
   void drawFrame(uint8_t frameColor) override;
-  void drawBitmap(uint8_t *bitmap) override;
+  void drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) override;
 };
 #endif
 

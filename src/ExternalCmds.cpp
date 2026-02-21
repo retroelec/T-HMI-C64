@@ -18,6 +18,7 @@
 
 #include "C64Sys.h"
 #include "ExtCmd.h"
+#include "ExtCmdQueue.h"
 #include "platform/PlatformManager.h"
 #include <algorithm>
 #include <cstring>
@@ -156,29 +157,18 @@ void ExternalCmds::writeTextToC64Screen(uint16_t addr, int16_t sizebuffer) {
   }
 }
 
-void ExternalCmds::queueExternalCmd(uint8_t *buffer) {
-  ExternalCmd cmd;
-  cmd.cmd = static_cast<ExtCmd>(buffer[0]);
-  std::memcpy(cmd.param, buffer + 1, sizeof(cmd.param));
-  extcmdQueue.push(cmd);
-}
-
-void ExternalCmds::queueExternalCmd(ExternalCmd &extcmd) {
-  extcmdQueue.push(extcmd);
-}
-
 uint8_t ExternalCmds::executeNextExternalCmd() {
-  if (extcmdQueue.empty()) {
+  if (ExtCmdQueue::getInstance().empty()) {
     return 0;
   }
-  ExternalCmd *cmd = extcmdQueue.waitTestAndDec();
+  ExtCmdQueue::ExternalCmd *cmd = ExtCmdQueue::getInstance().waitTestAndDec();
   if (cmd->cmd == ExtCmd::WAIT) {
     if (cmd->param[0] == 0) {
-      extcmdQueue.pop();
+      ExtCmdQueue::getInstance().pop();
     }
     return 0;
   }
-  cmd = extcmdQueue.pop();
+  cmd = ExtCmdQueue::getInstance().pop();
   switch (cmd->cmd) {
   case ExtCmd::NOEXTCMD:
     return 0;
@@ -498,7 +488,11 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     return 1;
   case ExtCmd::SWITCHDEBUG:
     cpu->debug = !cpu->debug;
-    cpu->debugNumOfSteps = 5000;
+    if (cpu->debug) {
+      cpu->debugNumOfSteps = 1000;
+    } else {
+      cpu->debugNumOfSteps = 0;
+    }
     PlatformManager::getInstance().log(LOG_INFO, TAG, "debug = %x", cpu->debug);
     setType1Notification();
     return 1;
@@ -511,6 +505,7 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     return 1;
   case ExtCmd::SWITCHDETECTRELEASEKEY:
     cpu->detectreleasekey = !cpu->detectreleasekey;
+    cpu->keyboard->setDetectReleasekey(cpu->detectreleasekey);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "detectreleasekey = %x",
                                        cpu->detectreleasekey);
     setType1Notification();
@@ -581,9 +576,7 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
       std::string filename(reinterpret_cast<char *>(&cmd->param[2]));
       filename += ".prg";
       uint16_t addr = cpu->floppy.load(filename, ram);
-#if defined(BOARD_CYD)
-      cpu->vic.display->reconfigureSPI();
-#endif
+      cpu->vic.display->reconfigureSPICYD();
       if (addr != 0) {
         cpu->joystickOnlyModeState = JoystickOnlyModeState::RUN;
         setVarTab(addr);
@@ -597,6 +590,16 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
       }
       cpu->cpuhalted = false;
     }
+    return 0;
+  }
+  case ExtCmd::SPECIAL1: {
+    cpu->vic.display->setSpecial1();
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "execute special1");
+    return 0;
+  }
+  case ExtCmd::SPECIAL2: {
+    cpu->vic.display->setSpecial2();
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "execute special2");
     return 0;
   }
   case ExtCmd::WAIT: {

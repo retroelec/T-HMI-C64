@@ -39,45 +39,78 @@ jobs:
       matrix:
         include:
           - board: T_HMI
+            chip: "esp32s3"
             keyboard: BLE_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
+            extra_flags: "-DBOARD_HAS_PSRAM"
           - board: T_HMI
+            chip: "esp32s3"
             keyboard: WEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
+            extra_flags: "-DBOARD_HAS_PSRAM"
           - board: T_DISPLAY_S3
+            chip: "esp32s3"
             keyboard: BLE_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
+            extra_flags: "-DBOARD_HAS_PSRAM"
           - board: T_DISPLAY_S3
+            chip: "esp32s3"
             keyboard: WEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
+            extra_flags: "-DBOARD_HAS_PSRAM"
           - board: WAVESHARE
+            chip: "esp32s3"
             keyboard: BLE_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info"
+            extra_flags: "-DBOARD_HAS_PSRAM"
           - board: WAVESHARE
+            chip: "esp32s3"
             keyboard: WEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info"
+            extra_flags: "-DBOARD_HAS_PSRAM"
           - board: CYD
+            chip: "esp32"
             keyboard: NO_KEYBOARD
             fqbn: "esp32:esp32:esp32:FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,LoopCore=0,DebugLevel=info"
+            extra_flags: ""
+          - board: LEDMATRIX
+            chip: "esp32s3"
+            keyboard: BLE_KEYBOARD
+            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=enabled,PartitionScheme=default_8MB"
+            extra_flags: "-DBOARD_HAS_PSRAM"
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build ESP32 Binaries with Docker
+      - name: Build Firmware
         run: |
-          docker run --rm -v ${{ github.workspace }}:/workspace/T-HMI-C64 docker.io/retroelec42/arduino-cli-thmic64 \
-            compile --warnings all \
+          EXPORT_PATH="${{ github.workspace }}/export"
+          mkdir -p "$EXPORT_PATH"
+          docker run --rm -v ${{ github.workspace }}:/workspace/T-HMI-C64 -v "$EXPORT_PATH":/output \
+            docker.io/retroelec42/arduino-cli-thmic64 compile \
             --fqbn "${{ matrix.fqbn }}" \
-            --build-property "build.extra_flags=-DBOARD_${{ matrix.board }} -DUSE_${{ matrix.keyboard }} -DESP32" \
-            --build-path "build/${{ matrix.board }}_${{ matrix.keyboard }}" T-HMI-C64.ino
+            --export-binaries --output-dir /output \
+            --build-property "build.extra_flags=-DBOARD_${{ matrix.board }} -DUSE_${{ matrix.keyboard }} -DESP32 ${{ matrix.extra_flags }}" \
+            T-HMI-C64.ino
+          sudo chown -R $USER:$USER "$EXPORT_PATH"
 
-      - name: Upload ESP32 Binaries
+      - name: Prepare and Rename
+        run: |
+          EXPORT_PATH="${{ github.workspace }}/export"
+          ls -lh "$EXPORT_PATH"
+          find "$EXPORT_PATH" -name "*.merged.bin" -exec mv {} "$EXPORT_PATH/T-HMI-C64.merged.bin" \; 2>/dev/null || true
+          find "$EXPORT_PATH" -name "*.factory.bin" -exec mv {} "$EXPORT_PATH/T-HMI-C64.merged.bin" \; 2>/dev/null || true
+          sed -e "s|__BOARD__|${{ matrix.board }}|g" -e "s|__CHIP__|${{ matrix.chip }}|g" scripts/flash.sh > "$EXPORT_PATH/flash.sh"
+          sed -e "s|__BOARD__|${{ matrix.board }}|g" -e "s|__CHIP__|${{ matrix.chip }}|g" scripts/flash.bat > "$EXPORT_PATH/flash.bat"
+          chmod +x "$EXPORT_PATH/flash.sh"
+
+      - name: Upload ESP32 Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: esp32-firmware-${{ matrix.board }}-${{ matrix.keyboard }}
+          name: t-hmi-c64-${{ matrix.board }}-${{ matrix.keyboard }}
           path: |
-            build/${{ matrix.board }}_${{ matrix.keyboard }}/T-HMI-C64.ino.bin
-            build/${{ matrix.board }}_${{ matrix.keyboard }}/T-HMI-C64.ino.bootloader.bin
-            build/${{ matrix.board }}_${{ matrix.keyboard }}/T-HMI-C64.ino.partitions.bin
+            ${{ github.workspace }}/export/T-HMI-C64.merged.bin
+            ${{ github.workspace }}/export/flash.sh
+            ${{ github.workspace }}/export/flash.bat
 
