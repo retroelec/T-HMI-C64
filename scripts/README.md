@@ -28,7 +28,7 @@ This package contains the pre-compiled firmware for your ESP32 and a script to f
 ## 🛠️ Advanced (Manual Flashing)
 
 If you prefer the command line, use:
-esptool.py --chip esp32s3 --port [YOUR_PORT] --baud 921600 write_flash 0x0 T-HMI-C64.merged.bin
+esptool.py --chip esp32s3 --port [YOUR_PORT] --baud 921600 write_flash -z 0x0 C64Emu.merged.bin
 
 ---
 

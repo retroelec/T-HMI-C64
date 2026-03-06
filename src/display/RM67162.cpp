@@ -14,12 +14,12 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#include "RM67162.h"
 // files rm67162.cpp, rm67162.h and pins_config.h are copied from
 // https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED/tree/main/examples/factory
 #include "../Config.h"
 #ifdef USE_RM67162
 #include "BitmapUtils.h"
+#include "RM67162.h"
 #include "rm67162/rm67162.h"
 
 static constexpr uint16_t BORDERWIDTH = (Config::LCDWIDTH - 320) / 2;

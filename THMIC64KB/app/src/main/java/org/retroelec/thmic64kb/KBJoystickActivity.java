@@ -24,30 +24,20 @@ public class KBJoystickActivity extends AppCompatActivity {
         final ImageButton fire1Button = findViewById(R.id.fire1);
         final ImageButton fire2Button = findViewById(R.id.fire2);
         arrowupButton.setOnTouchListener(bleUtils.createButtonTouchListener(
-                arrowupButton,
-                Config.VIRTUALJOYSTICKUP_ACTIVATED,
-                Config.VIRTUALJOYSTICKUP_DEACTIVATED
+                arrowupButton, (byte) 0
         ));
         arrowdownButton.setOnTouchListener(bleUtils.createButtonTouchListener(
-                arrowdownButton,
-                Config.VIRTUALJOYSTICKDOWN_ACTIVATED,
-                Config.VIRTUALJOYSTICKDOWN_DEACTIVATED
+                arrowdownButton, (byte) 1
         ));
         arrowleftButton.setOnTouchListener(bleUtils.createButtonTouchListener(
-                arrowleftButton,
-                Config.VIRTUALJOYSTICKLEFT_ACTIVATED,
-                Config.VIRTUALJOYSTICKLEFT_DEACTIVATED
+                arrowleftButton, (byte) 2
         ));
         arrowrightButton.setOnTouchListener(bleUtils.createButtonTouchListener(
-                arrowrightButton,
-                Config.VIRTUALJOYSTICKRIGHT_ACTIVATED,
-                Config.VIRTUALJOYSTICKRIGHT_DEACTIVATED
+                arrowrightButton, (byte) 3
         ));
 
         fire1Button.setOnTouchListener(bleUtils.createButtonTouchListener(
-                fire1Button,
-                Config.VIRTUALJOYSTICKFIRE_ACTIVATED,
-                Config.VIRTUALJOYSTICKFIRE_DEACTIVATED
+                fire1Button, (byte) 4
         ));
         fire2Button.setOnTouchListener(bleUtils.createButtonTouchListener(
                 fire2Button, new byte[]{(byte) 0x7f, (byte) 0xef, (byte) 0x00}

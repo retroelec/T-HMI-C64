@@ -54,6 +54,15 @@
             android:textColor="@android:color/white" />
 
         <Button
+            android:id="@+id/pause"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:backgroundTint="#888888"
+            android:text="PAUSE"
+            android:textColor="@android:color/white" />
+
+        <Button
             android:id="@+id/powerOff"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

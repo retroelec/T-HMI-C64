@@ -17,40 +17,10 @@
 #ifndef BOARDFACTORY_H
 #define BOARDFACTORY_H
 
-#include "../Config.h"
 #include "BoardDriver.h"
-#if defined(BOARD_T_HMI)
-#include "T_HMI.h"
-#elif defined(BOARD_T_DISPLAY_S3)
-#include "T_DISPLAY_S3.h"
-#elif defined(BOARD_CYD)
-#include "CYD.h"
-#elif defined(BOARD_WAVESHARE)
-#include "Waveshare.h"
-#elif defined(BOARD_LEDMATRIX)
-#include "LEDMatrixBoard.h"
-#elif defined(BOARD_LINUX)
-#include "Linux.h"
-#else
-#error "no valid board defined"
-#endif
 
 namespace Board {
-BoardDriver *create() {
-#if defined(BOARD_T_HMI)
-  return new T_HMI();
-#elif defined(BOARD_T_DISPLAY_S3)
-  return new T_DISPLAY_S3();
-#elif defined(BOARD_CYD)
-  return new CYD();
-#elif defined(BOARD_WAVESHARE)
-  return new Waveshare();
-#elif defined(BOARD_LEDMATRIX)
-  return new LEDMatrixBoard();
-#elif defined(BOARD_LINUX)
-  return new Linux();
-#endif
-}
+BoardDriver *create();
 } // namespace Board
 
 #endif // BOARDFACTORY_H

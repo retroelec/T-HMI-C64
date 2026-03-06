@@ -16,6 +16,7 @@ public class BLEUtils {
 
     private long startTime = 0;
     private final Handler handler = new Handler();
+    private byte joystickPressed = 0;
 
     public BLEUtils(Context context) {
         this.context = context;
@@ -70,21 +71,22 @@ public class BLEUtils {
         return createButtonTouchListener(button, data, Color.GREEN, Color.TRANSPARENT, false);
     }
 
-    public View.OnTouchListener createButtonTouchListener(View button, byte constActivated, byte constDeactivated) {
+    public View.OnTouchListener createButtonTouchListener(View button, byte joydir) {
         return (arg0, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 button.setBackgroundColor(Color.GREEN);
-                send(constActivated);
+                joystickPressed |= (1 << joydir);
+                send((byte) (0xbf & ~joystickPressed));
                 startTime = System.currentTimeMillis();
             } else if (event.getAction() == MotionEvent.ACTION_UP) {
                 button.setBackgroundColor(Color.TRANSPARENT);
-                long endTime = System.currentTimeMillis();
-                long duration = endTime - startTime;
+                joystickPressed &= ~(1 << joydir);
+                long duration = System.currentTimeMillis() - startTime;
                 long delay = settings.getMinKeyPressedDuration() - duration;
                 if (delay > 0) {
-                    handler.postDelayed(() -> send(constDeactivated), delay);
+                    handler.postDelayed(() -> send((byte) (0xbf & ~joystickPressed)), delay);
                 } else {
-                    send(constDeactivated);
+                    send((byte) (0xbf & ~joystickPressed));
                 }
             }
             return true;

@@ -89,7 +89,6 @@ private:
   std::atomic<uint16_t> dc01dc00; // high byte = dc01, low byte = dc00
   std::atomic<uint8_t> shiftctrlcode{0};
   std::atomic<uint8_t> joyvalue{0};
-  std::atomic<bool> gotExternalCmd = false;
   ExtCmdQueue::ExternalCmd extcmd;
   bool shiftlock = false;
   std::queue<CodeTriple> eventQueue;

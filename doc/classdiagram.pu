@@ -18,6 +18,7 @@ class CPU6502
 class SID
 class Hooks
 class Floppy
+class ExtCmdQueue
 
 component "Platform" as Platform
 
@@ -42,6 +43,7 @@ C64Sys *-- Floppy
 
 ExternalCmds --> C64Sys
 Hooks --> C64Sys
+Floppy --|> CPU6502
 
 component "Display" as Display
 VIC --> Display
@@ -63,7 +65,9 @@ skinparam class {
 package "PlatformComponent" {
 interface Platform
 class PlatformESP32 <<os_specific>>
+class PlatformCYD <<os_specific>>
 class PlatformLinux <<os_specific>>
+class PlatformWindows <<os_specific>>
 class Config
 note right of Config
 Globally used platform- and
@@ -78,7 +82,9 @@ end note
 class PlatformFactory <<factory>>
 
 PlatformESP32 ..|> Platform
+PlatformCYD ..|> Platform
 PlatformLinux ..|> Platform
+PlatformWindows ..|> Platform
 PlatformManager --> Platform
 PlatformFactory ..> Platform
 }
@@ -87,6 +93,8 @@ package "BoardComponent" {
 class T_HMI <<hw_specific>>
 class T_DISPLAY_S3 <<hw_specific>>
 class Waveshare <<hw_specific>>
+class CYD <<hw_specific>>
+class LEDMatrixBoard <<hw_specific>>
 class Linux <<hw_specific>>
 interface BoardDriver
 class BoardFactory <<factory>>
@@ -94,6 +102,8 @@ class BoardFactory <<factory>>
 T_HMI ..|> BoardDriver
 T_DISPLAY_S3 ..|> BoardDriver
 Waveshare ..|> BoardDriver
+CYD ..|> BoardDriver
+LEDMatrixBoard ..|> BoardDriver
 Linux ..|> BoardDriver
 BoardFactory ..> BoardDriver
 }
@@ -110,12 +120,14 @@ package "KeyboardComponent" {
 class BLEKB <<hw_specific>>
 class SDLKB <<hw_specific>>
 class WebKB <<hw_specific>>
+class NoKB
 interface KeyboardDriver
 class KeyboardFactory <<factory>>
 
 BLEKB ..|> KeyboardDriver
 SDLKB ..|> KeyboardDriver
 WebKB ..|> KeyboardDriver
+NoKB ..|> KeyboardDriver
 KeyboardFactory ..> KeyboardDriver
 }
 
@@ -144,6 +156,8 @@ package "DisplayComponent" {
 class ST7789V <<hw_specific>>
 class RM67162 <<hw_specific>>
 class ST7789VSerial <<hw_specific>>
+class ILI9341 <<hw_specific>>
+class LEDMatrixDisplay <<hw_specific>>
 class SDLDisplay <<hw_specific>>
 interface DisplayDriver
 class DisplayFactory <<factory>>
@@ -151,6 +165,8 @@ class DisplayFactory <<factory>>
 ST7789V ..|> DisplayDriver
 RM67162 ..|> DisplayDriver
 ST7789VSerial ..|> DisplayDriver
+ILI9341 ..|> DisplayDriver
+LEDMatrixDisplay ..|> DisplayDriver
 SDLDisplay ..|> DisplayDriver
 DisplayFactory ..> DisplayDriver
 }
@@ -170,12 +186,14 @@ SoundFactory ..> SoundDriver
 
 package "FileComponent" {
 class SDMMCFile <<hw_specific>>
+class SDCardCYD <<hw_specific>>
 class LinuxFile <<hw_specific>>
 class NoFile
 interface FileDriver
 class FileFactory <<factory>>
 
 SDMMCFile ..|> FileDriver
+SDCardCYD ..|> FileDriver
 LinuxFile ..|> FileDriver
 NoFile ..|> FileDriver
 FileFactory ..> FileDriver

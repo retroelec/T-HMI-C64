@@ -1,4 +1,10 @@
+// files rm67162.cpp, rm67162.h and pins_config.h are copied from
+// https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED/tree/main/examples/factory
+
 #pragma once
+
+#include "../../Config.h"
+#ifdef USE_RM67162
 
 /***********************config*************************/
 #define LCD_USB_QSPI_DREVER 1
@@ -52,3 +58,5 @@
 
 #define PIN_BUTTON_1 0
 #define PIN_BUTTON_2 21
+
+#endif

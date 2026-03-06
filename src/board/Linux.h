@@ -20,6 +20,7 @@
 #include "../Config.h"
 #ifdef BOARD_LINUX
 #include "BoardDriver.h"
+#include <cstdlib>
 
 class Linux : public BoardDriver {
 public:

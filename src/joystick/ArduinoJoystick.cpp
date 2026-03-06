@@ -14,10 +14,10 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#include "ArduinoJoystick.h"
 #include "../Config.h"
 #ifdef USE_ARDUINOJOYSTICK
 #include "../platform/PlatformManager.h"
+#include "ArduinoJoystick.h"
 #include <driver/gpio.h>
 #include <esp_adc/adc_oneshot.h>
 #include <soc/gpio_struct.h>

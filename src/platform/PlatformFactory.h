@@ -18,30 +18,9 @@
 #define PLATFORMFACTORY_H
 
 #include "Platform.h"
-#if defined(ESP_PLATFORM) && defined(BOARD_CYD)
-#include "PlatformCYD.h"
-#elif defined(ESP_PLATFORM)
-#include "PlatformESP32.h"
-#elif defined(PLATFORM_LINUX)
-#include "PlatformLinux.h"
-#elif defined(_WIN32)
-#include "PlatformWindows.h"
-#else
-#error "no valid platform defined"
-#endif
 
 namespace PlatformNS {
-Platform *create() {
-#if defined(ESP_PLATFORM) && defined(BOARD_CYD)
-  return new PlatformCYD();
-#elif defined(ESP_PLATFORM)
-  return new PlatformESP32();
-#elif defined(PLATFORM_LINUX)
-  return new PlatformLinux();
-#elif defined(_WIN32)
-  return new PlatformWindows();
-#endif
-}
+Platform *create();
 } // namespace PlatformNS
 
 #endif // PLATFORMFACTORY_H

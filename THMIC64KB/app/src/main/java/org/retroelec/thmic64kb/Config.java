@@ -18,17 +18,6 @@ public class Config {
     public static final int KEYBGDCOLORACTION = 0xffcc7777;
     public static final int KEYBGDCOLORD64ATTACHED = 0xff007777;
 
-    public static final byte VIRTUALJOYSTICKLEFT_ACTIVATED = (byte) 0x02;
-    public static final byte VIRTUALJOYSTICKLEFT_DEACTIVATED = (byte) 0x82;
-    public static final byte VIRTUALJOYSTICKRIGHT_ACTIVATED = (byte) 0x03;
-    public static final byte VIRTUALJOYSTICKRIGHT_DEACTIVATED = (byte) 0x83;
-    public static final byte VIRTUALJOYSTICKUP_ACTIVATED = (byte) 0x00;
-    public static final byte VIRTUALJOYSTICKUP_DEACTIVATED = (byte) 0x80;
-    public static final byte VIRTUALJOYSTICKDOWN_ACTIVATED = (byte) 0x01;
-    public static final byte VIRTUALJOYSTICKDOWN_DEACTIVATED = (byte) 0x81;
-    public static final byte VIRTUALJOYSTICKFIRE_ACTIVATED = (byte) 0x04;
-    public static final byte VIRTUALJOYSTICKFIRE_DEACTIVATED = (byte) 0x84;
-
     public static final byte KEYRELEASED = (byte) 0xff;
 
     public static final byte JOYSTICKMODE1 = 1;

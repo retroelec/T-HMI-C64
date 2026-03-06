@@ -14,11 +14,11 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#include "BLEKB.h"
 #include "../Config.h"
 #ifdef USE_BLE_KEYBOARD
 #include "../ExtCmdQueue.h"
 #include "../platform/PlatformManager.h"
+#include "BLEKB.h"
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -29,17 +29,36 @@ static const char *TAG = "BLEKB";
 
 static const uint8_t NUMOFCYCLES_KEYPRESSEDDOWN = 3;
 
-static const uint8_t C64JOYUP = 0;
-static const uint8_t C64JOYDOWN = 1;
-static const uint8_t C64JOYLEFT = 2;
-static const uint8_t C64JOYRIGHT = 3;
-static const uint8_t C64JOYFIRE = 4;
-
 BLEKBServerCallback::BLEKBServerCallback(BLEKB &blekb) : blekb(blekb) {}
+
+static uint8_t bleconnectedbox[] = "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+                                   "\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+                                   "\x43\x49"
+                                   "\x42\x02\x0c\x05\x20\x04\x05\x16\x09\x03"
+                                   "\x05\x20\x03\x0f\x0e\x0e\x05\x03\x14\x05"
+                                   "\x04\x42"
+                                   "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+                                   "\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+                                   "\x43\x4b";
 
 void BLEKBServerCallback::onConnect(BLEServer *pServer) {
   blekb.deviceConnected.store(true, std::memory_order_release);
   PlatformManager::getInstance().log(LOG_INFO, TAG, "BLE device connected");
+  ExtCmdQueue::ExternalCmd extcmd;
+  extcmd.param[2] = 6;
+  extcmd.param[3] = 5;
+  extcmd.param[4] = 22;
+  extcmd.param[5] = 3;
+  extcmd.param[6] = 1;
+  extcmd.param[7] = 0;
+  extcmd.param[8] = 5;
+  extcmd.param[9] = 0;
+  extcmd.param[10] = 1;
+  memcpy(&extcmd.param[11], bleconnectedbox, 22 * 3);
+  extcmd.cmd = ExtCmd::WRITEOSD;
+  ExtCmdQueue::getInstance().push(extcmd);
+  // continue advertising so we can connect to multiple clients
+  pServer->getAdvertising()->start();
 };
 
 void BLEKBServerCallback::onDisconnect(BLEServer *pServer) {
@@ -62,30 +81,15 @@ void BLEKBCharacteristicCallback::onWrite(BLECharacteristic *pCharacteristic) {
 
   if (len == 1) { // virtual joystick or release key
     uint8_t virtjoy = (uint8_t)value[0];
-
     if (virtjoy == 0xff) {
       // key released
       blekb.keypresseddown.store(false, std::memory_order_release);
-    }
-
-    bool deactivated = virtjoy & 0x80;
-    uint8_t direction = virtjoy & 0x7f;
-    uint8_t virt = blekb.virtjoystickvalue.load(std::memory_order_acquire);
-    if (deactivated) {
-      virt |= (1 << direction);
     } else {
-      virt &= ~(1 << direction);
-      if (direction == C64JOYLEFT) {
-        virt |= (1 << C64JOYRIGHT);
-      } else if (direction == C64JOYRIGHT) {
-        virt |= (1 << C64JOYLEFT);
-      } else if (direction == C64JOYUP) {
-        virt |= (1 << C64JOYDOWN);
-      } else if (direction == C64JOYDOWN) {
-        virt |= (1 << C64JOYUP);
-      }
+      // bit 6 was cleared from BLEClient to distinguish between a key release
+      // and the virtual joystick add bit 6 again
+      virtjoy |= 0x40;
+      blekb.virtjoystickvalue.store(virtjoy, std::memory_order_release);
     }
-    blekb.virtjoystickvalue.store(virt, std::memory_order_release);
   } else if (len >= 3) { // keyboard codes or external commands
     // BLE client sends 3 codes for each key press: dc00, dc01, "shiftctrlcode"
     // BLE client sends at least 3 codes for each external command:

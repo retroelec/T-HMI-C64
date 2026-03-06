@@ -2,36 +2,6 @@ name: build
 on: [push]
 
 jobs:
-  build-windows:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Build EXE with Docker
-        run: |
-          docker run --rm -v ${{ github.workspace }}:/build docker.io/retroelec42/sdl2-cross sh -c "
-            make -f windows/Makefile && \
-            cp /usr/lib/gcc/x86_64-w64-mingw32/12-posix/libstdc++-6.dll /build/windows/ && \
-            cp /usr/lib/gcc/x86_64-w64-mingw32/12-posix/libgcc_s_seh-1.dll /build/windows/ && \
-            cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll /build/windows/ && \
-            cp /opt/sdl2-windows/SDL2/x86_64-w64-mingw32/bin/SDL2.dll /build/windows/
-          "
-
-      - name: Upload Executable and DLLs
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-executable
-          path: |
-            windows/c64win.exe
-            windows/*.dll
-
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: windows/c64win.exe
-
   build-esp32:
     runs-on: ubuntu-latest
     strategy:
@@ -76,7 +46,7 @@ jobs:
           - board: LEDMATRIX
             chip: "esp32s3"
             keyboard: BLE_KEYBOARD
-            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=enabled,PartitionScheme=default_8MB"
+            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=opi,PartitionScheme=default_8MB"
             extra_flags: "-DBOARD_HAS_PSRAM"
 
     steps:
@@ -89,28 +59,69 @@ jobs:
           mkdir -p "$EXPORT_PATH"
           docker run --rm -v ${{ github.workspace }}:/workspace/T-HMI-C64 -v "$EXPORT_PATH":/output \
             docker.io/retroelec42/arduino-cli-thmic64 compile \
+            --library . \
             --fqbn "${{ matrix.fqbn }}" \
             --export-binaries --output-dir /output \
             --build-property "build.extra_flags=-DBOARD_${{ matrix.board }} -DUSE_${{ matrix.keyboard }} -DESP32 ${{ matrix.extra_flags }}" \
-            T-HMI-C64.ino
+            arduino/C64Emu/C64Emu.ino
           sudo chown -R $USER:$USER "$EXPORT_PATH"
+
+      - name: Optimize and Trim Merged Binary
+        run: |
+          EXPORT_PATH="${{ github.workspace }}/export"
+          MERGED_FILE="$EXPORT_PATH/C64Emu.ino.merged.bin"
+          APP_FILE="$EXPORT_PATH/C64Emu.ino.bin"
+          if [ -f "$MERGED_FILE" ] && [ -f "$APP_FILE" ]; then
+            echo "Optimizing $MERGED_FILE..."
+            python3 -c "
+          import os
+          m_path = '$MERGED_FILE'
+          a_path = '$APP_FILE'
+          needed = 0x10000 + os.path.getsize(a_path) + 0x1000
+          needed = (needed + 0xFFF) & ~0xFFF
+          with open(m_path, 'rb+') as f:
+              f.truncate(needed)
+          print(f'Done! Merged binary trimmed to {needed} bytes.')
+          "
+          else
+            echo "Error: Required bin files not found in $EXPORT_PATH"
+            exit 1
+          fi
 
       - name: Prepare and Rename
         run: |
           EXPORT_PATH="${{ github.workspace }}/export"
-          ls -lh "$EXPORT_PATH"
-          find "$EXPORT_PATH" -name "*.merged.bin" -exec mv {} "$EXPORT_PATH/T-HMI-C64.merged.bin" \; 2>/dev/null || true
-          find "$EXPORT_PATH" -name "*.factory.bin" -exec mv {} "$EXPORT_PATH/T-HMI-C64.merged.bin" \; 2>/dev/null || true
+          find "$EXPORT_PATH" -name "*.merged.bin" -exec mv {} "$EXPORT_PATH/C64Emu.ino.merged.bin" \; 2>/dev/null || true
           sed -e "s|__BOARD__|${{ matrix.board }}|g" -e "s|__CHIP__|${{ matrix.chip }}|g" scripts/flash.sh > "$EXPORT_PATH/flash.sh"
           sed -e "s|__BOARD__|${{ matrix.board }}|g" -e "s|__CHIP__|${{ matrix.chip }}|g" scripts/flash.bat > "$EXPORT_PATH/flash.bat"
           chmod +x "$EXPORT_PATH/flash.sh"
+          cp "${{ github.workspace }}/scripts/README.md" "$EXPORT_PATH/README.md" 2>/dev/null || true
 
       - name: Upload ESP32 Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: t-hmi-c64-${{ matrix.board }}-${{ matrix.keyboard }}
           path: |
-            ${{ github.workspace }}/export/T-HMI-C64.merged.bin
+            ${{ github.workspace }}/export/C64Emu.ino.merged.bin
             ${{ github.workspace }}/export/flash.sh
             ${{ github.workspace }}/export/flash.bat
+            ${{ github.workspace }}/export/README.md
+
+  release:
+    name: "Permanent Release"
+    needs: build-esp32
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./release-files
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./release-files/**/*.zip
+          name: "C64 Emulator Release ${{ github.ref_name }}"
+          body: "Official release for version ${{ github.ref_name }}. Contains pre-compiled binaries for all supported boards and keyboards."
+          token: ${{ secrets.GITHUB_TOKEN }}
 

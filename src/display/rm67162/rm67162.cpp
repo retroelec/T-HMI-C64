@@ -1,3 +1,6 @@
+// files rm67162.cpp, rm67162.h and pins_config.h are copied from
+// https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED/tree/main/examples/factory
+
 #include "../../Config.h"
 #ifdef USE_RM67162
 #include "Arduino.h"

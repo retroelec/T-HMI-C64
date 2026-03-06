@@ -580,5 +580,8 @@ public class C64Keyboard extends LinearLayout {
 
         Button reset = findViewById(R.id.reset);
         reset.setOnTouchListener(bleUtils.createButtonTouchListener(reset, new byte[]{Config.RESET, (byte) 0x00, (byte) 0x80}, KEYSELECTEDCOLORFRESETOFF, KEYBGCOLORFRESETOFF, true));
+
+        Button pause = findViewById(R.id.pause);
+        pause.setOnTouchListener(bleUtils.createButtonTouchListener(pause, new byte[]{Config.PAUSE, (byte) 0x00, (byte) 0x80}, KEYSELECTEDCOLORFRESETOFF, KEYBGCOLORFRESETOFF, true));
     }
 }

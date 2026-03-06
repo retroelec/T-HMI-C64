@@ -21,6 +21,7 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- BLE Joystick
 - Support for LED matrix panel
 - Support for CYD board
 
@@ -31,7 +32,7 @@ Contact: retroelec42@gmail.com
 
 ### ESP32-S3
 
-The ESP32-S3 is dual core containing a Protocol CPU (core 0) and an Application CPU (core 1).
+The ESP32-S3 is dual core containing a protocol CPU (core 0) and an application CPU (core 1).
 The two cores are identical in practice and share the same memory.
 The tasks responsible for handling wireless networking (Wi-Fi or Bluetooth) are pinned to core 0 by default
 (see [Espressif - Task Priorities](https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-guides/performance/speed.html)).
@@ -41,26 +42,25 @@ Emulation of the CPU and the custom chips (VIC, SID and CIAs) are done on core 1
 
 ### Joystick
 
-I use an "Arduino joystick shield" for the T-HMI and the Waveshare development board.
+I use an "Arduino joystick shield".
 The joystick is optional (as there exists also a virtual joystick on the Android device) but recommended.
 It has an analog 2-axis thumb joystick and several buttons.
 As there are several games which use the space bar as a second fire button, another button of the Arduino joystick
 can be used to simulate the pressing of the space bar.
 
+### BLE Joystick
+
+Besides the C64 emulator, there is also a BLE Joytick application (ino file) for the ESP32-S3.
+
 ### Battery
 
 You can also operate your board with a battery. The T-HMI and Waveshare development boards allow you to switch on the board by pressing
-the On/Off switch (next to the SD card slot). The Waveshare board can be switched off with the reset button, *if* it is powered by battery.
+the On/Off switch (next to the SD card slot). The boards can be switched off with the reset button, *if* it is powered by battery.
 Alternatively, the Android app allows the board to be switched off by pressing the Off switch in the top right-hand corner.
 
 ### Lilygo T-HMI
 
-From [Xinyuan-LilyGO/T-HMI](https://github.com/Xinyuan-LilyGO/T-HMI):
-
-<img src="doc/T-HMI.jpg" alt="T-HMI" width="800"/>
-
-The 2.8 inch TFT LCD has a resolution of 240x320 pixel and an 8 bit parallel interface.
-
+This board uses a 2.8-inch LCD with a resolution of 240x320 pixel.
 The display can be rotated to support the resolution of a C64 (320x200).
 
 <img src="doc/joystick.png" alt="joystick" width="800"/>
@@ -177,13 +177,14 @@ For the "pixel area follows sprite" modes the sprite to be followed can be deter
 ### Files
 
 - THMIC64KB/thmic64kb.apk : Android APK file to be uploaded to your Android smartphone
-- T-HMI-C64.ino : Arduino .ino file of the C64 emulator
+- arduino/C64Emu/C64Emu.ino : Arduino .ino file of the C64 emulator
+- arduino/BLEJoystick/BLEJoystick.ino : Arduino .ino file of the BLE joystick
 - src/* : C64 emulator source code
 - THMIC64KB/app/src/ : source code of Android app
 - Makefile : used to install development environment and to compile + upload code
 - enclosure/* : stl and scad files for the gamepad by uliuc@gmx.net
 
-### Install environment
+### Install environment (optional)
 
 - Download arduino-cli for your platform (e.g. https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz for linux),
   unpack the binary and place it in a directory included in the search path of executables (e.g. /usr/local/bin on linux).
@@ -195,13 +196,14 @@ For the "pixel area follows sprite" modes the sprite to be followed can be deter
   sudo usermod -a -G dialout your-username  
   (you have to logout and login again to get the group get active) *and* you may have to change the access rights:  
   sudo chmod 666 /dev/ttyACM0
-- Optional: You *can* install the required Arduino core and libraries using the following command in the directory T-HMI-C64
+- You must install the required Arduino core and libraries using the following command in the directory T-HMI-C64
   (however please be aware that you could overwrite an already installed specfic Arduino core, see also next chapter):  
   make install
 
 ### Compile code (optional)
 
-First adapt the file Makefile and choose
+You first have to install the environment (see previous chapter).
+You then adapt the Makefile and choose
 
 - the board you want the code to be compiled for (adapt variable BOARD)
 - the keyboard type: Android BLE keyboard, web keyboard (adapt variable KEYBOARD)
@@ -224,15 +226,17 @@ For this situation you can use a prepared docker image to compile the code:
 
 ### Upload C64 Emulator to the development board
 
-First adapt the file Makefile and choose the board and the keyboard type you want the binary files to be uploaded for
-(adapt variables BOARD and KEYBOARD).
+If you installed the environment and compiled the code yourself:
+To upload the compiled code to a board, you first adapt the file Makefile and choose the board and the keyboard type
+you want the binary files to be uploaded for (adapt variables BOARD and KEYBOARD).
 Furthermore, you may need to adjust the PORT variable.
-Binary files for the development boards can be downloaded from https://github.com/retroelec/T-HMI-C64/actions
-(select the latest run to see the artifacts),
-so you don't have to compile them yourself if you don't want to.
-
 Afterwards you can upload the binary files:  
 make upload
+
+Binary files for the development boards can also be downloaded from https://github.com/retroelec/T-HMI-C64/actions
+(select the latest run to see the artifacts, you must be logged in to download the binary files),
+so you don't have to compile them yourself if you don't want to.
+The available zip files also contain scripts (flash.sh and flash.bat) to upload the binary file (see also README.md in the zip file).
 
 ### Install Android App
 
@@ -263,7 +267,7 @@ Once the dependencies are installed, you can compile the emulator using:
 make c64linux
 
 To start the emulator, run ./c64linux in a shell.
-Press RightCTRL + H in the emulator window to display a simple help page on the emulated C64 screen.
+Press RightShift + H in the emulator window to display a simple help page on the emulated C64 screen.
 
 ### Build emulator for Mac
 
@@ -315,8 +319,9 @@ Besides the normal C64 keys this virtual keyboard also provides some extra butto
 - JOY1: connected joystick can be used as a joystick in port 1
 - JOY2: connected joystick can be used as a joystick in port 2
 - LOAD: load a C64 program from SD card
-- RESET: reset C64
-- OFF: switch off T-HMI development board
+- RESET: reset C64 emulator
+- PAUSE: pause emulation
+- OFF: switch off development board
 
 #### DIV screen
 

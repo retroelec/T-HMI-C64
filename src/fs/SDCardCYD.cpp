@@ -14,10 +14,10 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#include "SDCardCYD.h"
 #include "../Config.h"
 #ifdef USE_SDCARDCYD
 #include "../platform/PlatformManager.h"
+#include "SDCardCYD.h"
 #include <SD.h>
 #include <SPI.h>
 

@@ -17,32 +17,10 @@
 #ifndef JOYSTICKFACTORY_H
 #define JOYSTICKFACTORY_H
 
-#include "../Config.h"
 #include "JoystickDriver.h"
-#if defined(USE_ARDUINOJOYSTICK)
-#include "ArduinoJoystick.h"
-#elif defined(USE_ARDUINOJOYSTICKCYD)
-#include "ArduinoJoystickCYD.h"
-#elif defined(USE_NOJOYSTICK)
-#include "NoJoystick.h"
-#elif defined(USE_SDLJOYSTICK)
-#include "SDLJoystick.h"
-#else
-#error "no valid joystick driver defined"
-#endif
 
 namespace Joystick {
-JoystickDriver *create() {
-#if defined(USE_ARDUINOJOYSTICK)
-  return new ArduinoJoystick();
-#elif defined(USE_ARDUINOJOYSTICKCYD)
-  return new ArduinoJoystickCYD();
-#elif defined(USE_SDLJOYSTICK)
-  return new SDLJoystick();
-#elif defined(USE_NOJOYSTICK)
-  return new NoJoystick();
-#endif
-}
+JoystickDriver *create();
 } // namespace Joystick
 
 #endif // JOYSTICKFACTORY_H

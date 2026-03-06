@@ -15,9 +15,9 @@
  http://www.gnu.org/licenses/.
 */
 
-#include "WebKB.h"
 #include "../Config.h"
 #ifdef USE_WEB_KEYBOARD
+#include "WebKB.h"
 
 #include "../ExtCmd.h"
 #include "../ExtCmdQueue.h"

@@ -1,4 +1,11 @@
+// files Display_ST7789.cpp and Display_ST7789.h are copied from
+// https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-2.8/ESP32-S3-Touch-LCD-2.8-Demo.zip
+// and slightly adjusted
+
 #pragma once
+
+#include "../../Config.h"
+#ifdef USE_ST7789VSERIAL
 #include <Arduino.h>
 #include <SPI.h>
 
@@ -40,3 +47,4 @@ void LCD_addWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend,
 
 void Backlight_Init(void);
 void Set_Backlight(uint8_t Light);
+#endif

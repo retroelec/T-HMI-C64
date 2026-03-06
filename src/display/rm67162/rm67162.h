@@ -1,4 +1,10 @@
+// files rm67162.cpp, rm67162.h and pins_config.h are copied from
+// https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED/tree/main/examples/factory
+
 #pragma once
+
+#include "../../Config.h"
+#ifdef USE_RM67162
 
 #include "pins_config.h"
 #include "stdint.h"
@@ -45,3 +51,4 @@ void lcd_PushColors(uint16_t x, uint16_t y, uint16_t width, uint16_t high,
                     uint16_t *data);
 void lcd_PushColors(uint16_t *data, uint32_t len);
 void lcd_sleep();
+#endif

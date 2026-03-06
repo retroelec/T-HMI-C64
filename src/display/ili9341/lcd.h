@@ -2,6 +2,8 @@
 
 #ifndef __LCD_H__
 #define __LCD_H__
+#include "../../Config.h"
+#ifdef USE_ILI9341
 #include "driver/spi_master.h"
 #include "stdbool.h"
 #include "stdint.h"
@@ -121,4 +123,5 @@ void LCD_SetCursor(uint16_t Xpos, uint16_t Ypos); // 设置光标位置
 
 void LCD_Restore_Interface();
 
+#endif
 #endif

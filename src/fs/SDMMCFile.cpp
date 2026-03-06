@@ -14,10 +14,10 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#include "SDMMCFile.h"
 #include "../Config.h"
 #ifdef USE_SDCARD
 #include "../platform/PlatformManager.h"
+#include "SDMMCFile.h"
 #include <SD_MMC.h>
 
 static const char *TAG = "SDMMCFile";

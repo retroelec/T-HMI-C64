@@ -1,3 +1,7 @@
+// files Display_ST7789.cpp and Display_ST7789.h are copied from
+// https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-2.8/ESP32-S3-Touch-LCD-2.8-Demo.zip
+// and slightly adjusted
+
 #include "../../Config.h"
 #ifdef USE_ST7789VSERIAL
 #include "Display_ST7789.h"

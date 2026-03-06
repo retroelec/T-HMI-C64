@@ -14,9 +14,9 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#include "SDLJoystick.h"
 #include "../Config.h"
 #ifdef USE_SDLJOYSTICK
+#include "SDLJoystick.h"
 #include <SDL2/SDL.h>
 #include <cstdint>
 

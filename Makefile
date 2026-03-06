@@ -1,9 +1,9 @@
 # choose board
-#BOARD := T_HMI
+BOARD := T_HMI
 #BOARD := T_DISPLAY_S3
 #BOARD := WAVESHARE
 #BOARD := CYD
-BOARD := LEDMATRIX
+#BOARD := LEDMATRIX
 
 # choose keyboard
 KEYBOARD := BLE_KEYBOARD
@@ -38,7 +38,7 @@ ifeq ($(BOARD), WAVESHARE)
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
   BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
 else ifeq ($(BOARD), LEDMATRIX)
-  FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=enabled,PartitionScheme=default_8MB
+  FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=opi,PartitionScheme=default_8MB
   BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
 else
   ifeq ($(BOARD),CYD)
@@ -55,15 +55,22 @@ SRCDIR := src
 SOURCEFILES := $(shell find src -name '*.cpp')
 HEADERFILES := $(shell find src -name '*.h')
 
-TARGET := build-$(BOARD)-$(KEYBOARD)/T-HMI-C64.ino.elf
+CLI_COMPILE = compile \
+	--library . \
+	--warnings all \
+	--fqbn $(FQBN) \
+	--build-property "build.extra_flags=$(BUILD_EXTRA_FLAGS)" \
+	--build-path $(BUILD_PATH)
 
-CLI_COMPILE := compile --warnings all --fqbn $(FQBN) --build-property "build.extra_flags=$(BUILD_EXTRA_FLAGS)" --build-path build-$(BOARD)-$(KEYBOARD) T-HMI-C64.ino
+compile: SKETCH=arduino/C64Emu/C64Emu.ino
+compile: BUILD_PATH=build-$(BOARD)-$(KEYBOARD)
+compile: $(SOURCEFILES) $(HEADERFILES)
+	arduino-cli $(CLI_COMPILE) $(SKETCH)
 
-# -DESP32 is needed for ESP_Async_WebServer, Async_TCP
-$(TARGET):	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES)
-	arduino-cli $(CLI_COMPILE)
-
-compile:	$(TARGET)
+compileBLEJoystick: SKETCH=arduino/BLEJoystick/BLEJoystick.ino
+compileBLEJoystick: BUILD_PATH=build-$(BOARD)-BLEJoystick
+compileBLEJoystick: $(SOURCEFILES) $(HEADERFILES)
+	arduino-cli $(CLI_COMPILE) $(SKETCH)
 
 clean:
 	rm -rf build-$(BOARD)-$(KEYBOARD)
@@ -82,11 +89,14 @@ compileAll:
 
 # first you have to get the docker image:
 # podman pull docker.io/retroelec42/arduino-cli-thmic64:latest
-podcompile:	T-HMI-C64.ino $(SOURCEFILES) $(HEADERFILES)
+podcompile:	arduino/C64Emu/C64Emu.ino $(SOURCEFILES) $(HEADERFILES)
 	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli-thmic64 $(CLI_COMPILE)
 
 upload:
-	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build-$(BOARD)-$(KEYBOARD)/T-HMI-C64.ino.bin
+	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build-$(BOARD)-$(KEYBOARD)/C64Emu.ino.bin
+
+uploadBLEJoystick:
+	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build-$(BOARD)-BLEJoystick/BLEJoystick.ino.bin
 
 # create file $HOME/.minirc.dfl 
 # content:
@@ -96,7 +106,7 @@ monitor:
 
 format:
 	@find src -name "*.cpp" -o -name "*.h" | xargs clang-format -i
-	@clang-format -i *.ino
+	@find arduino -name "*.ino" | xargs clang-format -i
 
 # see https://arduino.github.io/arduino-cli/1.0/getting-started/
 install:	check_install
