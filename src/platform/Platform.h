@@ -18,11 +18,13 @@
 #define PLATFORM_H
 
 #include <cstdint>
-#include <functional>
-
-#if defined(BOARD_CYD)
+#if defined(ESP_PLATFORM)
 #include <freertos/FreeRTOS.h>
+#else
+#define TickType_t int
+#define portMAX_DELAY -1
 #endif
+#include <functional>
 
 #ifdef ESP_PLATFORM
 #define PLATFORM_ATTR_ISR IRAM_ATTR
@@ -110,31 +112,21 @@ public:
   virtual void startTask(std::function<void(void *)> fn, uint8_t core,
                          uint8_t prio) = 0;
 
+  /**
+   * @brief Acquires an exclusive lock on the hardware bus (SPI). Used for the
+   * CYD.
+   * @param wait Timeout in FreeRTOS ticks. Defaults to portMAX_DELAY.
+   * @return true if the lock was successfully acquired, false on timeout.
+   */
+  virtual bool lock(TickType_t wait = portMAX_DELAY) { return false; }
+
+  /**
+   * @brief Releases the hardware bus lock for other components. Used for the
+   * CYD. Must be called after every successful lock() to prevent deadlocks.
+   */
+  virtual void unlock() {}
+
   virtual ~Platform(){};
-
-#if defined(BOARD_CYD)
-  virtual bool lock(TickType_t wait = portMAX_DELAY) = 0;
-  virtual void unlock() = 0;
-#endif
 };
-
-#if defined(BOARD_CYD)
-class PlatformLock {
-private:
-  Platform &_p;
-  bool _locked;
-
-public:
-  explicit PlatformLock(Platform &p, TickType_t wait = portMAX_DELAY)
-      : _p(p), _locked(p.lock(wait)) {}
-  ~PlatformLock() {
-    if (_locked)
-      _p.unlock();
-  }
-  bool operator()() const { return _locked; }
-  PlatformLock(const PlatformLock &) = delete;
-  PlatformLock &operator=(const PlatformLock &) = delete;
-};
-#endif
 
 #endif // PLATFORM_H

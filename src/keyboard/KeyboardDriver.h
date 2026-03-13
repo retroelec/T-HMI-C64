@@ -108,18 +108,6 @@ public:
    */
   virtual void syncAndCreateAttachWinSDL() {}
 
-  /**
-   * @brief Sets the "specialjoymode" state.
-   *
-   * Used for systems which emulate joystick input via the keyboard.
-   */
-  virtual void setSpecialjoymode(bool specialjoymode) {}
-
-  /**
-   * @brief Sets the joystick mode.
-   */
-  virtual void setJoystickmode(ExtCmd joystickmode) {}
-
   virtual ~KeyboardDriver() {}
 };
 

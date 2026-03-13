@@ -22,8 +22,19 @@
 #include "JoystickDriver.h"
 #include <cstdint>
 
+struct _SDL_Joystick;
+typedef struct _SDL_Joystick SDL_Joystick;
+
 class SDLJoystick : public JoystickDriver {
+private:
+  SDL_Joystick *m_joystick;
+  const int m_deadzone = 16000;
+
 public:
+  SDLJoystick();
+  virtual ~SDLJoystick();
+
+  void init() override;
   uint8_t getValue() override;
   bool getFire2() override;
   bool getJoyOnlyModeButton() override;

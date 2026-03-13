@@ -17,16 +17,18 @@
 #ifndef PLATFORMWINDOWS_H
 #define PLATFORMWINDOWS_H
 
+#include "../Config.h"
 #ifdef _WIN32
 #include "Platform.h"
-#define SID_DEFINED
 #include <chrono>
 #include <cstdarg>
 #include <cstdio>
 #include <functional>
 #include <random>
 #include <thread>
+#define SID Windows_SID_Internal
 #include <windows.h>
+#undef SID
 
 class PlatformWindows : public Platform {
 public:

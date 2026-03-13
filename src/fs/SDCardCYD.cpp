@@ -23,6 +23,27 @@
 
 static const char *TAG = "SDCardCYD";
 
+// PlatformLock: A RAII (Resource Acquisition Is Initialization) wrapper.
+// It automatically locks the bus upon creation and ensures it's unlocked
+// when the object goes out of scope (e.g., at the end of a function).
+// This prevents the SPI bus from hanging if a function returns early.
+class PlatformLock {
+private:
+  Platform &_p;
+  bool _locked;
+
+public:
+  explicit PlatformLock(Platform &p, TickType_t wait = portMAX_DELAY)
+      : _p(p), _locked(p.lock(wait)) {}
+  ~PlatformLock() {
+    if (_locked)
+      _p.unlock();
+  }
+  bool operator()() const { return _locked; }
+  PlatformLock(const PlatformLock &) = delete;
+  PlatformLock &operator=(const PlatformLock &) = delete;
+};
+
 bool SDCardCYD::initialized = false;
 
 bool SDCardCYD::init() {

@@ -30,6 +30,7 @@
 class SDLKB : public KeyboardDriver {
 private:
   bool joystickActive = false;
+  ExtCmd kbjoystickmode = ExtCmd::KBJOYSTICKMODEOFF;
   ExtCmd joystickmode = ExtCmd::JOYSTICKMODEOFF;
 
   bool keyRight = false;
@@ -37,8 +38,6 @@ private:
   bool keyUp = false;
   bool keyDown = false;
   bool keyFire = false;
-
-  bool specialjoymode;
 
   bool attachwinopen = false;
   bool openattachwin = false;
@@ -56,7 +55,7 @@ private:
   std::mutex attachWinMutex;
 
   void setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode);
-  void handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed);
+  void handleKeyEvent(SDL_Keysym key, SDL_Keymod mod, bool pressed);
   void printHelpHint();
 
 public:
@@ -66,8 +65,7 @@ public:
   uint8_t getKBCodeDC01() override;
   uint8_t getKBCodeDC00() override;
   uint8_t getShiftctrlcode() override;
-  void setSpecialjoymode(bool specialjoymode) override;
-  void setJoystickmode(ExtCmd joystickmode) override;
+  uint8_t getKBJoyValue() override;
 };
 #endif
 

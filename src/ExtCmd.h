@@ -115,8 +115,9 @@ enum class ExtCmd {
   /**
    * @brief Gets the content of 16 bytes memory starting from a given address.
    *
-   * Start address of memory is transfered in byte 3 + 4 of the buffer.
-   * This command sends back a notification of type NotificationStruct3.
+   * Start address of memory is transfered in byte 3 + 4 of the buffer resp.
+   * param[1] + param[2]. This command sends back a notification of type
+   * NotificationStruct3.
    */
   SHOWMEM = 14,
 
@@ -124,8 +125,8 @@ enum class ExtCmd {
    * @brief Sends pressing the RESTORE key or the combination RESTORE +
    * RUN/STOP.
    *
-   * If the second element of the buffer (buffer[1]) equals to 1 the combination
-   * RESTORE + RUN/STOP is sent, only RESTORE otherwise.
+   * If the param[0] equals to 1 the combination RESTORE + RUN/STOP is sent,
+   * only RESTORE otherwise.
    */
   RESTORE = 15,
 
@@ -220,39 +221,38 @@ enum class ExtCmd {
   /**
    * @brief Sets the sound volume of the emulator.
    *
-   * The second element of the buffer (buffer[1]) contains the sound volume
-   * (0-255).
+   * The first parameter (param[0]) contains the sound volume (0-255).
    */
   SETVOLUME = 33,
 
   /**
    * @brief Increases the sound volume of the emulator.
    *
-   * The second element of the buffer (buffer[1]) contains the increment.
+   * The first parameter (param[0]) contains the increment.
    */
   INCVOLUME = 34,
 
   /**
    * @brief Decreases the sound volume of the emulator.
    *
-   * The second element of the buffer (buffer[1]) contains the decrement.
+   * The first parameter (param[0]) contains the decrement.
    */
   DECVOLUME = 35,
 
   /**
    * @brief Writes a text to the C64 text screen (only if in "C64 text mode").
    *
-   * The text to be displayed is stored starting at buffer position 4 (from
-   * buffer[3]).
+   * The text to be displayed is stored starting at buffer position 4 resp.
+   * &param[2].
    */
   WRITETEXT = 36,
 
   /**
    * @brief Attach a d64 file to the floppy drive emulation.
    *
-   * The name of the d64 file is stored starting at buffer position 4 (from
-   * buffer[3]).
-   * This command sends back a notification of type NotificationStruct1.
+   * The name of the d64 file is stored starting at buffer position 4 resp.
+   * &param[2]. This command sends back a notification of type
+   * NotificationStruct1.
    */
   ATTACHD64 = 37,
 
@@ -279,10 +279,43 @@ enum class ExtCmd {
    * - byte 12-: text to be displayed
    */
   WRITEOSD = 39,
+
+  /**
+   * @brief Pausees the emulation.
+   *
+   * No parameters needed.
+   */
   PAUSE = 40,
+
+  /**
+   * @brief Special command which waits for the number of steps given until the
+   * next command in the queue is executed.
+   *
+   * The first parameter (param[0]) contains the number of steps (1 step = 20
+   * ms) to wait for.
+   */
   WAIT = 41,
+
+  /**
+   * @brief Loads and starts the given program.
+   *
+   * The name of the program to be loaded (prg file without extension ".prg")
+   * starting at buffer position 4 resp. &param[2].
+   */
   AUTOSTART = 42,
+
+  /**
+   * @brief Calls the display specific (optional) method setSpecial1().
+   *
+   * No parameters needed.
+   */
   SPECIAL1 = 43,
+
+  /**
+   * @brief Calls the display specific (optional) method setSpecial2().
+   *
+   * No parameters needed.
+   */
   SPECIAL2 = 44,
 };
 

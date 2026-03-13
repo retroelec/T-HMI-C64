@@ -42,6 +42,7 @@ static BLEAdvertisedDevice *myDevice;
 static BoardDriver *board;
 static JoystickDriver *joystick;
 static uint8_t oldJoyVal = 0xff;
+static bool oldFire2 = false;
 static uint8_t cnt = 5;
 static ExtCmd actJoyMode = ExtCmd::KBJOYSTICKMODE2;
 static uint8_t cntfire2 = 0;
@@ -179,7 +180,7 @@ void loop() {
       sendBytes(cmd, 3);
     }
   } else {
-    if (joystick->getFire2()) {
+    if (joystick->getJoyOnlyModeButton()) {
       cntfire2++;
       if (cntfire2 == 200) {
         if (actJoyMode == ExtCmd::KBJOYSTICKMODE2) {
@@ -198,6 +199,24 @@ void loop() {
       }
     } else {
       cntfire2 = 0;
+    }
+    bool fire2 = joystick->getFire2();
+    if (fire2) {
+      if (!oldFire2) {
+        oldFire2 = true;
+        // send space key
+        uint8_t cmd[3];
+        cmd[0] = static_cast<uint8_t>(0x7f);
+        cmd[1] = static_cast<uint8_t>(0xef);
+        cmd[2] = 0x00;
+        sendBytes(cmd, 3);
+      }
+    } else {
+      if (oldFire2) {
+        // send release key
+        sendByte(0xff);
+        oldFire2 = false;
+      }
     }
     uint8_t joyVal = joystick->getValue();
     cnt--;

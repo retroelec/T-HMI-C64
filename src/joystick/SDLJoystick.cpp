@@ -20,35 +20,53 @@
 #include <SDL2/SDL.h>
 #include <cstdint>
 
+SDLJoystick::SDLJoystick() : m_joystick(nullptr) {}
+
+SDLJoystick::~SDLJoystick() {
+  if (m_joystick) {
+    SDL_JoystickClose(m_joystick);
+  }
+}
+
+void SDLJoystick::init() {
+  if (SDL_WasInit(SDL_INIT_JOYSTICK) == 0) {
+    SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+  }
+  if (SDL_NumJoysticks() > 0) {
+    m_joystick = SDL_JoystickOpen(0);
+  }
+}
+
 uint8_t SDLJoystick::getValue() {
-  const uint8_t *state = SDL_GetKeyboardState(NULL);
-  uint8_t value = 0xff;
-  if (state[SDL_SCANCODE_UP]) {
-    value &= ~(1 << 0);
+  if (!m_joystick)
+    return 0xff;
+  SDL_JoystickUpdate();
+  uint8_t state = 0xff;
+  int16_t posX = SDL_JoystickGetAxis(m_joystick, 0);
+  int16_t posY = SDL_JoystickGetAxis(m_joystick, 1);
+  uint8_t hat = SDL_JoystickGetHat(m_joystick, 0);
+  if (posY < -m_deadzone || (hat & SDL_HAT_UP))
+    state &= ~(1 << 0);
+  if (posY > m_deadzone || (hat & SDL_HAT_DOWN))
+    state &= ~(1 << 1);
+  if (posX < -m_deadzone || (hat & SDL_HAT_LEFT))
+    state &= ~(1 << 2);
+  if (posX > m_deadzone || (hat & SDL_HAT_RIGHT))
+    state &= ~(1 << 3);
+  if (SDL_JoystickGetButton(m_joystick, 0)) {
+    state &= ~(1 << 4);
   }
-  if (state[SDL_SCANCODE_DOWN]) {
-    value &= ~(1 << 1);
-  }
-  if (state[SDL_SCANCODE_LEFT]) {
-    value &= ~(1 << 2);
-  }
-  if (state[SDL_SCANCODE_RIGHT]) {
-    value &= ~(1 << 3);
-  }
-  if (state[SDL_SCANCODE_LCTRL]) {
-    value &= ~(1 << 4);
-  }
-  return value;
+  return state;
 }
 
 bool SDLJoystick::getFire2() {
-  const uint8_t *state = SDL_GetKeyboardState(NULL);
-  return state[SDL_SCANCODE_RCTRL];
+  if (!m_joystick)
+    return false;
+  SDL_JoystickUpdate();
+  return SDL_JoystickGetButton(m_joystick, 1) != 0;
 }
 
 bool SDLJoystick::getJoyOnlyModeButton() {
-  const uint8_t *state = SDL_GetKeyboardState(NULL);
-  return state[SDL_SCANCODE_RCTRL];
+  return SDL_JoystickGetButton(m_joystick, 2) != 0;
 }
-
 #endif

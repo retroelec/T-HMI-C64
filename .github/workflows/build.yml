@@ -1,7 +1,11 @@
 name: build
 on: [push]
 
+permissions:
+  contents: write
+
 jobs:
+
   build-esp32:
     runs-on: ubuntu-latest
     strategy:
@@ -107,21 +111,57 @@ jobs:
             ${{ github.workspace }}/export/flash.bat
             ${{ github.workspace }}/export/README.md
 
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build EXE with Docker
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/build docker.io/retroelec42/sdl2-cross sh -c "make -f windows/Makefile"
+
+      - name: Upload Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-executable
+          path: |
+            windows/c64win.exe
+
   release:
-    name: "Permanent Release"
+    name: "Create GitHub Release"
     needs: build-esp32
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Download all artifacts
+      - name: Download all Artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./release-files
-      - name: Create GitHub Release
+          path: ./temp-downloads
+      - name: Bundle Artifacts to ZIPs
+        run: |
+          mkdir -p ./final-assets
+          cd ./temp-downloads
+          for dir in */; do
+            zipname="${dir%/}.zip"
+            echo "pack $dir as $zipname..."
+            zip -rj "../final-assets/$zipname" "$dir"
+          done
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ./release-files/**/*.zip
+          files: ./final-assets/*.zip
           name: "C64 Emulator Release ${{ github.ref_name }}"
-          body: "Official release for version ${{ github.ref_name }}. Contains pre-compiled binaries for all supported boards and keyboards."
+          body: |
+            ### Release ${{ github.ref_name }}
+
+            Pre-compiled binaries for all supported Board & Keyboard combinations.
+
+            **Installation:**
+            1. Download the ZIP matching your hardware.
+            2. Extract all files.
+            3. Run `flash.sh` (Linux/Mac) or `flash.bat` (Windows).
           token: ${{ secrets.GITHUB_TOKEN }}
 

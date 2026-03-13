@@ -38,7 +38,8 @@ void SDLKB::setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode) {
   shiftctrlcode = ctrlcode;
 }
 
-void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
+void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
+  SDL_Keycode key = keysym.sym;
   ExtCmdQueue::ExternalCmd extcmd;
   if (attachwinopen) {
     SDL_SetRenderDrawColor(attachrenderer, 0, 0, 50, 255);
@@ -79,7 +80,7 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         } else {
           extcmd.cmd = ExtCmd::ATTACHD64;
           std::copy(diskname, diskname + strlen(diskname) + 1,
-                    &extcmd.param[3]);
+                    &extcmd.param[2]);
         }
         ExtCmdQueue::getInstance().push(extcmd);
       } else {
@@ -96,35 +97,37 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
     return;
   }
   if (pressed) {
-    if (mod & KMOD_RSHIFT) {
+    if (mod & KMOD_RCTRL) {
       // help + quit
       if (key == SDLK_h) {
         const uint8_t help[] = "\x93\x5\r"
                                "          **** HELP PAGE ****\r\r"
-                               "RSHIFT-H FOR THIS HELP PAGE\r"
-                               "RSHIFT-Q TO QUIT THE EMULATOR\r"
-                               "RSHIFT-L TO LOAD A PROGRAM\r"
+                               "RCTRL-H FOR THIS HELP PAGE\r"
+                               "RCTRL-Q TO QUIT THE EMULATOR\r"
+                               "RCTRL-L TO LOAD A PROGRAM\r"
                                "         (SEE CONFIG::PATH, README.MD)\r"
-                               "RSHIFT-S TO SAVE A PROGRAM\r"
-                               "RSHIFT-T TO LIST PROGRAMS\r"
-                               "RSHIFT-A TO ATTACH/DETACH A D64 FILE\r"
-                               "RSHIFT-R TO RESET THE EMULATOR\r"
-                               "RSHIFT-, TO DECREMENT SOUND VOLUME\r"
-                               "RSHIFT-. TO INCREMENT SOUND VOLUME\r"
-                               "RSHIFT-J TO SWITCH BETWEEN JOYSTICK\r"
-                               "         IN PORT 1, JOYSTICK IN PORT 2,\r"
-                               "         NO JOYSTICK. CURSOR AND CTRL\r"
-                               "         KEYS ARE USED AS JOYSTICK KEYS\r"
-                               "         IF A JOYSTICK PORT IS CHOSEN\r"
-                               "RSHIFT-N SHOW CONTENT OF CPU REGISTERS\r"
-                               "RSHIFT-D SWITCH TO DEBUG MODE AND BACK\r"
-                               "RSHIFT-P TO PAUSE\r"
+                               "RCTRL-S TO SAVE A PROGRAM\r"
+                               "RCTRL-T TO LIST PROGRAMS\r"
+                               "RCTRL-A TO ATTACH/DETACH A D64 FILE\r"
+                               "RCTRL-R TO RESET THE EMULATOR\r"
+                               "RCTRL-, TO DECREMENT SOUND VOLUME\r"
+                               "RCTRL-. TO INCREMENT SOUND VOLUME\r"
+                               "RCTRL-K TO SWITCH BETWEEN KB-JOYSTICK\r"
+                               "        IN PORT 1, IN PORT 2, NO\r"
+                               "        JOYSTICK. CURSOR AND CTRL KEYS\r"
+                               "        ARE USED AS JOYSTICK KEYS\r"
+                               "RCTRL-J TO SWITCH BETWEEN JOYSTICK\r"
+                               "        IN PORT 1, IN PORT 2, NO\r"
+                               "        JOYSTICK\r"
+                               "RCTRL-P TO PAUSE\r"
                                "COMMODORE KEY = LEFT ALT\r\x9a\0";
         extcmd.cmd = ExtCmd::WRITETEXT;
         int16_t helpsize = sizeof(help);
         uint8_t *helpptr = (uint8_t *)help;
         while (helpsize > 0) {
-          memcpy(&extcmd.param[2], helpptr, (helpsize > 250) ? 250 : helpsize);
+          uint8_t numBytes = (helpsize > 250) ? 250 : helpsize;
+          memcpy(&extcmd.param[2], helpptr, numBytes);
+          extcmd.param[2 + numBytes] = '\0';
           ExtCmdQueue::getInstance().push(extcmd);
           helpsize -= 250;
           helpptr += 250;
@@ -168,6 +171,32 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
       } else if (key == SDLK_p) {
         extcmd.cmd = ExtCmd::PAUSE;
         ExtCmdQueue::getInstance().push(extcmd);
+      } else if (key == SDLK_k) {
+        switch (kbjoystickmode) {
+        case ExtCmd::KBJOYSTICKMODEOFF:
+          kbjoystickmode = ExtCmd::KBJOYSTICKMODE1;
+          extcmd.cmd = ExtCmd::KBJOYSTICKMODE1;
+          ExtCmdQueue::getInstance().push(extcmd);
+          break;
+        case ExtCmd::KBJOYSTICKMODE1:
+          kbjoystickmode = ExtCmd::KBJOYSTICKMODE2;
+          extcmd.cmd = ExtCmd::KBJOYSTICKMODE2;
+          ExtCmdQueue::getInstance().push(extcmd);
+          break;
+          break;
+        case ExtCmd::KBJOYSTICKMODE2:
+          kbjoystickmode = ExtCmd::KBJOYSTICKMODEOFF;
+          extcmd.cmd = ExtCmd::KBJOYSTICKMODEOFF;
+          ExtCmdQueue::getInstance().push(extcmd);
+          break;
+        default:
+          break;
+        }
+        if (kbjoystickmode != ExtCmd::KBJOYSTICKMODEOFF) {
+          joystickActive = true;
+        } else {
+          joystickActive = false;
+        }
       } else if (key == SDLK_j) {
         switch (joystickmode) {
         case ExtCmd::JOYSTICKMODEOFF:
@@ -180,7 +209,6 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
           extcmd.cmd = ExtCmd::JOYSTICKMODE2;
           ExtCmdQueue::getInstance().push(extcmd);
           break;
-          break;
         case ExtCmd::JOYSTICKMODE2:
           joystickmode = ExtCmd::JOYSTICKMODEOFF;
           extcmd.cmd = ExtCmd::JOYSTICKMODEOFF;
@@ -189,14 +217,9 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         default:
           break;
         }
-        if (joystickmode != ExtCmd::JOYSTICKMODEOFF) {
-          joystickActive = true;
-        } else {
-          joystickActive = false;
-        }
       }
     } else {
-      if (joystickActive || specialjoymode) {
+      if (joystickActive) {
         switch (key) {
         case SDLK_RIGHT:
         case SDLK_LEFT:
@@ -209,7 +232,7 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
       // C64 keys
       bool found = false;
       if (!((mod & KMOD_LCTRL) || (mod & KMOD_LALT))) {
-        KeySpec k{key, mod & KMOD_LSHIFT, mod & KMOD_RALT};
+        KeySpec k{key, mod & KMOD_SHIFT, mod & KMOD_RALT};
         auto it = keyMap.find(k);
         if (it != keyMap.end()) {
           auto [b1, b2, b3] = it->second;
@@ -218,14 +241,14 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
         }
       }
       if ((!found) &&
-          ((mod & KMOD_LSHIFT) || (mod & KMOD_LCTRL) || (mod & KMOD_LALT))) {
-        // fallback: no mapping found, but modifier (left) shift, (left) ctrl or
+          ((mod & KMOD_SHIFT) || (mod & KMOD_LCTRL) || (mod & KMOD_LALT))) {
+        // fallback: no mapping found, but modifier shift, (left) ctrl or
         // commodore (= left alt) pressed?
         KeySpec k{key, false, false};
         auto it = keyMap.find(k);
         if (it != keyMap.end()) {
           auto [b1, b2, b3] = it->second;
-          if (mod & KMOD_LSHIFT) {
+          if (mod & KMOD_SHIFT) {
             b3 |= 1;
           } else if (mod & KMOD_LCTRL) {
             b3 |= 2;
@@ -241,32 +264,31 @@ void SDLKB::handleKeyEvent(SDL_Keycode key, SDL_Keymod mod, bool pressed) {
   }
 }
 
-static uint8_t helpbox[] = "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
-                           "\x43\x43\x43\x43\x43\x43\x43\x43\x49"
-                           "\x42\x20\x12\x13\x08\x09\x06\x14\x2d\x08\x20\x06"
-                           "\x0f\x12\x20\x08\x05\x0c\x10\x20\x42"
-                           "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
-                           "\x43\x43\x43\x43\x43\x43\x43\x43\x4b";
+static uint8_t helpbox[] =
+    "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+    "\x43\x43\x43\x43\x43\x43\x43\x49"
+    "\x42 \x12\x3\x14\x12\xc\x2d\x8 \x6\xf\x12 \x8\x5\xc\x10 \x42"
+    "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+    "\x43\x43\x43\x43\x43\x43\x43\x4b";
 
 void SDLKB::printHelpHint() {
   ExtCmdQueue::ExternalCmd extcmd;
   extcmd.cmd = ExtCmd::WRITEOSD;
   extcmd.param[2] = 9;
   extcmd.param[3] = 5;
-  extcmd.param[4] = 21;
+  extcmd.param[4] = 20;
   extcmd.param[5] = 3;
   extcmd.param[6] = 1;
   extcmd.param[7] = 0;
   extcmd.param[8] = 5;
   extcmd.param[9] = 0;
   extcmd.param[10] = 1;
-  memcpy(&extcmd.param[11], helpbox, 21 * 3);
+  memcpy(&extcmd.param[11], helpbox, 20 * 3);
   ExtCmdQueue::getInstance().push(extcmd);
 }
 
 void SDLKB::init() {
   SDL_InitSubSystem(SDL_INIT_EVENTS);
-  specialjoymode = false;
   printHelpHint();
 }
 
@@ -303,8 +325,7 @@ void SDLKB::scanKeyboard() {
     if (ev.type == SDL_QUIT) {
       exit(0);
     } else if (ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP) {
-      handleKeyEvent(ev.key.keysym.sym, SDL_GetModState(),
-                     ev.type == SDL_KEYDOWN);
+      handleKeyEvent(ev.key.keysym, SDL_GetModState(), ev.type == SDL_KEYDOWN);
     }
   }
 }
@@ -315,16 +336,24 @@ uint8_t SDLKB::getKBCodeDC00() { return kbcode1; }
 
 uint8_t SDLKB::getShiftctrlcode() { return shiftctrlcode; }
 
-void SDLKB::setSpecialjoymode(bool specialjoymode) {
-  this->specialjoymode = specialjoymode;
-}
-
-void SDLKB::setJoystickmode(ExtCmd joystickmode) {
-  this->joystickmode = joystickmode;
-  if (joystickmode != ExtCmd::JOYSTICKMODEOFF) {
-    joystickActive = true;
-  } else {
-    joystickActive = false;
+uint8_t SDLKB::getKBJoyValue() {
+  const uint8_t *state = SDL_GetKeyboardState(NULL);
+  uint8_t value = 0xff;
+  if (state[SDL_SCANCODE_UP]) {
+    value &= ~(1 << 0);
   }
+  if (state[SDL_SCANCODE_DOWN]) {
+    value &= ~(1 << 1);
+  }
+  if (state[SDL_SCANCODE_LEFT]) {
+    value &= ~(1 << 2);
+  }
+  if (state[SDL_SCANCODE_RIGHT]) {
+    value &= ~(1 << 3);
+  }
+  if (state[SDL_SCANCODE_LCTRL]) {
+    value &= ~(1 << 4);
+  }
+  return value;
 }
 #endif

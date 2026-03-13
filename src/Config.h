@@ -195,10 +195,10 @@ struct Config {
   // --- constants to be defined for each board ---
 
   // delay until next display refresh
-  static const uint8_t REFRESHDELAY = 0;
+  static const uint8_t REFRESHDELAY = 1;
 
   // "heuristic performance factor"
-  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
+  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 0.5;
 
   // --- driver specific constants ---
 

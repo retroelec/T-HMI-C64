@@ -426,12 +426,11 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     cpu->floppy.init(8);
     cpu->cpuhalted = false;
     cpu->joystickmode = 0;
-    cpu->keyboard->setJoystickmode(ExtCmd::JOYSTICKMODEOFF);
+    cpu->kbjoystickmode = 0;
     setType1Notification();
     return 1;
   case ExtCmd::JOYSTICKMODE1:
     cpu->joystickmode = 1;
-    cpu->kbjoystickmode = 0;
     cpu->vic.drawDOIBox((uint8_t *)"\xa\x31", 37, 23, 2, 1, 1, 0, 3, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
                                        cpu->joystickmode);
@@ -439,7 +438,6 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     return 1;
   case ExtCmd::JOYSTICKMODE2:
     cpu->joystickmode = 2;
-    cpu->kbjoystickmode = 0;
     cpu->vic.drawDOIBox((uint8_t *)"\xa\x32", 37, 23, 2, 1, 1, 0, 3, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
                                        cpu->joystickmode);
@@ -454,18 +452,19 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     return 1;
   case ExtCmd::KBJOYSTICKMODE1:
     cpu->kbjoystickmode = 1;
-    cpu->joystickmode = 0;
+    cpu->vic.drawDOIBox((uint8_t *)"\xa\x31", 37, 23, 2, 1, 1, 0, 3, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
                                        cpu->kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODE2:
     cpu->kbjoystickmode = 2;
-    cpu->joystickmode = 0;
+    cpu->vic.drawDOIBox((uint8_t *)"\xa\x32", 37, 23, 2, 1, 1, 0, 3, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
                                        cpu->kbjoystickmode);
     return 0;
   case ExtCmd::KBJOYSTICKMODEOFF:
     cpu->kbjoystickmode = 0;
+    cpu->vic.drawDOIBox((uint8_t *)"\xb\x2", 37, 23, 2, 1, 1, 0, 3, 0);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
                                        cpu->kbjoystickmode);
     return 0;

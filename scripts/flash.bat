@@ -49,7 +49,7 @@ echo.
 echo Flashing %BINARY% to %BOARD% on port %PORT%...
 echo ---------------------------------------------------------
 
-python -m esptool --chip %CHIP% --port %PORT% --baud 921600 write_flash --flash_mode dio --flash_size keep 0x0 %BINARY%
+python -m esptool --chip %CHIP% --port %PORT% --baud 921600 write-flash --flash_mode dio --flash_size keep 0x0 %BINARY%
 
 if %errorlevel% equ 0 (
     echo.

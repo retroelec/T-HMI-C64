@@ -42,7 +42,7 @@ fi
 echo ""
 echo "Flashing $BINARY to $BOARD on port $PORT..."
 echo "---------------------------------------------------------"
-python3 -m esptool --chip "$CHIP" --port "$PORT" --baud 921600 write_flash -z --flash-mode dio --flash-size keep 0x0 "$BINARY"
+python3 -m esptool --chip "$CHIP" --port "$PORT" --baud 921600 write-flash -z --flash-mode dio --flash-size keep 0x0 "$BINARY"
 
 if [ $? -eq 0 ]; then
     echo ""

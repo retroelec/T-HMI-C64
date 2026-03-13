@@ -118,13 +118,9 @@ void C64Emu::setup() {
 }
 
 void C64Emu::loop() {
-#if defined(BOARD_CYD)
   PlatformManager::getInstance().lock();
-#endif
   cpu.vic.refresh();
-#if defined(BOARD_CYD)
   PlatformManager::getInstance().unlock();
-#endif
   cpu.keyboard->syncAndCreateAttachWinSDL();
   PlatformManager::getInstance().feedWDT();
   PlatformManager::getInstance().waitMS(Config::REFRESHDELAY);

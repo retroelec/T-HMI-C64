@@ -21,9 +21,8 @@ Contact: retroelec42@gmail.com
 
 ## News
 
-- BLE Joystick
+- BLE Joystick / SDL Joystick
 - Support for LED matrix panel
-- Support for CYD board
 
 ## Hardware
 
@@ -50,7 +49,8 @@ can be used to simulate the pressing of the space bar.
 
 ### BLE Joystick
 
-Besides the C64 emulator, there is also a BLE Joytick application (ino file) for the ESP32-S3.
+In addition to the C64 emulator, there is also a BLE joystick application (ino file) for the ESP32-S3.
+This involves pairing an "Arduino joystick shield" with an ESP32-S3 (or another ESP32-compatible device with BLE) to function as a BLE client.
 
 ### Battery
 
@@ -238,6 +238,12 @@ Binary files for the development boards can also be downloaded from https://gith
 so you don't have to compile them yourself if you don't want to.
 The available zip files also contain scripts (flash.sh and flash.bat) to upload the binary file (see also README.md in the zip file).
 
+### Compile and upload code for the BLE joystick
+
+There is no binary available for the BLE joystick application. This means the code must be compiled and uploaded manually.
+First, the development environment must be installed (see above) and the Makefile modified (and possibly a new board defined).
+Then, the code can be compiled using `make compileBLEJoystick` and uploaded using `make uploadBLEJoystick`.
+
 ### Install Android App
 
 I wrote an Android app which provides a BLE keyboard for the emulator.
@@ -281,7 +287,8 @@ Follow these steps to build the emulator for Windows:
 - Install podman (or alternatively docker)
 - Get docker image: podman pull docker.io/retroelec42/sdl2-cross:latest
 - Create executable: make c64win.exe
-- Copy necessary dll's: make copydlls
+
+The exe can also be downloaded from https://github.com/retroelec/T-HMI-C64/actions.
 
 On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the available sleep functions are too coarse-grained.
 (The CPU time on Windows can be reduced by commenting out #WINDOWS_BUSYWAIT in Config.h, however this results in a delay in audio output.)
@@ -341,6 +348,11 @@ the flippers of “David's Midnight Magic” have been outsourced to a separate 
 When you open this screen, the options "Send raw keycodes" and "Detect key release" are automatically enabled.
 When you close this screen again, both options are reset to the previous values.
 
+#### Playing with two joysticks
+
+With the Arduino joystick, which is directly connected to the emulator, and the BLE joystick, you have two joysticks available.
+It is therefore possible to play games with two players.
+
 ### Web keyboard
 
 If you choosed the web keyboard (Makefile: KEYBOARD := WEB_KEYBOARD), the emulator starts a web server to allow
@@ -393,20 +405,21 @@ You first have to copy C64 games in prg or d64 format to an SD card
 (game names must be in lower case letters, max. 16 characters, no spaces in file names allowed, extension must be ".prg" or .d64, e.g. dkong.prg).
 You have to insert the SD card before you power on the development board.
 
-You can load a prg file into memory using an "external command".
-To do this, first type in the name of the program (without extension ".prg"!) so it shows up on the C64 text screen (e.g. dkong).
-You then press the LOAD button (cursor must be on the same line and behind or in the middle of the game title).
-If the file is found the text "LOADED" appears on screen, otherwise the text "FILE NOT FOUND" appears.
-Afterwards, as usual, you can start the game by typing "RUN" followed by pressing the button RETURN.
+You then have the following options to load a program:
 
-You can also load a prg file into memory using the C64 Load command:  
-LOAD"DKONG",8,1  
-This will load the file dkong.prg.
+<img src="doc/loadgame.png" alt="class diagram" width="800"/>
 
-Finally you can attach a ".d64" file using the ATTACH button on the DIV screen.
-You can then use LOAD"$",8 to load the directory and subsequently load a specific program.
-
-<img src="doc/loadprg.gif" alt="class diagram" width="800"/>
+1.  You can load a prg file into memory using an "external command":
+    First type in the name of the program (without extension ".prg"!) so it shows up on the C64 text screen (e.g. dkong).
+    You then press the LOAD button (cursor must be on the same line and behind or in the middle of the game title).
+    If the file is found the text "LOADED" appears on screen, otherwise the text "FILE NOT FOUND" appears.
+    Afterwards, as usual, you can start the game by typing "RUN" followed by pressing the button RETURN.
+2.  You can also load a prg file into memory using the C64 Load command:  
+    LOAD"DKONG",8,1  
+    This will load the file dkong.prg.
+3.  If you are using the BLE keyboard, you also can attach a ".d64" file using the ATTACH button on the DIV screen.
+    You can then use LOAD"$",8 to load the directory and subsequently load a specific program or
+    you can load the first file from disk using LOAD"*",8,1.
 
 ### Save a program to SD card
 

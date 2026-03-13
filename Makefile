@@ -198,11 +198,3 @@ c64win.exe:
 	make -f windows/Makefile clean
 	podman run -it --rm -v "$(PWD)":/build sdl2-cross make -f windows/Makefile
 
-copydlls:
-	podman create --name tmp sdl2-cross:latest
-	podman cp tmp:/usr/lib/gcc/x86_64-w64-mingw32/12-posix/libstdc++-6.dll windows/
-	podman cp tmp:/usr/lib/gcc/x86_64-w64-mingw32/12-posix/libgcc_s_seh-1.dll windows/
-	podman cp tmp:/usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll windows/
-	podman cp tmp:/opt/sdl2-windows/SDL2/x86_64-w64-mingw32/bin/SDL2.dll windows/
-	podman rm tmp
-

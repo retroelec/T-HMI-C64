@@ -566,12 +566,10 @@ void C64Sys::getJoystickValues() {
 void C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
   ExtCmd cmd = ExtCmd::NOEXTCMD;
   if (joystickOnlyModeState == JoystickOnlyModeState::NONE) {
-    keyboard->setSpecialjoymode(false);
     specialjoymode = false;
     if (jOMBpressed) {
       joystickOnlyModeCnt = 25;
       specialjoymode = true;
-      keyboard->setSpecialjoymode(true);
       const char *msg = "\x10\x12\x5\x13\x13 \xa\xf\x19 \x4\xf\x17\xe  ";
       memcpy(&listbox[22], msg, 16);
       vic.drawDOIBox(listbox, 9, 1, 20, 3, 1, 0, 65535, 1);
@@ -580,12 +578,10 @@ void C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
       joystickOnlyModeState = JoystickOnlyModeState::CHOOSEFILE;
     }
   } else if (joystickOnlyModeState == JoystickOnlyModeState::RUN) {
-    keyboard->setSpecialjoymode(false);
     specialjoymode = false;
     if (jOMBpressed) {
       joystickOnlyModeCnt = 25;
       specialjoymode = true;
-      keyboard->setSpecialjoymode(true);
       joystickOnlyModeState = JoystickOnlyModeState::INGAME;
       vic.drawDOIBox(ingamebox, 12, 1, 15, 9, 1, 0, 65535, 1);
     }
@@ -661,7 +657,6 @@ void C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
         cmd = ExtCmd::JOYSTICKMODE2;
         break;
       }
-      keyboard->setJoystickmode(cmd);
     } else if (uppressed) {
       joystickOnlyModeState = JoystickOnlyModeState::NONE;
       vic.doiactive[1] = false;
@@ -696,7 +691,6 @@ void C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
         cmd = ExtCmd::JOYSTICKMODE2;
         break;
       }
-      keyboard->setJoystickmode(cmd);
     } else if (uppressed) {
       joystickOnlyModeState = JoystickOnlyModeState::NONE;
       vic.doiactive[1] = false;
