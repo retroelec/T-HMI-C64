@@ -20,12 +20,16 @@
 #include "../Config.h"
 #ifdef USE_SDL_KEYBOARD
 #include "../ExtCmd.h"
+#include "CodeTripleDef.h"
 #include "KeyboardDriver.h"
 #include <SDL2/SDL.h>
 #include <atomic>
 #include <cstdint>
 #include <mutex>
+#include <optional>
 #include <queue>
+
+class SDLKeyboardLayout;
 
 class SDLKB : public KeyboardDriver {
 private:
@@ -54,11 +58,18 @@ private:
   std::mutex eventMutex;
   std::mutex attachWinMutex;
 
+  std::unique_ptr<SDLKeyboardLayout> keyboardLayout;
+
+  std::optional<CodeTripleS> getKeyCodes(SDL_Keycode key, bool shift,
+                                         bool altGr);
   void setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode);
   void handleKeyEvent(SDL_Keysym key, SDL_Keymod mod, bool pressed);
   void printHelpHint();
 
 public:
+  SDLKB();
+  ~SDLKB();
+
   void init() override;
   void syncAndCreateAttachWinSDL() override;
   void scanKeyboard() override;

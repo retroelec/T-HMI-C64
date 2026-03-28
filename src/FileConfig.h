@@ -18,13 +18,14 @@
 #define FILECONFIG_H
 
 #include "JoystickOnlyTextKeycode.h"
+#include "fs/FileDriver.h"
 #include "keyboard/C64Keycodes.h"
 #include "keyboard/CodeTripleDef.h"
 #include "nlohmann/json.hpp"
 #include "platform/PlatformManager.h"
 #include <cstdint>
 #include <string>
-#include <tuple>
+#include <string_view>
 #include <vector>
 
 using json = nlohmann::json;
@@ -35,6 +36,8 @@ example json file:
   "version": 1,
 
   "autostart": "dkong",
+
+  "sdlkeyboardlayout": "ch",
 
   "joystickOnly": {
     "keycodes": [
@@ -51,140 +54,39 @@ example json file:
 }
 */
 
-inline bool lookupC64Keycode(std::string_view name, CodeTripleS &out) {
-  for (const auto &e : C64_KEYCODES) {
-    if (name == e.name) {
-      out = e.value;
-      return true;
-    }
-  }
-  return false;
-}
+bool lookupC64Keycode(std::string_view name, CodeTripleS &out);
 
-inline void from_json(const json &j, CodeTripleS &ct) {
-  // variant A: symbolic name
-  if (j.is_string()) {
-    const auto &name = j.get<std::string>();
-    if (!lookupC64Keycode(name, ct)) {
-      PlatformManager::getInstance().log(
-          LOG_INFO, "FileConfig", "Unknown C64 keycode: %s", name.c_str());
-      throw std::runtime_error("Unknown C64 keycode: " + name);
-    }
-    return;
-  }
-  // variant B: explicit codes
-  if (j.is_array() && j.size() == 3) {
-    ct = CodeTripleS{j.at(0).get<uint8_t>(), j.at(1).get<uint8_t>(),
-                     j.at(2).get<uint8_t>()};
-    return;
-  }
-  PlatformManager::getInstance().log(LOG_INFO, "FileConfig",
-                                     "Invalid C64 keycode format");
-  throw std::runtime_error("Invalid C64 keycode format");
-}
-
-inline void from_json(const json &j, JoystickOnlyTextKeycode &tk) {
-  // array only
-  const json &jt = j.at("text");
-  if (!jt.is_array()) {
-    PlatformManager::getInstance().log(
-        LOG_INFO, "FileConfig", "text' must be a numeric CodeTriple array");
-    throw std::runtime_error("text' must be a numeric CodeTriple array");
-  }
-  jt.get_to(tk.text);
-  // keycode: array or string
-  j.at("c64keycode").get_to(tk.keycode);
-}
+void from_json(const json &j, CodeTripleS &ct);
+void from_json(const json &j, JoystickOnlyTextKeycode &tk);
 
 struct JoystickOnlyConfig {
   std::vector<JoystickOnlyTextKeycode> keycodes;
 };
-
-inline void from_json(const json &j, JoystickOnlyConfig &cfg) {
-  if (j.contains("keycodes")) {
-    cfg.keycodes = j.at("keycodes").get<std::vector<JoystickOnlyTextKeycode>>();
-  }
-}
+void from_json(const json &j, JoystickOnlyConfig &cfg);
 
 struct RootConfig {
   int version = 1;
   std::string autostart;
+  std::string sdlkeyboardlayout;
   JoystickOnlyConfig joystickOnly;
 };
-
-inline void from_json(const json &j, RootConfig &cfg) {
-  cfg.version = j.value("version", 1);
-  cfg.autostart = j.value("autostart", std::string{});
-  if (j.contains("joystickOnly")) {
-    cfg.joystickOnly = j.at("joystickOnly").get<JoystickOnlyConfig>();
-  }
-}
+void from_json(const json &j, RootConfig &cfg);
 
 class FileConfig {
 private:
-  inline static bool configAvailable = false;
-  inline static nlohmann::json configJson = nlohmann::json::object();
-  inline static struct RootConfig cfg;
+  static bool loadConfigCalled;
+  static bool configAvailable;
+  static nlohmann::json configJson;
+  static RootConfig cfg;
 
   static bool readFileToString(FileDriver &fd, const std::string &path,
-                               std::string &out) {
-    if (!fd.init()) {
-      return false;
-    }
-    if (!fd.open(path, "r")) {
-      return false;
-    }
-    const int64_t fileSize = fd.size();
-    if (fileSize <= 0) {
-      fd.close();
-      return false;
-    }
-    out.resize(static_cast<size_t>(fileSize));
-    size_t bytesRead = fd.read(out.data(), out.size());
-    fd.close();
-    return bytesRead == out.size();
-  }
+                               std::string &out);
 
 public:
-  static std::string getAutostartGame() {
-    if (!configAvailable) {
-      return {};
-    }
-    try {
-      RootConfig cfg = configJson.get<RootConfig>();
-      return cfg.autostart;
-    } catch (...) {
-      return {};
-    }
-  }
-
-  static std::vector<JoystickOnlyTextKeycode> getJoystickOnlyKeycodes() {
-    if (!configAvailable) {
-      return {};
-    }
-    try {
-      RootConfig cfg = configJson.get<RootConfig>();
-      return cfg.joystickOnly.keycodes;
-    } catch (...) {
-      return {};
-    }
-  }
-
-  static void loadConfig(FileDriver &fd, const std::string &filename) {
-    std::string config;
-    if (!readFileToString(fd, filename, config)) {
-      configAvailable = false;
-    }
-    try {
-      configJson = nlohmann::json::parse(config);
-      PlatformManager::getInstance().log(LOG_INFO, "FileConfig",
-                                         "config loaded");
-      configAvailable = true;
-    } catch (const nlohmann::json::exception &) {
-      PlatformManager::getInstance().log(LOG_INFO, "FileConfig",
-                                         "error loading config");
-      configAvailable = false;
-    }
-  }
+  static void loadConfig(FileDriver &fd, const std::string &filename);
+  static std::string getAutostartGame();
+  static std::string getSdlKeyboardLayout();
+  static std::vector<JoystickOnlyTextKeycode> getJoystickOnlyKeycodes();
 };
+
 #endif // FILECONFIG_H

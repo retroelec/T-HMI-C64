@@ -23,9 +23,10 @@
 #include <soc/gpio_struct.h>
 #include <stdexcept>
 
+static const char *TAG = "ArduinoJoystickCYD";
+
 void ArduinoJoystickCYD::init() {
-  PlatformManager::getInstance().log(LOG_INFO, "ArduinoJoystickCYD",
-                                     "init called");
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "init called");
   // init ADC UNIT 1
   adc_oneshot_unit_init_cfg_t init_config1 = {.unit_id = ADC_UNIT_1,
                                               .clk_src =
@@ -33,9 +34,10 @@ void ArduinoJoystickCYD::init() {
                                               .ulp_mode = ADC_ULP_MODE_DISABLE};
   esp_err_t err = adc_oneshot_new_unit(&init_config1, &adc1_handle);
   if (err != ESP_OK) {
-    PlatformManager::getInstance().log(LOG_ERROR, "ArduinoJoystickCYD",
-                                       "error: %s", esp_err_to_name(err));
-    throw std::runtime_error(esp_err_to_name(err));
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "error in init. of joystick: %s - continue anyway",
+        esp_err_to_name(err));
+    return;
   }
   // init ADC UNIT 2
   adc_oneshot_unit_init_cfg_t init_config2 = {.unit_id = ADC_UNIT_2,
@@ -44,9 +46,10 @@ void ArduinoJoystickCYD::init() {
                                               .ulp_mode = ADC_ULP_MODE_DISABLE};
   err = adc_oneshot_new_unit(&init_config2, &adc2_handle);
   if (err != ESP_OK) {
-    PlatformManager::getInstance().log(LOG_ERROR, "ArduinoJoystickCYD",
-                                       "error: %s", esp_err_to_name(err));
-    throw std::runtime_error(esp_err_to_name(err));
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "error in init. of joystick: %s - continue anyway",
+        esp_err_to_name(err));
+    return;
   }
   // config channels
   adc_oneshot_chan_cfg_t channel_config = {.atten = ADC_ATTEN_DB_12,
@@ -64,9 +67,10 @@ void ArduinoJoystickCYD::init() {
   io_conf.pin_bit_mask = (1ULL << Config::JOYSTICK_FIRE_PIN);
   err = gpio_config(&io_conf);
   if (err != ESP_OK) {
-    PlatformManager::getInstance().log(LOG_ERROR, "ArduinoJoystickCYD",
-                                       "error: %s", esp_err_to_name(err));
-    throw std::runtime_error(esp_err_to_name(err));
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "error in init. of joystick: %s - continue anyway",
+        esp_err_to_name(err));
+    return;
   }
   // init other attributes
   lastjoystickvalue = 0xff;
@@ -87,15 +91,15 @@ uint8_t ArduinoJoystickCYD::getValue() {
   esp_err_t err =
       adc_oneshot_read(adc1_handle, Config::ADC_JOYSTICK_X, &valueX);
   if (err != ESP_OK) {
-    PlatformManager::getInstance().log(LOG_ERROR, "ArduinoJoystickCYD",
-                                       "error: %s", esp_err_to_name(err));
+    PlatformManager::getInstance().log(LOG_ERROR, TAG, "error: %s",
+                                       esp_err_to_name(err));
     return lastjoystickvalue;
   }
   // read y from ADC_UNIT_2
   err = adc_oneshot_read(adc2_handle, Config::ADC_JOYSTICK_Y, &valueY);
   if (err != ESP_OK) {
-    PlatformManager::getInstance().log(LOG_ERROR, "ArduinoJoystickCYD",
-                                       "error: %s", esp_err_to_name(err));
+    PlatformManager::getInstance().log(LOG_ERROR, TAG, "error: %s",
+                                       esp_err_to_name(err));
     return lastjoystickvalue;
   }
   // fire button

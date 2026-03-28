@@ -35,10 +35,7 @@ public:
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     io_conf.pin_bit_mask = (1ULL << Config::PWR_ON) | (1ULL << Config::PWR_EN);
     esp_err_t err = gpio_config(&io_conf);
-    if (err != ESP_OK) {
-      throw std::runtime_error(std::string("init. of BoardDriver failed: ") +
-                               esp_err_to_name(err));
-    }
+    ESP_ERROR_CHECK(err);
     GPIO.out_w1ts = (1 << Config::PWR_ON);
     GPIO.out_w1ts = (1 << Config::PWR_EN);
     calibrateBattery();

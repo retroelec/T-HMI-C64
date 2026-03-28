@@ -58,12 +58,13 @@ void LEDMatrixDisplay::drawFrame(uint8_t frameColor) {}
 void IRAM_ATTR
 LEDMatrixDisplay::extractEachXthPixel(const uint8_t *__restrict source) {
   for (uint16_t y = 0; y < Config::LEDMATRIXHEIGHT; y++) {
-    // 4 pixel offset, each 3. pixel
-    const uint8_t *srcRow = &source[(4 + y * 3) * Config::C64WIDTH];
+    const uint8_t *srcRow =
+        &source[(Config::LEDMATRIXIGNBORDERY + y * Config::LEDMATRIXSCALEY) *
+                Config::C64WIDTH];
     uint16_t *dstRow = &bitmaptargetcol[y * Config::LEDMATRIXWIDTH];
     for (uint16_t x = 0; x < Config::LEDMATRIXWIDTH; x++) {
-      // each 4. pixel
-      uint8_t rawVal = srcRow[32 + (x * 4)];
+      uint8_t rawVal =
+          srcRow[Config::LEDMATRIXIGNBORDERX + (x * Config::LEDMATRIXSCALEX)];
       dstRow[x] = c64Colors[rawVal & 0x0f];
     }
   }
@@ -77,10 +78,11 @@ LEDMatrixDisplay::mergeXPixels(const uint8_t *__restrict source) {
       const uint16_t numPixels =
           Config::LEDMATRIXSCALEX * Config::LEDMATRIXSCALEY;
       for (uint16_t sy = 0; sy < Config::LEDMATRIXSCALEY; sy++) {
-        uint16_t srcY = Config::IGNBORDERY + (y * Config::LEDMATRIXSCALEY) + sy;
+        uint16_t srcY =
+            Config::LEDMATRIXIGNBORDERY + (y * Config::LEDMATRIXSCALEY) + sy;
         for (uint16_t sx = 0; sx < Config::LEDMATRIXSCALEX; sx++) {
           uint16_t srcX =
-              Config::IGNBORDERX + (x * Config::LEDMATRIXSCALEX) + sx;
+              Config::LEDMATRIXIGNBORDERX + (x * Config::LEDMATRIXSCALEX) + sx;
           uint8_t colorIdx = source[srcY * Config::C64WIDTH + srcX] & 0x0F;
           uint16_t color = c64Colors[colorIdx];
           sumR += (uint32_t)((color >> 11) & 0x1F);
@@ -107,8 +109,10 @@ void LEDMatrixDisplay::pixelAreaFollowsSprite(const uint8_t *__restrict bitmap,
   uint8_t spriteval = 1 << spritenr;
   if (spriteval & vicreg[0x15]) {
     int16_t startx8 = (vicreg[0x10] & spriteval) ? 256 : 0;
-    startx = vicreg[spritenr * 2] + startx8 - 20 - 24;
-    starty = vicreg[spritenr * 2 + 1] - 21 - 51;
+    startx = vicreg[spritenr * 2] + startx8 - 24 - Config::LEDMATRIXWIDTH / 2 +
+             24 / 2; // 24: horizontal offset, 24: width of sprite
+    starty = vicreg[spritenr * 2 + 1] - 51 - Config::LEDMATRIXHEIGHT / 2 +
+             (21 + 1) / 2; // 51: vertical offset, 21: height of sprite
     if (startx < 0) {
       startx = 0;
     } else if (startx > 320 - Config::LEDMATRIXWIDTH) {
@@ -136,10 +140,11 @@ void LEDMatrixDisplay::pixelAreaFollowsSprite(const uint8_t *__restrict bitmap,
     }
     oldstarty = starty;
   }
-  for (uint16_t y = 0; y < 64; y++) {
-    for (uint16_t x = 0; x < 64; x++) {
+  for (uint16_t y = 0; y < Config::LEDMATRIXHEIGHT; y++) {
+    for (uint16_t x = 0; x < Config::LEDMATRIXWIDTH; x++) {
       uint16_t bitmapIdx = (uint16_t)(y + starty) * 320 + (x + startx);
-      bitmaptargetcol[y * 64 + x] = c64Colors[bitmap[bitmapIdx] & 0x0f];
+      bitmaptargetcol[y * Config::LEDMATRIXWIDTH + x] =
+          c64Colors[bitmap[bitmapIdx] & 0x0f];
     }
   }
 }

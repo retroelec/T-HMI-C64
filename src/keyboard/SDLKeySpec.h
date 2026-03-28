@@ -14,20 +14,17 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef SDLKEYMAP_H
-#define SDLKEYMAP_H
+#ifndef SDLKEYSPEC_H
+#define SDLKEYSPEC_H
 
 #include "../Config.h"
 #ifdef USE_SDL_KEYBOARD
-#include "C64Keycodes.h"
-#include "CodeTripleDef.h"
+
 #include <SDL2/SDL.h>
-#include <map>
 #include <tuple>
 
-using KeySpec = std::tuple<SDL_Keycode, bool, bool>; // key, shift, ralt
+// key, shift, ralt (AltGr)
+using KeySpec = std::tuple<SDL_Keycode, bool, bool>;
 
-extern const std::map<KeySpec, CodeTripleS> keyMap;
 #endif
-
-#endif // SDLKEYMAP_H
+#endif

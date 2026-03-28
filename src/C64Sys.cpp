@@ -914,23 +914,17 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   numofcycles = 0;
   numofcyclespersecond.store(0, std::memory_order_release);
   numofburnedcyclespersecond.store(0, std::memory_order_release);
-  perf.store(false, std::memory_order_release);
+  perf.store(true, std::memory_order_release);
   batteryVoltage.store(0, std::memory_order_release);
   poweroff.store(false, std::memory_order_release);
+  FileConfig::loadConfig(*floppy.sysfile, std::string(Config::PATH) +
+                                              std::string(Config::CONFIGFILE));
   joystick = Joystick::create();
-  try {
-    joystick->init();
-  } catch (const std::runtime_error &e) {
-    PlatformManager::getInstance().log(
-        LOG_INFO, TAG, "error in init. of joystick: %s - continue anyway",
-        e.what());
-  }
+  joystick->init();
   initMemAndRegs();
   externalCmds->init(ram, this);
   hooks->init(ram, this);
   hooks->patchKernal(kernal_rom);
-  FileConfig::loadConfig(*floppy.sysfile, std::string(Config::PATH) +
-                                              std::string(Config::CONFIGFILE));
   vic.display->reconfigureSPICYD();
   std::vector<JoystickOnlyTextKeycode> listAdditionalInGameKeycodes =
       FileConfig::getJoystickOnlyKeycodes();

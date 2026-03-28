@@ -23,6 +23,8 @@
 #include <soc/gpio_struct.h>
 #include <stdexcept>
 
+static const char *TAG = "ArduinoJoystick";
+
 void ArduinoJoystick::init() {
   // init adc (x and y axis)
   adc_oneshot_unit_init_cfg_t init_config = {.unit_id = ADC_UNIT_2,
@@ -30,7 +32,10 @@ void ArduinoJoystick::init() {
                                              .ulp_mode = ADC_ULP_MODE_DISABLE};
   esp_err_t err = adc_oneshot_new_unit(&init_config, &adc2_handle);
   if (err != ESP_OK) {
-    throw std::runtime_error(esp_err_to_name(err));
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "error in init. of joystick: %s - continue anyway",
+        esp_err_to_name(err));
+    return;
   }
   adc_oneshot_chan_cfg_t channel_config = {.atten = ADC_ATTEN_DB_12,
                                            .bitwidth = ADC_BITWIDTH_DEFAULT};
@@ -49,7 +54,10 @@ void ArduinoJoystick::init() {
 
   err = gpio_config(&io_conf);
   if (err != ESP_OK) {
-    throw std::runtime_error(esp_err_to_name(err));
+    PlatformManager::getInstance().log(
+        LOG_INFO, TAG, "error in init. of joystick: %s - continue anyway",
+        esp_err_to_name(err));
+    return;
   }
   // init other attributes
   lastjoystickvalue = 0xff;

@@ -3,6 +3,7 @@
 #include "../roms/charset.h"
 #include "BitmapUtils.h"
 #include "SDLDisplay.h"
+#include "icon_data.h"
 #include <SDL2/SDL.h>
 
 void drawChar(SDL_Renderer *ren, uint16_t c, uint16_t x, uint16_t y,
@@ -37,11 +38,14 @@ SDLDisplay::~SDLDisplay() {
 }
 
 static void setWindowIcon(SDL_Window *window) {
-  const char *iconPath = "thmic64.bmp";
-  SDL_Surface *icon = SDL_LoadBMP(iconPath);
+  SDL_RWops *rw = SDL_RWFromMem(thmic64_bmp, thmic64_bmp_len);
+  if (!rw) {
+    SDL_Log("RWops error: %s", SDL_GetError());
+    return;
+  }
+  SDL_Surface *icon = SDL_LoadBMP_RW(rw, 1);
   if (!icon) {
-    SDL_Log("Icon konnte nicht geladen werden (%s): %s", iconPath,
-            SDL_GetError());
+    SDL_Log("could not load icon array: %s", SDL_GetError());
     return;
   }
   SDL_SetWindowIcon(window, icon);

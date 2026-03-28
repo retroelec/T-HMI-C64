@@ -22,7 +22,7 @@
 #include "../ExtCmd.h"
 #include "../ExtCmdQueue.h"
 #include "../platform/PlatformManager.h"
-#include "SDLKeymap.h"
+#include "SDLKeySpec.h"
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
 #include <WiFi.h>

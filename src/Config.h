@@ -51,17 +51,23 @@
 #define USE_ILI9341
 #define USE_SDCARDCYD
 #define USE_ARDUINOJOYSTICKCYD
-#define USE_NOSOUND
+#define USE_CYDSOUND
 #elif defined(BOARD_WAVESHARE)
 #define USE_ST7789VSERIAL
 #define USE_SDCARD
 #define USE_ARDUINOJOYSTICK
 #define USE_I2SSOUND
-#elif defined(BOARD_LEDMATRIX)
+#elif defined(BOARD_LEDMATRIX1)
 #define USE_LEDMATRIXDISPLAY
 #define USE_NOFS
 #define USE_NOJOYSTICK
 #define USE_NOSOUND
+#define USE_PSRAM
+#elif defined(BOARD_LEDMATRIX2)
+#define USE_LEDMATRIXDISPLAY
+#define USE_NOFS
+#define USE_NOJOYSTICK
+#define USE_I2SSOUND
 #define USE_PSRAM
 #endif
 
@@ -191,6 +197,8 @@ struct Config {
 
 #elif defined(BOARD_CYD)
 
+#define HAS_DEFAULT_VOLUME
+
 struct Config {
   // --- constants to be defined for each board ---
 
@@ -211,7 +219,7 @@ struct Config {
   static const uint16_t LCDHEIGHT = 240;
 
   // Sound
-  static const uint8_t DEFAULT_VOLUME = 128;
+  static const uint8_t DEFAULT_VOLUME = 1;
   static const uint8_t I2S_DOUT = 26;
 
   // SDCard
@@ -291,7 +299,7 @@ struct Config {
       "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
 };
 
-#elif defined(BOARD_LEDMATRIX)
+#elif defined(BOARD_LEDMATRIX1)
 
 struct Config {
   // delay until next display refresh
@@ -309,12 +317,12 @@ struct Config {
   static const uint16_t C64HEIGHT = 240;
   static const uint16_t LEDMATRIXWIDTH = 64;
   static const uint16_t LEDMATRIXHEIGHT = 64;
-  static const uint8_t IGNBORDERX = 32;
-  static const uint8_t IGNBORDERY = 4;
+  static const uint8_t LEDMATRIXIGNBORDERX = 32;
+  static const uint8_t LEDMATRIXIGNBORDERY = 4;
   static const uint8_t LEDMATRIXSCALEX =
-      (C64WIDTH - (2 * IGNBORDERX)) / LEDMATRIXWIDTH;
+      (C64WIDTH - (2 * LEDMATRIXIGNBORDERX)) / LEDMATRIXWIDTH;
   static const uint8_t LEDMATRIXSCALEY =
-      (C64HEIGHT - (2 * IGNBORDERY)) / LEDMATRIXHEIGHT;
+      (C64HEIGHT - (2 * LEDMATRIXIGNBORDERY)) / LEDMATRIXHEIGHT;
   static const uint8_t LEDMATRIXBRIGHTNESS = 128;
   static const uint8_t NUMPANELS = 1;
 
@@ -333,6 +341,62 @@ struct Config {
   static const uint8_t LAT = 40;
   static const uint8_t OE = 39;
   static const uint8_t CLK = 41;
+
+  // BLEKB
+  static constexpr const char *SERVICE_UUID =
+      "695ba701-a48c-43f6-9028-3c885771f19f";
+  static constexpr const char *CHARACTERISTIC_UUID =
+      "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
+};
+
+#elif defined(BOARD_LEDMATRIX2)
+
+struct Config {
+  // delay until next display refresh
+  static const uint8_t REFRESHDELAY = 15;
+
+  // "heuristic performance factor"
+  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
+
+  // filesystem
+  static constexpr const char *PATH = "";
+  static constexpr const char *CONFIGFILE = ".config.json";
+
+  // display driver
+  static const uint16_t C64WIDTH = 320;
+  static const uint16_t C64HEIGHT = 240;
+  static const uint16_t LEDMATRIXWIDTH = 128;
+  static const uint16_t LEDMATRIXHEIGHT = 64;
+  static const uint8_t LEDMATRIXIGNBORDERX = 32;
+  static const uint8_t LEDMATRIXIGNBORDERY = 4;
+  static const uint8_t LEDMATRIXSCALEX =
+      (C64WIDTH - (2 * LEDMATRIXIGNBORDERX)) / LEDMATRIXWIDTH;
+  static const uint8_t LEDMATRIXSCALEY =
+      (C64HEIGHT - (2 * LEDMATRIXIGNBORDERY)) / LEDMATRIXHEIGHT;
+  static const uint8_t LEDMATRIXBRIGHTNESS = 128;
+  static const uint8_t NUMPANELS = 1;
+
+  // LEDMatrixDisplay
+  static const uint8_t R1 = 4;
+  static const uint8_t G1 = 17;
+  static const uint8_t B1 = 5;
+  static const uint8_t R2 = 6;
+  static const uint8_t G2 = 18;
+  static const uint8_t B2 = 7;
+  static const uint8_t CH_A = 15;
+  static const uint8_t CH_B = 3;
+  static const uint8_t CH_C = 16;
+  static const uint8_t CH_D = 46;
+  static const uint8_t CH_E = 8;
+  static const uint8_t LAT = 40;
+  static const uint8_t OE = 39;
+  static const uint8_t CLK = 41;
+
+  // Sound
+  static const uint8_t DEFAULT_VOLUME = 10;
+  static const uint8_t I2S_DOUT = 21;
+  static const uint8_t I2S_BCLK = 47;
+  static const uint8_t I2S_LRC = 45;
 
   // BLEKB
   static constexpr const char *SERVICE_UUID =

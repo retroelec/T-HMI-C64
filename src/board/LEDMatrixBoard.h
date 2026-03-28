@@ -18,7 +18,7 @@
 #define LEDMATRIXBOARD_H
 
 #include "../Config.h"
-#ifdef BOARD_LEDMATRIX
+#if defined(BOARD_LEDMATRIX1) || defined(BOARD_LEDMATRIX2)
 #include "BoardDriver.h"
 
 class LEDMatrixBoard : public BoardDriver {

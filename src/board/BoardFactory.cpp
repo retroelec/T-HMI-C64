@@ -28,7 +28,7 @@
 #include "CYD.h"
 #elif defined(BOARD_WAVESHARE)
 #include "Waveshare.h"
-#elif defined(BOARD_LEDMATRIX)
+#elif defined(BOARD_LEDMATRIX1) || defined(BOARD_LEDMATRIX2)
 #include "LEDMatrixBoard.h"
 #elif defined(BOARD_LINUX)
 #include "Linux.h"
@@ -46,7 +46,7 @@ BoardDriver *create() {
   return new CYD();
 #elif defined(BOARD_WAVESHARE)
   return new Waveshare();
-#elif defined(BOARD_LEDMATRIX)
+#elif defined(BOARD_LEDMATRIX1) || defined(BOARD_LEDMATRIX2)
   return new LEDMatrixBoard();
 #elif defined(BOARD_LINUX)
   return new Linux();

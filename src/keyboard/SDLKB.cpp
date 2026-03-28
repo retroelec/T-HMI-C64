@@ -18,12 +18,15 @@
 #ifdef USE_SDL_KEYBOARD
 #include "../ExtCmd.h"
 #include "../ExtCmdQueue.h"
+#include "../FileConfig.h"
 #include "SDLKB.h"
-#include "SDLKeymap.h"
+#include "SDLKeyboardFactory.h"
+#include "SDLKeyboardLayout.h"
 #include "platform/PlatformManager.h"
 #include <SDL2/SDL.h>
 #include <cstdint>
 #include <mutex>
+#include <optional>
 #include <queue>
 
 static const char *TAG = "SDLKB";
@@ -32,10 +35,24 @@ static const uint8_t CHARPIXSIZE = 4;
 extern void drawChar(SDL_Renderer *ren, uint16_t c, uint16_t x, uint16_t y,
                      uint8_t size);
 
+SDLKB::SDLKB() = default;
+SDLKB::~SDLKB() = default;
+
 void SDLKB::setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode) {
   kbcode1 = code1;
   kbcode2 = code2;
   shiftctrlcode = ctrlcode;
+}
+
+std::optional<CodeTripleS> SDLKB::getKeyCodes(SDL_Keycode key, bool shift,
+                                              bool altGr) {
+  auto &map = keyboardLayout->getMapping();
+  KeySpec spec{key, shift, altGr};
+  auto it = map.find(spec);
+  if (it != map.end()) {
+    return it->second;
+  }
+  return std::nullopt;
 }
 
 void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
@@ -232,10 +249,11 @@ void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
       // C64 keys
       bool found = false;
       if (!((mod & KMOD_LCTRL) || (mod & KMOD_LALT))) {
-        KeySpec k{key, mod & KMOD_SHIFT, mod & KMOD_RALT};
-        auto it = keyMap.find(k);
-        if (it != keyMap.end()) {
-          auto [b1, b2, b3] = it->second;
+        bool shift = (SDL_GetModState() & KMOD_SHIFT);
+        bool altGr = (SDL_GetModState() & KMOD_RALT);
+        std::optional<CodeTripleS> c64Code = getKeyCodes(key, shift, altGr);
+        if (c64Code.has_value()) {
+          auto [b1, b2, b3] = c64Code.value();
           setCodes(b1, b2, b3);
           found = true;
         }
@@ -244,10 +262,9 @@ void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
           ((mod & KMOD_SHIFT) || (mod & KMOD_LCTRL) || (mod & KMOD_LALT))) {
         // fallback: no mapping found, but modifier shift, (left) ctrl or
         // commodore (= left alt) pressed?
-        KeySpec k{key, false, false};
-        auto it = keyMap.find(k);
-        if (it != keyMap.end()) {
-          auto [b1, b2, b3] = it->second;
+        std::optional<CodeTripleS> c64Code = getKeyCodes(key, false, false);
+        if (c64Code.has_value()) {
+          auto [b1, b2, b3] = c64Code.value();
           if (mod & KMOD_SHIFT) {
             b3 |= 1;
           } else if (mod & KMOD_LCTRL) {
@@ -288,8 +305,13 @@ void SDLKB::printHelpHint() {
 }
 
 void SDLKB::init() {
+  kbcode1 = 0xff;
+  kbcode2 = 0xff;
+  shiftctrlcode = 0;
   SDL_InitSubSystem(SDL_INIT_EVENTS);
   printHelpHint();
+  std::string sdlkeyboardlayout = FileConfig::getSdlKeyboardLayout();
+  keyboardLayout = SDLKeyboardFactory::createFromString(sdlkeyboardlayout);
 }
 
 void SDLKB::syncAndCreateAttachWinSDL() {

@@ -104,10 +104,7 @@ void ST7789V::writeData(uint8_t data) {
 void ST7789V::init() {
   fill_lu_pinbitmask();
   esp_err_t err = config_lcd();
-  if (err != ESP_OK) {
-    throw std::runtime_error(std::string("init. of ST7789V failed: ") +
-                             esp_err_to_name(err));
-  }
+  ESP_ERROR_CHECK(err);
 
   GPIO.out_w1tc = CSVAL;
 

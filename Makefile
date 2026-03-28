@@ -1,14 +1,15 @@
 # choose board
-BOARD := T_HMI
+#BOARD := T_HMI
 #BOARD := T_DISPLAY_S3
 #BOARD := WAVESHARE
-#BOARD := CYD
-#BOARD := LEDMATRIX
+BOARD := CYD
+#BOARD := LEDMATRIX1
+#BOARD := LEDMATRIX2
 
 # choose keyboard
-KEYBOARD := BLE_KEYBOARD
+#KEYBOARD := BLE_KEYBOARD
 #KEYBOARD := WEB_KEYBOARD
-#KEYBOARD := NO_KEYBOARD
+KEYBOARD := NO_KEYBOARD
 
 ifeq ($(BOARD), CYD)
   ifneq ($(KEYBOARD), NO_KEYBOARD)
@@ -85,7 +86,8 @@ compileAll:
 	echo "\nCompiling for Board: CYD"; \
 	$(MAKE) clean compile BOARD=CYD KEYBOARD=NO_KEYBOARD || exit $$?; \
 	echo "\nCompiling for LEDMatrix"; \
-	$(MAKE) clean compile BOARD=LEDMATRIX KEYBOARD=BLE_KEYBOARD || exit $$?; \
+	$(MAKE) clean compile BOARD=LEDMATRIX1 KEYBOARD=BLE_KEYBOARD || exit $$?; \
+	$(MAKE) clean compile BOARD=LEDMATRIX2 KEYBOARD=BLE_KEYBOARD || exit $$?; \
 
 # first you have to get the docker image:
 # podman pull docker.io/retroelec42/arduino-cli-thmic64:latest

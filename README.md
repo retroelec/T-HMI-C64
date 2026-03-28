@@ -4,7 +4,7 @@ A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hm
 The emulator was later expanded to support the
 [Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI), the [ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm)
 and the [ESP32 CYD board](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display).
-The emulator is also running on an ESP32-S3-WROOM with a 64x64 LED matrix panel.
+The emulator is also running on an ESP32-S3 with a 64x64 or a 128x64 LED matrix panel.
 
 Keyboard input is implemented via a custom Android app or via a web interface.  
 The Android app communicates with the emulator via Bluetooth Low Energy (BLE).
@@ -16,6 +16,8 @@ The code should also be portable to other ESP32-S3 boards (and even other platfo
 The emulator is also available as a Linux, Mac and Windows application using SDL for graphics, input, and sound.
 
 [![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
+
+![Build Status](https://github.com/retroelec/T-HMI-C64/actions/workflows/build.yml/badge.svg)
 
 Contact: retroelec42@gmail.com
 
@@ -111,11 +113,11 @@ If you have any questions about the gamepad, please contact Uli directly.
 ### CYD
 
 The "Cheap Yellow Display" (CYD) board (ESP32-2432S028) runs with an ESP32 (unlike the boards above, which use an ESP32-S3).  
-The board has too little RAM to activate the BLE or Wi-Fi keyboard. Therefore, the emulator can only be operated in "joystick-only" mode.
+The board has too little RAM to activate Bluetooth or Wi-Fi. Therefore, the emulator can only be operated in "joystick-only" mode.
 The "joystick-only" mode is activated pressing the fire button for two seconds.
 The CYD board only has three free GPIO pins, so there is no pin for a second fire button.  
 Furthermore, the LCD and SD card share the same SPI bus, resulting in a small amount of additional code in central routines.  
-Currently, sound output is not yet implemented.
+The sound is bad and very loud. Therefore, I mechanically reduced the volume of my speaker (with tape).
 
 <img src="doc/CYD.png" alt="CYD" width="800"/>
 
@@ -129,7 +131,7 @@ Joystick connections:
 
 Switch voltage to 3.3V on the Arduino joystick module.
 
-### ESP32-S3-WROOM with a 64x64 LED matrix panel
+### ESP32-S3-WROOM with a 64x64 or a 128x64 LED matrix panel
 
 The following pins of a standard ESP32-S3-WROOM module are connected to a 64x64 LED matrix panel as follows:
 
@@ -234,8 +236,10 @@ Afterwards you can upload the binary files:
 make upload
 
 Binary files for the development boards can also be downloaded from https://github.com/retroelec/T-HMI-C64/actions
-(select the latest run to see the artifacts, you must be logged in to download the binary files),
-so you don't have to compile them yourself if you don't want to.
+(select the latest run to see the artifacts, you must be logged in to download the binary files).
+Alternatively, you can also download the files from https://github.com/retroelec/T-HMI-C64/releases
+(you do not need to be logged in for this, however, the latest binaries may not be available here).
+So you don't have to compile the binary files yourself if you don't want to.
 The available zip files also contain scripts (flash.sh and flash.bat) to upload the binary file (see also README.md in the zip file).
 
 ### Compile and upload code for the BLE joystick
@@ -263,24 +267,18 @@ You may follow these steps to install the app on your Android device (there may 
 3. After the app has been downloaded, a message appears which allows you to open the file.
    Click on open and follow the on-screen instructions to complete the installation.
 
-### Build emulator for Linux
+### Build emulator for Linux / Mac / Windows
 
-To build the Linux version, you need to have the GNU C++ compiler and GNU Make installed.
+To build the Linux / Mac version, you need to have the GNU C++ compiler and GNU Make installed.
 You also need the SDL2 development libraries, which can be installed with:  
-sudo apt install libsdl2-dev
+Linux: sudo apt install libsdl2-dev  
+Mac: brew install sdl2
 
 Once the dependencies are installed, you can compile the emulator using:  
-make c64linux
+Linux: make c64linux  
+Mac: make c64mac
 
-To start the emulator, run ./c64linux in a shell.
-Press RightShift + H in the emulator window to display a simple help page on the emulated C64 screen.
-
-### Build emulator for Mac
-
-Install the GNU C++ compiler, GNU Make aud the SDL2 development libraries and compile using:  
-make c64mac
-
-### Build emulator for Windows
+The emulator can be started using ./c64linux / ./c64mac in a shell.
 
 Follow these steps to build the emulator for Windows:  
 
@@ -288,9 +286,11 @@ Follow these steps to build the emulator for Windows:
 - Get docker image: podman pull docker.io/retroelec42/sdl2-cross:latest
 - Create executable: make c64win.exe
 
-The exe can also be downloaded from https://github.com/retroelec/T-HMI-C64/actions.
+The windows exe can also be downloaded from https://github.com/retroelec/T-HMI-C64/actions
+or https://github.com/retroelec/T-HMI-C64/releases.
 
-On Windows, the emulator consumes a lot of CPU time due to busy-waits, since the available sleep functions are too coarse-grained.
+Under Windows, the emulator consumes a relatively large amount of CPU time due to busy waiting, as the available sleep functions
+are too coarse.
 (The CPU time on Windows can be reduced by commenting out #WINDOWS_BUSYWAIT in Config.h, however this results in a delay in audio output.)
 
 </details>
@@ -348,11 +348,6 @@ the flippers of “David's Midnight Magic” have been outsourced to a separate 
 When you open this screen, the options "Send raw keycodes" and "Detect key release" are automatically enabled.
 When you close this screen again, both options are reset to the previous values.
 
-#### Playing with two joysticks
-
-With the Arduino joystick, which is directly connected to the emulator, and the BLE joystick, you have two joysticks available.
-It is therefore possible to play games with two players.
-
 ### Web keyboard
 
 If you choosed the web keyboard (Makefile: KEYBOARD := WEB_KEYBOARD), the emulator starts a web server to allow
@@ -399,6 +394,14 @@ While a game is running, the OSD allows you to trigger essential commands:
 Hint: Pressing the spacebar can usually also be simulated by pressing the joystick's fire button
 (button 1 for joystick in port 1, button 2 for joystick in port 2).
 
+### BLE joystick
+
+The emulator supports two different joystick interfaces: a "hardware joystick" (connected directly to the ESP32-S3) and a "BLE joystick" (or "keyboard joystick").
+Once the "BLE joystick" has connected to the C64 emulator, it is automatically configured as a port2 joystick.
+Pressing the "JoyOnlyMode button" (usually the fire2 button) for at least 2 seconds will change the joystick port.
+
+If both a "hardware joystick" and a "BLE joystick" are available, then games for two players can also be played.
+
 ### Load a program from SD card
 
 You first have to copy C64 games in prg or d64 format to an SD card
@@ -432,6 +435,49 @@ The LIST button shows the programs on the SD card in a paginated list.
 ### Send a program by BLE
 
 You can also send a programm from your Android device to the emulator (DIV screen, SENDPRG Button).
+
+### Config file
+
+Optionally, a .config.json file can be copied to the SD card (resp. to the c64prg directory for the Linux/Mac/Windows version).
+The following example shows the configuration options:
+
+- automatically load and start game "dkong"
+- set keyboard layout for the SDL version of the emulator (possible values: "ch", "de", "us")
+- add additional keycodes to send to the emulator in joystick-only mode
+
+
+```json
+{
+  "version": 1,
+
+  "autostart": "dkong",
+
+  "sdlkeyboardlayout": "ch",
+
+  "joystickOnly": {
+    "keycodes": [
+      {
+        "text":    [32, 6, 53],
+        "c64keycode": "C64_KEYCODE_F5"
+      },
+      {
+        "text":    [32, 6, 55],
+        "c64keycode": "C64_KEYCODE_F7"
+      }
+    ]
+  }
+}
+```
+
+### Linux / Mac / Windows
+
+- Create a subdirectory c64prgs in the directory containing the executable
+- Copy the c64 rom/disk files (.prg and .d64) to this directory
+- Configure the keyboard layout in a file .config.json (see previous chapter) and copy it also to this directory
+- Start the emulator
+- Press rctrl + h in the emulator window to display a simple help page on the emulated C64 screen
+- You can use rctrl-a to attach a .d64 file
+- You can use rctrl-k and rctrl-j to configure a keyboard joystick and a "real" joystick offering the possibilty to play two player games
 
 </details>
 
@@ -482,7 +528,7 @@ Features not emulated (list not exhaustive) resp. known bugs:
 - no "FLI border removal" / "sideborder removal"
 - synchronization is rasterline-based, not cycle-exact
 - rarly C64 CPU is blocked after loading a game
-- bad sound for the CYD board, deactivated by default
+- CYD: bad and loud sound, rarly display freezes after loading a game
 
 Since only a rudimentary disk drive emulation is available, only a few "multi-load" games can be played
 (e.g. Summer Games, World Games, The Dallas Quest).
