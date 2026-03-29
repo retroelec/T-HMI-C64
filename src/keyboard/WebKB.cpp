@@ -482,7 +482,7 @@ void WebKB::startCaptivePortal() {
   WiFi.softAP(AP_SSID, AP_PASSWORD);
 
   PlatformManager::getInstance().log(LOG_INFO, TAG,
-                                     "Wifi access point ip adress: %s",
+                                     "Wifi access point ip address: %s",
                                      WiFi.softAPIP().toString());
 
   dns_server.start(53, "*", WiFi.softAPIP());

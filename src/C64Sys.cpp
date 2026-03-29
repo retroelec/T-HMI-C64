@@ -914,7 +914,7 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   numofcycles = 0;
   numofcyclespersecond.store(0, std::memory_order_release);
   numofburnedcyclespersecond.store(0, std::memory_order_release);
-  perf.store(true, std::memory_order_release);
+  perf.store(false, std::memory_order_release);
   batteryVoltage.store(0, std::memory_order_release);
   poweroff.store(false, std::memory_order_release);
   FileConfig::loadConfig(*floppy.sysfile, std::string(Config::PATH) +
