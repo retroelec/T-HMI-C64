@@ -21,11 +21,9 @@
 #ifdef USE_WEB_KEYBOARD
 
 #include "../ExtCmdQueue.h"
+#include "../WiFiManager.h"
 #include "KeyboardDriver.h"
-#include <Arduino.h>
-#include <ESPAsyncDNSServer.h>
 #include <ESPAsyncWebServer.h>
-#include <Preferences.h>
 #include <atomic>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -66,25 +64,18 @@ public:
   void scanKeyboard() override;
 
 private:
+  void printIPAddress();
   void startWebServer();
   void handleWebsocketMessage(void *arg, uint8_t *data, size_t len);
   void processSingleKey(const char *type, const char *keyId, bool shift,
                         bool ctrl, bool comm);
-  void printIPAddress();
-  String getNetworksHTML();
-  void startCaptivePortal();
-  void connectToWiFi(const String &ssid, const String &pass);
 
   void setKBcodes(uint8_t sentdc01, uint8_t sentdc00) {
     uint16_t packed = (static_cast<uint16_t>(sentdc01) << 8) | sentdc00;
     dc01dc00.store(packed, std::memory_order_release);
   }
 
-  uint16_t port;
-  AsyncWebServer *server;
   AsyncWebSocket *ws;
-  AsyncDNSServer dns_server;
-  Preferences prefs;
 
   std::atomic<uint16_t> dc01dc00; // high byte = dc01, low byte = dc00
   std::atomic<uint8_t> shiftctrlcode{0};

@@ -18,7 +18,9 @@ class CPU6502
 class SID
 class Hooks
 class Floppy
-class ExtCmdQueue
+class ExtCmdQueue <<singleton>>
+class WiFiManager <<singleton>>
+class OtaManager
 
 component "Platform" as Platform
 
@@ -26,6 +28,7 @@ component "Board" as Board
 C64Emu --> Board
 
 C64Emu *-- C64Sys
+C64Emu ..> OtaManager
 
 component "Keyboard" as Keyboard
 C64Sys --> Keyboard

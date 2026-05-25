@@ -76,6 +76,17 @@
 // global defines
 #define AUDIO_SAMPLE_RATE 44100
 
+// OTA support (uncomment to enable)
+#define USE_OTA
+
+// WLAN Upload support (uncomment to enable)
+#define USE_WIFI_UPLOAD
+
+// WiFi is needed when OTA, Web-Keyboard or WLAN Upload is enabled
+#if defined(USE_OTA) || defined(USE_WEB_KEYBOARD) || defined(USE_WIFI_UPLOAD)
+#define USE_WIFI
+#endif
+
 #if defined(PLATFORM_LINUX) || defined(_WIN32)
 
 #define HAS_DEFAULT_VOLUME

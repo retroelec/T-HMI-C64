@@ -23,8 +23,8 @@ Contact: retroelec42@gmail.com
 
 ## News
 
-- BLE Joystick / SDL Joystick
-- Support for LED matrix panel
+- OTA
+- Upload code/data to C64 RAM via Wi-Fi
 
 ## Hardware
 
@@ -235,6 +235,9 @@ Furthermore, you may need to adjust the PORT variable.
 Afterwards you can upload the binary files:  
 make upload
 
+In repeated cases, the upload can also take place via OTA. In this case, the following command can be issued:  
+make uploadOTA
+
 Binary files for the development boards can also be downloaded from https://github.com/retroelec/T-HMI-C64/actions
 (select the latest run to see the artifacts, you must be logged in to download the binary files).
 Alternatively, you can also download the files from https://github.com/retroelec/T-HMI-C64/releases
@@ -435,6 +438,10 @@ The LIST button shows the programs on the SD card in a paginated list.
 ### Send a program by BLE
 
 You can also send a programm from your Android device to the emulator (DIV screen, SENDPRG Button).
+
+### Send a program by Wi-Fi
+
+You can also send a program to the emulator via Wi-Fi by using the Python script wifi_upload.py.
 
 ### Config file
 

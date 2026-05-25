@@ -16,6 +16,8 @@
 */
 #include "C64Emu.h"
 #include "Config.h"
+#include "OtaManager.h"
+#include "WiFiManager.h"
 #include "board/BoardFactory.h"
 #include "platform/PlatformFactory.h"
 #include "platform/PlatformManager.h"
@@ -95,6 +97,30 @@ void C64Emu::setup() {
   board = Board::create();
   board->init();
 
+// initialize WiFiManager if any WiFi feature is enabled
+#ifdef ESP_PLATFORM
+#if defined(USE_WIFI)
+  // initialize the singleton WiFiManager
+  WiFiManager::getInstance()->init();
+
+// register OTA callback if enabled
+#ifdef USE_OTA
+  // Initialize OTA manager (registers callback and starts if already connected)
+  OtaManager::init();
+#endif
+
+// register WiFi upload callback if enabled
+// upload functionality should be available regardless of keyboard type
+#if defined(USE_WIFI_UPLOAD)
+  WiFiManager::getInstance()->addConnectedCallback([]() {
+    PlatformManager::getInstance().log(LOG_INFO, "WIFI_UPLOAD",
+                                       "WiFi ready for uploads");
+  });
+#endif
+
+#endif // USE_WIFI
+#endif // ESP_PLATFORM
+
   // init. instance variables
   cntSecondsForBatteryCheck =
       295; // wait 5 seconds for first battery measurement
@@ -104,6 +130,13 @@ void C64Emu::setup() {
 
   // init CPU
   cpu.init(ram, charset_rom);
+
+// set RAM pointer for WiFi upload functionality
+#ifdef ESP_PLATFORM
+#if defined(USE_WIFI_UPLOAD)
+  WiFiManager::getInstance()->setRamPointer(ram);
+#endif
+#endif
 
   // start cpu task
   using namespace std::placeholders;
@@ -118,6 +151,11 @@ void C64Emu::setup() {
 }
 
 void C64Emu::loop() {
+#ifdef ESP_PLATFORM
+#ifdef USE_OTA
+  OtaManager::handle();
+#endif
+#endif
   PlatformManager::getInstance().lock();
   cpu.vic.refresh();
   PlatformManager::getInstance().unlock();

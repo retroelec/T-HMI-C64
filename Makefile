@@ -1,7 +1,7 @@
 # choose board
-#BOARD := T_HMI
+BOARD := T_HMI
 #BOARD := T_DISPLAY_S3
-BOARD := WAVESHARE
+#BOARD := WAVESHARE
 #BOARD := CYD
 #BOARD := LEDMATRIX1
 #BOARD := LEDMATRIX2
@@ -38,14 +38,19 @@ BUILD_EXTRA_FLAGS := -DBOARD_$(BOARD) -DUSE_$(KEYBOARD) -DESP32
 ifeq ($(BOARD), WAVESHARE)
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
   BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
-else ifeq ($(BOARD), LEDMATRIX)
+else ifeq ($(BOARD), LEDMATRIX1)
+  # ESP32-S3-WROOM1 N8R2 -> (2 MB Quad-SPI PSRAM) -> PSRAM=enabled
+  FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=enabled,PartitionScheme=default_8MB
+  BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
+else ifeq ($(BOARD), LEDMATRIX2)
+  # ESP32-S3-WROOM1 N16R8 -> (8 MB Octal-SPI PSRAM) -> PSRAM=opi
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=opi,PartitionScheme=default_8MB
   BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
 else
   ifeq ($(BOARD),CYD)
     FQBN := esp32:esp32:esp32:FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,LoopCore=0,DebugLevel=info
   else
-    FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info
+    FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
     BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
   endif
 endif
@@ -96,6 +101,9 @@ podcompile:	arduino/C64Emu/C64Emu.ino $(SOURCEFILES) $(HEADERFILES)
 
 upload:
 	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build-$(BOARD)-$(KEYBOARD)/C64Emu.ino.bin
+
+uploadOTA:
+	arduino-cli upload -p $$(arduino-cli board list | grep network | awk '{ print $$1 }') --fqbn $(FQBN) --discovery-timeout 30s --upload-field password= -i build-$(BOARD)-$(KEYBOARD)/C64Emu.ino.bin
 
 uploadBLEJoystick:
 	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build-$(BOARD)-BLEJoystick/BLEJoystick.ino.bin

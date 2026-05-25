@@ -21,60 +21,22 @@
 
 #include "../ExtCmd.h"
 #include "../ExtCmdQueue.h"
+
+#include "../WiFiManager.h"
 #include "../platform/PlatformManager.h"
 #include "SDLKeySpec.h"
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
 #include <WiFi.h>
 #include <cctype>
+#include <cstdlib>
 #include <set>
+#include <vector>
 
 // html/css/javascript web keyboard
 #include "htmlcode.h"
 
 static const char *TAG = "WEBKB";
-
-// web conf portal
-#define AP_SSID "T-HMI-C64"
-#define AP_PASSWORD ""
-#define DNS_PORT 53
-
-const char *portalHTML = R"rawliteral(
-	<!DOCTYPE html>
-	<html>
-	<head>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta charset="UTF-8">
-		<title>C64 WLAN SETUP</title>
-		<style>
-			body { font-family: sans-serif; background:#f2f2f2; padding:20px; }
-			h2 { text-align:center; }
-			select, input, button {
-			  box-sizing: border-box;	
-			  width:100%; padding:12px; margin:10px 0;
-			  border-radius:6px; border:1px solid #ccc;
-			}
-			button { background:#007bff; color:white; font-size:16px; }
-		</style>
-		</head>
-		<body>
-		<h2>SELECT WLAN:</h2>
-		<form action="/save" method="POST" accept-charset="UTF-8">
-			<select id="networks">%NETWORKS%</select>
-			<input type="text" id="ssid" name="ssid" placeholder="NETWORK (SSID)" required>
-			<input type="password" name="password" placeholder="PASSWORD">
-			<button type="submit">CONNECT</button>
-		</form>
-		</body>
-		<script>
-			document.getElementById('networks').addEventListener('change', function () {
-    		if (this.value) {
-        		document.getElementById('ssid').value = this.value;
-    		}
-		});
-		</script>
-	</html>
-)rawliteral";
 
 const CodeTriple C64_KEYCODE_BREAK = {0x7f, 0x7f, 0x80};
 const CodeTriple C64_KEYCODE_RETURN = {0xfe, 0xfd, 0x00};
@@ -345,44 +307,43 @@ const KeyMapEntry c64KeyMap[] = {
     {"char:F8", false, false, false, {C64_KEYCODE_F8}},
 };
 
-WebKB::WebKB(uint16_t port) : port(port) {}
+WebKB::WebKB(uint16_t port) : ws(nullptr) {}
 
 WebKB::~WebKB() {
   if (ws) {
     ws->closeAll();
     delete ws;
   }
-  if (server)
-    delete server;
 }
 
-struct TimerContext {
-  std::function<void()> timerFunction;
-  esp_timer_handle_t handle;
-};
+void WebKB::init() {
+  queueSem = xSemaphoreCreateBinary();
+  xSemaphoreGive(queueSem);
 
-void IRAM_ATTR genericCallback(void *arg) {
-  TimerContext *ctx = static_cast<TimerContext *>(arg);
-  if (ctx->timerFunction) {
-    ctx->timerFunction();
+  currentKey.dc0 = 0xff;
+  currentKey.dc1 = 0xff;
+  currentKey.shift = 0;
+  currentKey.active = false;
+  currentKey.holdTicks = 0;
+
+  // start with joystickmode 2 at startup
+  extcmd.cmd = ExtCmd::JOYSTICKMODE2;
+  ExtCmdQueue::getInstance().push(extcmd);
+
+  // init WiFi with callback to start web keyboard server
+  WiFiManager::getInstance()->init([this]() {
+    extcmd.cmd = ExtCmd::WAIT;
+    extcmd.param[0] = 150;
+    ExtCmdQueue::getInstance().push(extcmd);
+    printIPAddress();
+    startWebServer();
+  });
+
+  // If WiFi is already connected, start web server immediately
+  if (WiFiManager::getInstance()->isConnected()) {
+    printIPAddress();
+    startWebServer();
   }
-  esp_timer_stop(ctx->handle);
-  esp_timer_delete(ctx->handle);
-  delete ctx;
-}
-
-void startOneShotTimer(std::function<void()> timerFunction, uint64_t delay_ms) {
-  auto *ctx = new TimerContext{timerFunction, nullptr};
-  esp_timer_create_args_t timerArgs = {.callback = &genericCallback,
-                                       .arg = ctx,
-                                       .dispatch_method = ESP_TIMER_TASK,
-                                       .name = "PlatformESP32OneShot",
-                                       .skip_unhandled_events = false};
-  esp_timer_handle_t handle;
-  ESP_ERROR_CHECK(esp_timer_create(&timerArgs, &handle));
-  ctx->handle = handle;
-  uint64_t delay_us = delay_ms * 1000;
-  ESP_ERROR_CHECK(esp_timer_start_once(handle, delay_us));
 }
 
 static uint8_t ipaddrbox[] =
@@ -402,157 +363,23 @@ void WebKB::printIPAddress() {
   extcmd.param[8] = 10;
   extcmd.param[9] = 0;
   extcmd.param[10] = 1;
-  std::string ipString = std::string(WiFi.localIP().toString().c_str());
+  std::string ipString =
+      std::string(WiFiManager::getInstance()->getIPAddress().c_str());
   memcpy(&ipaddrbox[40], ipString.c_str(), ipString.length());
   memcpy(&extcmd.param[11], ipaddrbox, 28 * 3);
   extcmd.cmd = ExtCmd::WRITEOSD;
   ExtCmdQueue::getInstance().push(extcmd);
 }
 
-void WebKB::init() {
-  queueSem = xSemaphoreCreateBinary();
-  xSemaphoreGive(queueSem);
-
-  currentKey.dc0 = 0xff;
-  currentKey.dc1 = 0xff;
-  currentKey.shift = 0;
-  currentKey.active = false;
-  currentKey.holdTicks = 0;
-
-  PlatformManager::getInstance().log(LOG_INFO, TAG, "Init Wifi");
-
-  // create webserver instance
-  server = new AsyncWebServer(port);
-
-  // event callback to start the web service
-  WiFi.onEvent([this](WiFiEvent_t event, WiFiEventInfo_t info) {
-    if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
-      PlatformManager::getInstance().log(LOG_INFO, TAG,
-                                         "Wifi connected. IP address: %s",
-                                         WiFi.localIP().toString());
-      extcmd.cmd = ExtCmd::WAIT;
-      extcmd.param[0] = 150;
-      ExtCmdQueue::getInstance().push(extcmd);
-      printIPAddress();
-      startWebServer();
-    }
-  });
-
-  prefs.begin("wifi", true);
-  String storedSSID = prefs.getString("ssid", "");
-  String storedPASS = prefs.getString("pass", "");
-  prefs.end();
-
-  if (storedSSID.length()) {
-    connectToWiFi(storedSSID, storedPASS);
-  } else {
-    startCaptivePortal();
-  }
-
-  // start with joystickmode 2 at startup
-  extcmd.cmd = ExtCmd::JOYSTICKMODE2;
-  ExtCmdQueue::getInstance().push(extcmd);
-}
-
-// scan for wifi networks
-String WebKB::getNetworksHTML() {
-  int n = WiFi.scanNetworks();
-  String options;
-  std::set<String> seenSSIDs;
-
-  for (int i = 0; i < n; i++) {
-    String ssid = WiFi.SSID(i);
-
-    if (ssid.length() == 0)
-      continue;
-    if (seenSSIDs.find(ssid) != seenSSIDs.end())
-      continue;
-
-    seenSSIDs.insert(ssid);
-    options += "<option value='" + ssid + "'>" + ssid + "</option>";
-  }
-
-  return options;
-}
-
-// setup an access point and redirect to the captive portal
-void WebKB::startCaptivePortal() {
-
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(AP_SSID, AP_PASSWORD);
-
-  PlatformManager::getInstance().log(LOG_INFO, TAG,
-                                     "Wifi access point ip address: %s",
-                                     WiFi.softAPIP().toString());
-
-  dns_server.start(53, "*", WiFi.softAPIP());
-
-  server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
-    String page = portalHTML;
-    page.replace("%NETWORKS%", this->getNetworksHTML());
-    request->send(200, "text/html", page);
-  });
-
-  // Android / iOS captive portal triggers
-  server->on("/generate_204", HTTP_GET,
-             [](AsyncWebServerRequest *r) { r->redirect("/"); });
-  server->on("/hotspot-detect.html", HTTP_GET,
-             [](AsyncWebServerRequest *r) { r->redirect("/"); });
-  server->on("/connecttest.txt", HTTP_GET,
-             [](AsyncWebServerRequest *r) { r->redirect("/"); });
-
-  server->on("/save", HTTP_POST, [this](AsyncWebServerRequest *request) {
-    String new_ssid = request->getParam("ssid", true)->value();
-    String new_pass = request->getParam("password", true)->value();
-    request->send(200, "text/html", "<h3>REBOOTING AND CONNECTING...</h3>");
-
-    // save wifi data
-    prefs.begin("wifi", false);
-    prefs.putString("ssid", new_ssid);
-    prefs.putString("pass", new_pass);
-    prefs.end();
-    delay(1000);
-
-    // reboot
-    startOneShotTimer([]() { ESP.restart(); }, 2000);
-  });
-
-  server->begin();
-}
-
-void WebKB::connectToWiFi(const String &ssid, const String &pass) {
-
-  PlatformManager::getInstance().log(
-      LOG_INFO, TAG, "Trying to connect to ssid %s %s", ssid.c_str());
-
-  WiFi.mode(WIFI_STA);
-  delay(100);
-  WiFi.begin(ssid.c_str(), pass.c_str());
-
-  int attempts = 0;
-  const int maxAttempts = 60; // 30 seconds
-  while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {
-    delay(500);
-    attempts++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-
-    PlatformManager::getInstance().log(
-        LOG_INFO, TAG, "Connection to ssid %s established.", ssid);
-
-  } else {
-
-    PlatformManager::getInstance().log(LOG_INFO, TAG,
-                                       "Connection to ssid %s failed.", ssid);
-    WiFi.mode(WIFI_OFF);
-    delay(1000);
-    startCaptivePortal();
-  }
-}
-
 void WebKB::startWebServer() {
   PlatformManager::getInstance().log(LOG_INFO, TAG, "Starting web server...");
+
+  AsyncWebServer *server = WiFiManager::getInstance()->getServer();
+  if (!server) {
+    PlatformManager::getInstance().log(LOG_ERROR, TAG,
+                                       "No web server available");
+    return;
+  }
 
   ws = new AsyncWebSocket("/ws");
 

@@ -14,27 +14,22 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef T_DISPLAY_S3_H
-#define T_DISPLAY_S3_H
+#ifndef OTAMANAGER_H
+#define OTAMANAGER_H
 
-#include "../Config.h"
-#ifdef BOARD_T_DISPLAY_S3
-#include "../display/rm67162/rm67162.h"
-#include "BoardDriver.h"
-#include "esp_sleep.h"
+#ifdef ESP_PLATFORM
+#ifdef USE_OTA
 
-class T_DISPLAY_S3 : public BoardDriver {
+#include <ArduinoOTA.h>
+
+class OtaManager {
 public:
-  void init() override {}
-
-  uint16_t getBatteryVoltage() override { return 4000; }
-
-  void powerOff() override {
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)21, 0);
-    lcd_sleep();
-    esp_deep_sleep_start();
-  }
+  static void init();
+  static void start();
+  static void handle();
 };
-#endif
 
-#endif // T_DISPLAY_S3_H
+#endif // USE_OTA
+#endif // ESP_PLATFORM
+
+#endif // OTAMANAGER_H
