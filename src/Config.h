@@ -42,11 +42,15 @@
 #define USE_ARDUINOJOYSTICK
 #define USE_NOSOUND
 // #define USE_PSRAM
+#define USE_OTA
+#define USE_WIFI_UPLOAD
 #elif defined(BOARD_T_DISPLAY_S3)
 #define USE_RM67162
 #define USE_NOFS
 #define USE_NOJOYSTICK
 #define USE_NOSOUND
+#define USE_OTA
+#define USE_WIFI_UPLOAD
 #elif defined(BOARD_CYD)
 #define USE_ILI9341
 #define USE_SDCARDCYD
@@ -57,35 +61,35 @@
 #define USE_SDCARD
 #define USE_ARDUINOJOYSTICK
 #define USE_I2SSOUND
+#define USE_OTA
+#define USE_WIFI_UPLOAD
 #elif defined(BOARD_LEDMATRIX1)
 #define USE_LEDMATRIXDISPLAY
 #define USE_NOFS
 #define USE_NOJOYSTICK
 #define USE_NOSOUND
 #define USE_PSRAM
+#define USE_OTA
+#define USE_WIFI_UPLOAD
 #elif defined(BOARD_LEDMATRIX2)
 #define USE_LEDMATRIXDISPLAY
 #define USE_NOFS
 #define USE_NOJOYSTICK
 #define USE_I2SSOUND
 #define USE_PSRAM
+#define USE_OTA
+#define USE_WIFI_UPLOAD
+#endif
+
+// WiFi is needed when OTA, Web-Keyboard or WLAN Upload is enabled
+#if defined(USE_OTA) || defined(USE_WEB_KEYBOARD) || defined(USE_WIFI_UPLOAD)
+#define USE_WIFI
 #endif
 
 #endif
 
 // global defines
 #define AUDIO_SAMPLE_RATE 44100
-
-// OTA support (uncomment to enable)
-#define USE_OTA
-
-// WLAN Upload support (uncomment to enable)
-#define USE_WIFI_UPLOAD
-
-// WiFi is needed when OTA, Web-Keyboard or WLAN Upload is enabled
-#if defined(USE_OTA) || defined(USE_WEB_KEYBOARD) || defined(USE_WIFI_UPLOAD)
-#define USE_WIFI
-#endif
 
 #if defined(PLATFORM_LINUX) || defined(_WIN32)
 
