@@ -31,6 +31,8 @@
 #include "SDLDisplay.h"
 #elif defined(USE_LEDMATRIXDISPLAY)
 #include "LEDMatrixDisplay.h"
+#elif defined(USE_NODISPLAY)
+#include "NoDisplay.h"
 #else
 #error "no valid display driver defined"
 #endif
@@ -49,6 +51,8 @@ DisplayDriver *create() {
   return new SDLDisplay();
 #elif defined(USE_LEDMATRIXDISPLAY)
   return new LEDMatrixDisplay();
+#elif defined(USE_NODISPLAY)
+  return new NoDisplay();
 #endif
 }
 } // namespace Display

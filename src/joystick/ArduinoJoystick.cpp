@@ -21,7 +21,6 @@
 #include <driver/gpio.h>
 #include <esp_adc/adc_oneshot.h>
 #include <soc/gpio_struct.h>
-#include <stdexcept>
 
 static const char *TAG = "ArduinoJoystick";
 

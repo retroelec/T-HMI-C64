@@ -30,6 +30,8 @@
 #include "Waveshare.h"
 #elif defined(BOARD_LEDMATRIX1) || defined(BOARD_LEDMATRIX2)
 #include "LEDMatrixBoard.h"
+#elif defined(BOARD_LOLIN_C3_PICO)
+#include "LOLIN_C3_PICO.h"
 #elif defined(BOARD_LINUX)
 #include "Linux.h"
 #else
@@ -48,6 +50,8 @@ BoardDriver *create() {
   return new Waveshare();
 #elif defined(BOARD_LEDMATRIX1) || defined(BOARD_LEDMATRIX2)
   return new LEDMatrixBoard();
+#elif defined(BOARD_LOLIN_C3_PICO)
+  return new LOLIN_C3_PICO();
 #elif defined(BOARD_LINUX)
   return new Linux();
 #endif

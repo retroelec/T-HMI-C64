@@ -202,6 +202,7 @@ void loop() {
     }
     bool fire2 = joystick->getFire2();
     if (fire2) {
+      PlatformManager::getInstance().log(LOG_INFO, TAG, "fire2");
       if (!oldFire2) {
         oldFire2 = true;
         // send space key
@@ -219,6 +220,9 @@ void loop() {
       }
     }
     uint8_t joyVal = joystick->getValue();
+    if (joyVal != 0xff) {
+      PlatformManager::getInstance().log(LOG_INFO, TAG, "joyval = %d", joyVal);
+    }
     cnt--;
     if ((joyVal != oldJoyVal) || (cnt == 0)) {
       cnt = 5;

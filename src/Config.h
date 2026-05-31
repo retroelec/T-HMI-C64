@@ -79,6 +79,11 @@
 #define USE_PSRAM
 #define USE_OTA
 #define USE_WIFI_UPLOAD
+#elif defined(BOARD_LOLIN_C3_PICO)
+#define USE_NODISPLAY
+#define USE_NOFS
+#define USE_C64JOYSTICK
+#define USE_NOSOUND
 #endif
 
 // WiFi is needed when OTA, Web-Keyboard or WLAN Upload is enabled
@@ -412,6 +417,34 @@ struct Config {
   static const uint8_t I2S_DOUT = 21;
   static const uint8_t I2S_BCLK = 47;
   static const uint8_t I2S_LRC = 45;
+
+  // BLEKB
+  static constexpr const char *SERVICE_UUID =
+      "695ba701-a48c-43f6-9028-3c885771f19f";
+  static constexpr const char *CHARACTERISTIC_UUID =
+      "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
+};
+
+#elif defined(BOARD_LOLIN_C3_PICO)
+
+struct Config {
+  // delay until next display refresh
+  static const uint8_t REFRESHDELAY = 15;
+
+  // "heuristic performance factor"
+  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
+
+  // filesystem
+  static constexpr const char *PATH = "";
+  static constexpr const char *CONFIGFILE = ".config.json";
+
+  // Joystick
+  static const uint8_t JOYSTICK_UP_PIN = 0;
+  static const uint8_t JOYSTICK_DOWN_PIN = 1;
+  static const uint8_t JOYSTICK_LEFT_PIN = 2;
+  static const uint8_t JOYSTICK_RIGHT_PIN = 3;
+  static const uint8_t JOYSTICK_FIRE_PIN = 4;
+  static const uint8_t JOYSTICK_FIRE2_PIN = 9;
 
   // BLEKB
   static constexpr const char *SERVICE_UUID =

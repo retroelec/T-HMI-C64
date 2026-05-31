@@ -24,6 +24,8 @@
 #include "ArduinoJoystick.h"
 #elif defined(USE_ARDUINOJOYSTICKCYD)
 #include "ArduinoJoystickCYD.h"
+#elif defined(USE_C64JOYSTICK)
+#include "C64Joystick.h"
 #elif defined(USE_NOJOYSTICK)
 #include "NoJoystick.h"
 #elif defined(USE_SDLJOYSTICK)
@@ -38,6 +40,8 @@ JoystickDriver *create() {
   return new ArduinoJoystick();
 #elif defined(USE_ARDUINOJOYSTICKCYD)
   return new ArduinoJoystickCYD();
+#elif defined(USE_C64JOYSTICK)
+  return new C64Joystick();
 #elif defined(USE_SDLJOYSTICK)
   return new SDLJoystick();
 #elif defined(USE_NOJOYSTICK)

@@ -1,14 +1,15 @@
 # choose board
-BOARD := T_HMI
+#BOARD := T_HMI
 #BOARD := T_DISPLAY_S3
 #BOARD := WAVESHARE
 #BOARD := CYD
 #BOARD := LEDMATRIX1
 #BOARD := LEDMATRIX2
+BOARD := LOLIN_C3_PICO
 
 # choose keyboard
-#KEYBOARD := BLE_KEYBOARD
-KEYBOARD := WEB_KEYBOARD
+KEYBOARD := BLE_KEYBOARD
+#KEYBOARD := WEB_KEYBOARD
 #KEYBOARD := NO_KEYBOARD
 
 ifeq ($(BOARD), CYD)
@@ -46,13 +47,13 @@ else ifeq ($(BOARD), LEDMATRIX2)
   # ESP32-S3-WROOM1 N16R8 -> (8 MB Octal-SPI PSRAM) -> PSRAM=opi
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=opi,PartitionScheme=default_8MB
   BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
+else ifeq ($(BOARD), CYD)
+  FQBN := esp32:esp32:esp32:FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,LoopCore=0,DebugLevel=info
+else ifeq ($(BOARD), LOLIN_C3_PICO)
+  FQBN := esp32:esp32:lolin_c3_pico:DebugLevel=info
 else
-  ifeq ($(BOARD),CYD)
-    FQBN := esp32:esp32:esp32:FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,LoopCore=0,DebugLevel=info
-  else
-    FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
-    BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
-  endif
+  FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
+  BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
 endif
 
 .DEFAULT_GOAL := compile
