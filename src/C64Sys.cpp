@@ -594,8 +594,10 @@ void C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
       if (floppy.fsinitialized) {
         std::string filename;
         bool success = false;
+        bool startflag = liststartflag;
         while (true) {
-          success = floppy.listnextentry(filename, liststartflag);
+          success = floppy.listnextentry(filename, startflag);
+          startflag = false; // advance on subsequent iterations
           if (filename.size() > 4 &&
               filename.compare(filename.size() - 4, 4, ".prg") == 0) {
             break;
