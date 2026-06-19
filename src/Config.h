@@ -106,9 +106,6 @@ struct Config {
   // delay until next display refresh
   static const uint8_t REFRESHDELAY = 20;
 
-  // "heuristic performance factor"
-  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
-
   // audio
   static const uint8_t DEFAULT_VOLUME = 10;
 
@@ -133,9 +130,6 @@ struct Config {
 
   // delay until next display refresh
   static const uint8_t REFRESHDELAY = 0;
-
-  // "heuristic performance factor"
-  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
 
   // --- driver specific constants ---
 
@@ -192,9 +186,6 @@ struct Config {
   // delay until next display refresh
   static const uint8_t REFRESHDELAY = 13;
 
-  // "heuristic performance factor"
-  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
-
   // --- driver specific constants ---
 
   // power
@@ -223,10 +214,7 @@ struct Config {
   // --- constants to be defined for each board ---
 
   // delay until next display refresh
-  static const uint8_t REFRESHDELAY = 1;
-
-  // "heuristic performance factor"
-  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 0.5;
+  static const uint8_t REFRESHDELAY = 10;
 
   // --- driver specific constants ---
 
@@ -262,10 +250,7 @@ struct Config {
   // --- constants to be defined for each board ---
 
   // delay until next display refresh
-  static const uint8_t REFRESHDELAY = 5;
-
-  // "heuristic performance factor"
-  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 0.5;
+  static const uint8_t REFRESHDELAY = 11;
 
   // --- driver specific constants ---
 
@@ -325,9 +310,6 @@ struct Config {
   // delay until next display refresh
   static const uint8_t REFRESHDELAY = 15;
 
-  // "heuristic performance factor"
-  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
-
   // filesystem
   static constexpr const char *PATH = "";
   static constexpr const char *CONFIGFILE = ".config.json";
@@ -374,9 +356,6 @@ struct Config {
 struct Config {
   // delay until next display refresh
   static const uint8_t REFRESHDELAY = 15;
-
-  // "heuristic performance factor"
-  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
 
   // filesystem
   static constexpr const char *PATH = "";
@@ -430,9 +409,6 @@ struct Config {
 struct Config {
   // delay until next display refresh
   static const uint8_t REFRESHDELAY = 15;
-
-  // "heuristic performance factor"
-  static constexpr double HEURISTIC_PERFORMANCE_FACTOR = 1.0;
 
   // filesystem
   static constexpr const char *PATH = "";

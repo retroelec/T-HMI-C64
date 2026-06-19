@@ -2,19 +2,25 @@
 #BOARD := T_HMI
 #BOARD := T_DISPLAY_S3
 #BOARD := WAVESHARE
-#BOARD := CYD
+BOARD := CYD
 #BOARD := LEDMATRIX1
 #BOARD := LEDMATRIX2
-BOARD := LOLIN_C3_PICO
+#BOARD := LOLIN_C3_PICO
 
 # choose keyboard
-KEYBOARD := BLE_KEYBOARD
+#KEYBOARD := BLE_KEYBOARD
 #KEYBOARD := WEB_KEYBOARD
-#KEYBOARD := NO_KEYBOARD
+KEYBOARD := NO_KEYBOARD
 
 ifeq ($(BOARD), CYD)
   ifneq ($(KEYBOARD), NO_KEYBOARD)
     $(error FEHLER: If BOARD is set to CYD, KEYBOARD MUST have the value NO_KEYBOARD. (current: $(KEYBOARD)))
+  endif
+endif
+
+ifeq ($(BOARD), LOLIN_C3_PICO)
+  ifneq ($(KEYBOARD), BLE_KEYBOARD)
+    $(error FEHLER: If BOARD is set to LOLIN_C3_PICO, KEYBOARD MUST have the value BLE_KEYBOARD. (current: $(KEYBOARD)))
   endif
 endif
 
@@ -69,10 +75,17 @@ CLI_COMPILE = compile \
 	--build-property "build.extra_flags=$(BUILD_EXTRA_FLAGS)" \
 	--build-path $(BUILD_PATH)
 
+ifeq ($(BOARD), LOLIN_C3_PICO)
+compile:
+	@echo "ERROR: For LOLIN_C3_PICO board, only compileBLEJoystick and uploadBLEJoystick are supported"
+	@echo "       Please use: make compileBLEJoystick"
+	@exit 1
+else
 compile: SKETCH=arduino/C64Emu/C64Emu.ino
 compile: BUILD_PATH=build-$(BOARD)-$(KEYBOARD)
 compile: $(SOURCEFILES) $(HEADERFILES)
 	arduino-cli $(CLI_COMPILE) $(SKETCH)
+endif
 
 compileBLEJoystick: SKETCH=arduino/BLEJoystick/BLEJoystick.ino
 compileBLEJoystick: BUILD_PATH=build-$(BOARD)-BLEJoystick
@@ -100,11 +113,23 @@ compileAll:
 podcompile:	arduino/C64Emu/C64Emu.ino $(SOURCEFILES) $(HEADERFILES)
 	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli-thmic64 $(CLI_COMPILE)
 
+ifeq ($(BOARD), LOLIN_C3_PICO)
+upload:
+	@echo "ERROR: For LOLIN_C3_PICO board, only uploadBLEJoystick is supported"
+	@echo "       Please use: make uploadBLEJoystick"
+	@exit 1
+
+uploadOTA:
+	@echo "ERROR: For LOLIN_C3_PICO board, OTA upload is not supported"
+	@echo "       Please use: make uploadBLEJoystick"
+	@exit 1
+else
 upload:
 	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build-$(BOARD)-$(KEYBOARD)/C64Emu.ino.bin
 
 uploadOTA:
 	arduino-cli upload -p $$(arduino-cli board list | grep network | awk '{ print $$1 }') --fqbn $(FQBN) --discovery-timeout 30s --upload-field password= -i build-$(BOARD)-$(KEYBOARD)/C64Emu.ino.bin
+endif
 
 uploadBLEJoystick:
 	arduino-cli upload -p $(PORT) --fqbn $(FQBN) -i build-$(BOARD)-BLEJoystick/BLEJoystick.ino.bin

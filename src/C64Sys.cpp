@@ -845,8 +845,7 @@ void C64Sys::run() {
     // "throttle"
     numofcyclespersecond.fetch_add(numofcycles, std::memory_order_release);
     int64_t nominaltime =
-        lastMeasuredTime + Config::HEURISTIC_PERFORMANCE_FACTOR *
-                               ((vic.rasterline + 1) * 1000000 / 50 / 312);
+        lastMeasuredTime + ((vic.rasterline + 1) * 1000000 / 50 / 312);
     int64_t now = PlatformManager::getInstance().getTimeUS();
     if (nominaltime > now) {
       int64_t us = nominaltime - now;
