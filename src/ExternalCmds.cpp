@@ -519,6 +519,9 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     return 0;
   case ExtCmd::SETVOLUME:
     cpu->sid.setEmuVolume(cmd->param[0]);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "volume = %d",
+                                       cpu->sid.getEmuVolume());
+    dispVolume();
     return 0;
   case ExtCmd::INCVOLUME: {
     int16_t newVolume = cpu->sid.getEmuVolume() + cmd->param[0];
@@ -526,6 +529,8 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
       newVolume = 255;
     }
     cpu->sid.setEmuVolume(newVolume);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "volume = %d",
+                                       cpu->sid.getEmuVolume());
     dispVolume();
     setType1Notification();
     return 1;
@@ -536,6 +541,8 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
       newVolume = 0;
     }
     cpu->sid.setEmuVolume(newVolume);
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "volume = %d",
+                                       cpu->sid.getEmuVolume());
     dispVolume();
     setType1Notification();
     return 1;

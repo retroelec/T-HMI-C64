@@ -98,8 +98,6 @@
 
 #if defined(PLATFORM_LINUX) || defined(_WIN32)
 
-#define HAS_DEFAULT_VOLUME
-
 struct Config {
   // --- constants to be defined for each board ---
 
@@ -130,6 +128,9 @@ struct Config {
 
   // delay until next display refresh
   static const uint8_t REFRESHDELAY = 0;
+
+  // no sound
+  static const uint8_t DEFAULT_VOLUME = 0;
 
   // --- driver specific constants ---
 
@@ -186,6 +187,9 @@ struct Config {
   // delay until next display refresh
   static const uint8_t REFRESHDELAY = 13;
 
+  // no sound
+  static const uint8_t DEFAULT_VOLUME = 0;
+
   // --- driver specific constants ---
 
   // power
@@ -208,8 +212,6 @@ struct Config {
 
 #elif defined(BOARD_CYD)
 
-#define HAS_DEFAULT_VOLUME
-
 struct Config {
   // --- constants to be defined for each board ---
 
@@ -227,7 +229,7 @@ struct Config {
   static const uint16_t LCDHEIGHT = 240;
 
   // Sound
-  static const uint8_t DEFAULT_VOLUME = 1;
+  static const uint8_t DEFAULT_VOLUME = 128;
   static const uint8_t I2S_DOUT = 26;
 
   // SDCard
@@ -243,8 +245,6 @@ struct Config {
 };
 
 #elif defined(BOARD_WAVESHARE)
-
-#define HAS_DEFAULT_VOLUME
 
 struct Config {
   // --- constants to be defined for each board ---
@@ -313,6 +313,9 @@ struct Config {
   // filesystem
   static constexpr const char *PATH = "";
   static constexpr const char *CONFIGFILE = ".config.json";
+
+  // no sound
+  static const uint8_t DEFAULT_VOLUME = 0;
 
   // display driver
   static const uint16_t C64WIDTH = 320;
@@ -413,6 +416,9 @@ struct Config {
   // filesystem
   static constexpr const char *PATH = "";
   static constexpr const char *CONFIGFILE = ".config.json";
+
+  // no sound
+  static const uint8_t DEFAULT_VOLUME = 0;
 
   // Joystick
   static const uint8_t JOYSTICK_UP_PIN = 0;

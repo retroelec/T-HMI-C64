@@ -214,11 +214,7 @@ float SIDVoice::generateSample() {
 }
 
 void SID::init() {
-#ifdef HAS_DEFAULT_VOLUME
   setEmuVolume(Config::DEFAULT_VOLUME);
-#else
-  setEmuVolume(128);
-#endif
   c64Volume = 0.0f;
   actSampleIdx = 0;
   for (uint16_t i = 0; i < NUMSAMPLESPERFRAME; i++) {

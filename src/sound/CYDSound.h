@@ -20,66 +20,67 @@
 #include "../Config.h"
 #ifdef USE_CYDSOUND
 #include "SoundDriver.h"
-#include "driver/dac_oneshot.h"
-#include "soc/sens_reg.h"
-#include <driver/i2s_std.h>
+#include <cstring>
+#include <driver/dac_continuous.h>
 #include <freertos/FreeRTOS.h>
-
-#ifndef SENS_DAC_DIG_FORCE_M
-#define SENS_DAC_DIG_FORCE_M (BIT(2))
-#endif
-#ifndef SENS_DAC_I2S_EN_M
-#define SENS_DAC_I2S_EN_M (BIT(3))
-#endif
 
 class CYDSound : public SoundDriver {
 private:
-  i2s_chan_handle_t tx_channel = nullptr;
+  static constexpr size_t FRAMESIZE = AUDIO_SAMPLE_RATE / 50;
+
+  dac_continuous_handle_t dac_handle = nullptr;
+  uint8_t sampleBuf[FRAMESIZE];
+  size_t lastSize;
+
+  static bool onConvertDone(dac_continuous_handle_t handle,
+                            const dac_event_data_t *event, void *user_data) {
+    CYDSound *self = (CYDSound *)user_data;
+    if (self->lastSize > 0) {
+      size_t copy =
+          self->lastSize < event->buf_size ? self->lastSize : event->buf_size;
+      memcpy(event->buf, self->sampleBuf, copy);
+    }
+    return false;
+  }
 
 public:
   void init() override {
-    i2s_chan_config_t chan_cfg =
-        I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
-    chan_cfg.auto_clear = true;
-    chan_cfg.dma_desc_num = 16;
-    chan_cfg.dma_frame_num = 256;
-    ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &tx_channel, NULL));
+    memset(sampleBuf, 128, FRAMESIZE);
+    lastSize = 0;
 
-    i2s_std_config_t std_cfg = {
-        .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(AUDIO_SAMPLE_RATE),
-        .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(
-            I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
-        .gpio_cfg =
-            {
-                .mclk = I2S_GPIO_UNUSED,
-                .bclk = I2S_GPIO_UNUSED,
-                .ws = I2S_GPIO_UNUSED,
-                .dout = (gpio_num_t)Config::I2S_DOUT,
-                .din = I2S_GPIO_UNUSED,
-                .invert_flags = {},
-            },
+    dac_continuous_config_t cont_cfg = {
+        .chan_mask = DAC_CHANNEL_MASK_CH1,
+        .desc_num = 8,
+        .buf_size = 512,
+        .freq_hz = AUDIO_SAMPLE_RATE,
+        .offset = 0,
+        .clk_src = DAC_DIGI_CLK_SRC_DEFAULT,
+        .chan_mode = DAC_CHANNEL_MODE_SIMUL,
     };
+    ESP_ERROR_CHECK(dac_continuous_new_channels(&cont_cfg, &dac_handle));
 
-    ESP_ERROR_CHECK(i2s_channel_init_std_mode(tx_channel, &std_cfg));
-    ESP_ERROR_CHECK(i2s_channel_enable(tx_channel));
+    dac_event_callbacks_t cbs = {};
+    cbs.on_convert_done = onConvertDone;
+    ESP_ERROR_CHECK(
+        dac_continuous_register_event_callback(dac_handle, &cbs, this));
 
-    // DAC hardware routing
-    SET_PERI_REG_MASK(SENS_SAR_DAC_CTRL1_REG,
-                      SENS_DAC_DIG_FORCE_M | SENS_DAC_I2S_EN_M);
-    SET_PERI_REG_BITS(SENS_SAR_DAC_CTRL2_REG, SENS_DAC_INV2, 2,
-                      SENS_DAC_INV2_S);
+    ESP_ERROR_CHECK(dac_continuous_enable(dac_handle));
+    ESP_ERROR_CHECK(dac_continuous_start_async_writing(dac_handle));
   }
 
-  void playAudio(int16_t *samples, size_t size) {
-    size_t bw = 0;
-    ESP_ERROR_CHECK(
-        i2s_channel_write(tx_channel, samples, size, &bw, portMAX_DELAY));
+  void playAudio(int16_t *samples, size_t size) override {
+    size_t numSamples = size / sizeof(int16_t);
+    size_t n = numSamples < FRAMESIZE ? numSamples : FRAMESIZE;
+    for (size_t i = 0; i < n; i++) {
+      sampleBuf[i] = (samples[i] + 32768) >> 8;
+    }
+    lastSize = n;
   }
 
   ~CYDSound() {
-    if (tx_channel) {
-      i2s_channel_disable(tx_channel);
-      i2s_del_channel(tx_channel);
+    if (dac_handle) {
+      dac_continuous_disable(dac_handle);
+      dac_continuous_del_channels(dac_handle);
     }
   }
 };

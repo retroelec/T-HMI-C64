@@ -23,6 +23,7 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- Arduino core 3.3.10
 - OTA
 - Upload code/data to C64 RAM via Wi-Fi
 
@@ -117,7 +118,8 @@ The board has too little RAM to activate Bluetooth or Wi-Fi. Therefore, the emul
 The "joystick-only" mode is activated pressing the fire button for two seconds.
 The CYD board only has three free GPIO pins, so there is no pin for a second fire button.  
 Furthermore, the LCD and SD card share the same SPI bus, resulting in a small amount of additional code in central routines.  
-The sound is bad and very loud. Therefore, I mechanically reduced the volume of my speaker (with tape).
+The sound quality is not particularly good.  
+Due to performance issues with the ESP32 using Arduino core 3.3.10, binaries are built using Arduino core 3.2.0.
 
 <img src="doc/CYD.png" alt="CYD" width="800"/>
 
@@ -535,7 +537,7 @@ Features not emulated (list not exhaustive) resp. known bugs:
 - no "FLI border removal" / "sideborder removal"
 - synchronization is rasterline-based, not cycle-exact
 - rarly C64 CPU is blocked after loading a game
-- CYD: bad and loud sound, rarly display freezes after loading a game
+- CYD: modest sound, rarly display freezes after loading a game
 
 Since only a rudimentary disk drive emulation is available, only a few "multi-load" games can be played
 (e.g. Summer Games, World Games, The Dallas Quest).
