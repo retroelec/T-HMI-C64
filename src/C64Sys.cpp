@@ -925,7 +925,6 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   initMemAndRegs();
   externalCmds->init(ram, this);
   hooks->init(ram, this);
-  hooks->patchKernal(kernal_rom);
   vic.display->reconfigureSPICYD();
   std::vector<JoystickOnlyTextKeycode> listAdditionalInGameKeycodes =
       FileConfig::getJoystickOnlyKeycodes();

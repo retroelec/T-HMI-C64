@@ -14,13 +14,13 @@ KEYBOARD := NO_KEYBOARD
 
 ifeq ($(BOARD), CYD)
   ifneq ($(KEYBOARD), NO_KEYBOARD)
-    $(error FEHLER: If BOARD is set to CYD, KEYBOARD MUST have the value NO_KEYBOARD. (current: $(KEYBOARD)))
+    $(error ERROR: If BOARD is set to CYD, KEYBOARD MUST have the value NO_KEYBOARD. (current: $(KEYBOARD)))
   endif
 endif
 
 ifeq ($(BOARD), LOLIN_C3_PICO)
   ifneq ($(KEYBOARD), BLE_KEYBOARD)
-    $(error FEHLER: If BOARD is set to LOLIN_C3_PICO, KEYBOARD MUST have the value BLE_KEYBOARD. (current: $(KEYBOARD)))
+    $(error ERROR: If BOARD is set to LOLIN_C3_PICO, KEYBOARD MUST have the value BLE_KEYBOARD. (current: $(KEYBOARD)))
   endif
 endif
 
@@ -171,7 +171,7 @@ TARGETLINUX := c64linux
 OBJFILESLINUX := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRLINUX)/%.o,$(SOURCEFILES))
 
 CXX_LINUX := g++
-CXXFLAGS_LINUX := -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc
+CXXFLAGS_LINUX := -g -O0 -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc
 LDFLAGS_LINUX := -lSDL2 -pthread
 
 check_linux:

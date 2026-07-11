@@ -36,6 +36,12 @@ private:
       17, 17, 17, 17, 17, 17, 17, 17, 17, 17 // 31–40
   };
 
+  struct BufferMeta {
+    bool dirty = false;
+    uint8_t track = 0;
+    uint8_t sector = 0;
+  };
+
   struct Channel {
     std::unique_ptr<FileDriver> file;
     uint8_t buffernr;
@@ -47,7 +53,8 @@ private:
 
   std::unique_ptr<FileDriver> d64file;
   uint8_t *buffer[5];
-  uint8_t errmessage[12];
+  BufferMeta bufferMeta[5];
+  uint8_t errmessage[32];
   uint8_t errmessageidx;
   uint16_t freeBlocks;
   uint8_t track;
@@ -55,6 +62,8 @@ private:
   uint8_t startTrack;
   uint8_t startSector;
   uint8_t diriterstate;
+  uint8_t dirTrack;
+  uint8_t dirSector;
   uint16_t diriteraddr;
   Channel channels[16];
   std::string name;
@@ -79,8 +88,8 @@ private:
   }
 
   void initIterateDirectoryBlk() {
-    track = buffer[4][0];
-    sector = buffer[4][1];
+    track = dirTrack;
+    sector = dirSector;
   }
 
   // variables used outside this method:
@@ -135,6 +144,10 @@ private:
   void initAttach();
   void logDebugInfo();
   void exeSubroutine(uint16_t regpc);
+  void setError(uint8_t code);
+  bool allocateBufferForChannel(uint8_t channel);
+  void releaseBufferForChannel(uint8_t channel);
+  bool writeBufferToDisk(uint8_t bufferId);
 
 public:
   static std::unique_ptr<FileDriver> sysfile;

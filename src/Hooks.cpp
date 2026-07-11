@@ -31,13 +31,6 @@ void Hooks::init(uint8_t *ram, C64Sys *cpu) {
   this->cpu = cpu;
 }
 
-void Hooks::patchKernal(uint8_t *kernal_rom) {
-  // patch kernal_rom
-  kernal_rom[IECINHOOK - 0xe000] = 0;
-  kernal_rom[IECOUTHOOK - 0xe000] = 0;
-  kernal_rom[IECWAIT4CLKHOOK - 0xe000] = 0;
-}
-
 bool Hooks::handlehooks(uint16_t pc) {
   if (pc == IECINHOOK + 1) {
     uint8_t a = cpu->floppy.iecin();

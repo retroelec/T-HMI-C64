@@ -28,7 +28,6 @@ private:
 
 public:
   void init(uint8_t *ram, C64Sys *cpu);
-  void patchKernal(uint8_t *kernal_rom);
   bool handlehooks(uint16_t pc);
 };
 

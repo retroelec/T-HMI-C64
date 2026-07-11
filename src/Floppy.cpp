@@ -18,8 +18,10 @@
 #include "Config.h"
 #include "fs/FileFactory.h"
 #include "platform/PlatformManager.h"
+#include "roms/1541.h"
 #include <algorithm>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <iomanip>
 #include <optional>
@@ -70,14 +72,19 @@ uint16_t countBitsLimited(uint32_t mask, uint8_t limit) {
 
 void Floppy::initChannels() {
   for (auto &ch : channels) {
-    ch.buffernr = 0;
+    ch.buffernr = 0xff;
     ch.hasChannelName = false;
     ch.isOpen = false;
     ch.bufferidx = 0;
     ch.buffersize = 0;
   }
-  channels[1].buffernr = 1;
-  channels[2].buffernr = 2;
+  for (auto &bm : bufferMeta) {
+    bm.dirty = false;
+    bm.track = 0;
+    bm.sector = 0;
+  }
+  dirTrack = 0;
+  dirSector = 0;
 }
 
 void Floppy::initAttach() {
@@ -88,6 +95,96 @@ void Floppy::initAttach() {
   triggererrorchannel = false;
   triggercmdchannel = false;
   d64attached = false;
+}
+
+void Floppy::setError(uint8_t code) {
+  const char *text;
+  uint8_t errTrack = track;
+  uint8_t errSector = sector;
+  switch (code) {
+  case 0:
+    text = "OK";
+    errTrack = 0;
+    errSector = 0;
+    break;
+  case 1:
+    text = "FILES SCRATCHED";
+    break;
+  case 62:
+    text = "FILE NOT FOUND";
+    break;
+  case 65:
+    text = "NO BLOCK";
+    break;
+  case 66:
+    text = "ILLEGAL TRACK OR SECTOR";
+    break;
+  case 67:
+    text = "ILLEGAL SYSTEM T OR S";
+    break;
+  case 70:
+    text = "NO CHANNEL";
+    break;
+  case 74:
+    text = "DISK FULL";
+    break;
+  default:
+    text = "";
+    break;
+  }
+  snprintf((char *)errmessage, sizeof(errmessage), "%02d, %s,%02d,%02d", code,
+           text, errTrack, errSector);
+}
+
+bool Floppy::allocateBufferForChannel(uint8_t channel) {
+  if (channels[channel].buffernr != 0xff) {
+    return true;
+  }
+  if (channel == 15) {
+    channels[15].buffernr = 4;
+    return true;
+  }
+  for (uint8_t i = 0; i < 4; i++) {
+    bool free = true;
+    for (auto &ch : channels) {
+      if (ch.buffernr == i) {
+        free = false;
+        break;
+      }
+    }
+    if (free) {
+      channels[channel].buffernr = i;
+      return true;
+    }
+  }
+  return false;
+}
+
+void Floppy::releaseBufferForChannel(uint8_t channel) {
+  uint8_t bnr = channels[channel].buffernr;
+  if (bnr >= 5) {
+    return;
+  }
+  bufferMeta[bnr].dirty = false;
+  bufferMeta[bnr].track = 0;
+  bufferMeta[bnr].sector = 0;
+  channels[channel].buffernr = 0xff;
+}
+
+bool Floppy::writeBufferToDisk(uint8_t bufferId) {
+  if (!bufferMeta[bufferId].dirty) {
+    return true;
+  }
+  int64_t off =
+      calcOffset(bufferMeta[bufferId].track, bufferMeta[bufferId].sector);
+  if (!d64file->seek(off, SEEK_SET)) {
+    return false;
+  }
+  if (d64file->write(buffer[bufferId], 256) != 256) {
+    return false;
+  }
+  bufferMeta[bufferId].dirty = false;
+  return true;
 }
 
 bool Floppy::fsinitialized = false;
@@ -160,6 +257,8 @@ bool Floppy::attach(const std::string &filename) {
   if (buffer[4][0] == 0) {
     return false;
   }
+  dirTrack = buffer[4][0];
+  dirSector = buffer[4][1];
   d64attached = true;
   return true;
 }
@@ -290,14 +389,21 @@ bool Floppy::readNextDirBlk() {
 
 bool Floppy::readNextFileBlk() {
   if (track != 0) {
+    uint8_t bnr = channels[currentSecondary].buffernr;
+    if (bnr >= 5) {
+      lastStatus = 0x02;
+      setError(70);
+      return true;
+    }
     if (!d64file->seek(calcOffset(track, sector), SEEK_SET)) {
       lastStatus = 0x42;
+      setError(62);
       return true;
     }
     // PlatformManager::getInstance().log(LOG_INFO, TAG,
     //                                   "readNextFileBlk, currentSecondary=%d",
     //                                    currentSecondary);
-    uint8_t *buf = buffer[channels[currentSecondary].buffernr];
+    uint8_t *buf = buffer[bnr];
     uint16_t s = d64file->read(buf, 256);
     if (s == 0) {
       track = 0;
@@ -308,11 +414,15 @@ bool Floppy::readNextFileBlk() {
     uint8_t oldsector = sector;
     track = buf[0];
     sector = buf[1];
+    bnr = channels[currentSecondary].buffernr;
+    bufferMeta[bnr].track = oldtrack;
+    bufferMeta[bnr].sector = oldsector;
     if ((oldtrack == track) && (oldsector == sector)) {
       PlatformManager::getInstance().log(
           LOG_ERROR, TAG, "IECIN error: track/sector repeating!");
       track = 0;
       lastStatus = 0x02;
+      setError(67);
       return true;
     }
     if (track == 0) {
@@ -332,6 +442,7 @@ bool Floppy::directLoad() {
   if (!channels[0].isOpen) {
     PlatformManager::getInstance().log(LOG_INFO, TAG, "file not found");
     lastStatus = 0x42;
+    setError(62);
     return true;
   }
   uint8_t *buf = buffer[channels[0].buffernr];
@@ -423,17 +534,21 @@ bool Floppy::handleCmdChannel() {
           cmd->command.c_str(), formatUInt8ArgsToHex(cmd->rawArgs).c_str(),
           addr);
       if (cmd->command == "M-R") {
-        if (addr == 0xffff) {
-          buffer[0][0] = 0xfe;
+        if (channels[15].buffernr >= 5) {
+          channels[15].buffernr = 4;
         }
+        uint8_t *dst = buffer[channels[15].buffernr];
         uint16_t bufsize = cmd->rawArgs[2];
         if (bufsize == 0) {
           bufsize = 256;
         }
+        for (uint16_t i = 0; i < bufsize && (addr + i) <= 0xffff; i++) {
+          dst[i] = getMem(addr + i);
+        }
         channels[15].bufferidx = 0;
         channels[15].buffersize = bufsize;
       } else if (cmd->command == "M-E") {
-        // exeSubroutine(addr);
+        exeSubroutine(addr);
       }
     } else if (cmd->type == CommandType::TEXT) {
       PlatformManager::getInstance().log(
@@ -444,6 +559,22 @@ bool Floppy::handleCmdChannel() {
         uint8_t track1 = static_cast<uint8_t>(std::stoul(cmd->textArgs[2]));
         uint8_t sector1 = static_cast<uint8_t>(std::stoul(cmd->textArgs[3]));
         uint8_t secch1 = static_cast<uint8_t>(std::stoul(cmd->textArgs[0]));
+        if (secch1 >= 16) {
+          PlatformManager::getInstance().log(LOG_ERROR, TAG,
+                                             "invalid channel: %d", secch1);
+          lastStatus = 0x02;
+          setError(70);
+          return true;
+        }
+        if (channels[secch1].buffernr >= 5) {
+          if (!allocateBufferForChannel(secch1)) {
+            PlatformManager::getInstance().log(
+                LOG_ERROR, TAG, "no free buffer for channel %d", secch1);
+            lastStatus = 0x02;
+            setError(70);
+            return true;
+          }
+        }
         PlatformManager::getInstance().log(
             LOG_INFO, TAG, "track1 = %d, sector1 = %d, secch1=%d, buffernr=%d",
             (int)track1, (int)sector1, (int)secch1,
@@ -454,20 +585,56 @@ bool Floppy::handleCmdChannel() {
           addOffset = 2;
           numOfBytes = 254;
         }
-        if (!d64file->seek(calcOffset(track1, sector1) + addOffset, SEEK_SET)) {
+        uint8_t bnr = channels[secch1].buffernr;
+        if (bufferMeta[bnr].dirty) {
           lastStatus = 0x02;
+          setError(65);
           return true;
         }
-        uint8_t *buf = buffer[channels[secch1].buffernr];
+        if (!d64file->seek(calcOffset(track1, sector1) + addOffset, SEEK_SET)) {
+          lastStatus = 0x02;
+          setError(66);
+          return true;
+        }
+        uint8_t *buf = buffer[bnr];
+        bufferMeta[bnr].track = track1;
+        bufferMeta[bnr].sector = sector1;
         if (cmd->command == "B-E") {
           d64file->read(buf, numOfBytes);
           PlatformManager::getInstance().log(LOG_INFO, TAG, "exeSubroutine %d",
                                              buf - ram);
           exeSubroutine(buf - ram);
+          bufferMeta[bnr].dirty = true;
         } else {
           channels[secch1].buffersize = d64file->read(buf, numOfBytes);
           channels[secch1].bufferidx = 0;
+          bufferMeta[bnr].dirty = false;
         }
+      } else if (cmd->command == "B-P") {
+        uint8_t secch1 = static_cast<uint8_t>(std::stoul(cmd->textArgs[0]));
+        if (secch1 >= 16) {
+          PlatformManager::getInstance().log(LOG_ERROR, TAG,
+                                             "invalid channel: %d", secch1);
+          lastStatus = 0x02;
+          setError(70);
+          return true;
+        }
+        if (channels[secch1].buffernr >= 5) {
+          if (!allocateBufferForChannel(secch1)) {
+            PlatformManager::getInstance().log(
+                LOG_ERROR, TAG, "no free buffer for channel %d", secch1);
+            lastStatus = 0x02;
+            setError(70);
+            return true;
+          }
+        }
+        uint16_t offset = static_cast<uint16_t>(std::stoul(cmd->textArgs[1]));
+        if (cmd->textArgs.size() > 2) {
+          offset += static_cast<uint16_t>(std::stoul(cmd->textArgs[2])) << 8;
+        }
+        channels[secch1].bufferidx = offset;
+        PlatformManager::getInstance().log(
+            LOG_INFO, TAG, "B-P channel %d, offset %d", secch1, offset);
       } else {
         PlatformManager::getInstance().log(LOG_ERROR, TAG,
                                            "unknown command: %s", name.c_str());
@@ -487,7 +654,7 @@ uint8_t Floppy::iecin() {
     return 0;
   }
   if (triggererrorchannel) {
-    if (errmessageidx < 12) {
+    if (errmessageidx < (int)sizeof(errmessage)) {
       return errmessage[errmessageidx++];
     }
     lastStatus = 0x40; // EOI
@@ -502,12 +669,14 @@ uint8_t Floppy::iecin() {
     cursec = 0;
   }
   lastStatus = 0;
+  setError(0);
   if (!channels[cursec].isOpen) {
     lastStatus = 0x42; // file not found
+    setError(62);
     return 0;
   }
   // send bytes to the c64
-  if (channels[cursec].bufferidx == channels[cursec].buffersize) {
+  if (channels[cursec].bufferidx >= channels[cursec].buffersize) {
     if (d64attached) {
       if (triggercmdchannel) {
         triggercmdchannel = false;
@@ -522,6 +691,20 @@ uint8_t Floppy::iecin() {
       }
     } else {
       if (directLoad()) {
+        return 0;
+      }
+    }
+  }
+  if (channels[cursec].buffernr >= 5) {
+    if (cursec == 15) {
+      channels[15].buffernr = 4;
+    } else {
+      if (!allocateBufferForChannel(cursec)) {
+        PlatformManager::getInstance().log(
+            LOG_ERROR, TAG, "iecin: cannot allocate buffer for channel %d",
+            cursec);
+        lastStatus = 0x02;
+        setError(70);
         return 0;
       }
     }
@@ -567,6 +750,7 @@ void Floppy::iecout(uint8_t value) {
                                          name.c_str());
       if (d64attached) {
         if (name == "$") {
+          allocateBufferForChannel(0);
           channels[0].isOpen = true;
           diriterstate = 1;
         } else if (currentSecondary == 15) {
@@ -581,6 +765,7 @@ void Floppy::iecout(uint8_t value) {
           //     LOG_INFO, TAG, "iecout, currentSecondary=%d",
           //     currentSecondary);
           lastStatus = 0;
+          setError(0);
           initIterateDirectoryBlk();
           bool found = false;
           while ((track != 0) && (!found)) {
@@ -594,6 +779,8 @@ void Floppy::iecout(uint8_t value) {
           }
           if (!found) {
             lastStatus = 0x42; // file not found
+            setError(62);
+            channels[currentSecondary].isOpen = false;
           } else {
             track = startTrack;
             sector = startSector;
@@ -607,15 +794,18 @@ void Floppy::iecout(uint8_t value) {
           c = tolower(c);
         }
         lastStatus = 0;
+        setError(0);
         std::string filename = Config::PATH + name + ".prg";
         if (!channels[0].file->open(filename, "rb")) {
           PlatformManager::getInstance().log(LOG_INFO, TAG, "cannot open file");
           channels[0].isOpen = false;
           lastStatus = 0x42; // file not found
+          setError(62);
         } else {
           channels[0].isOpen = true;
           channels[0].bufferidx = 0;
           channels[0].buffersize = 0;
+          allocateBufferForChannel(0);
         }
       }
     } else {
@@ -630,6 +820,7 @@ void Floppy::iecout(uint8_t value) {
       talking = false;
     } else if (value == 0x3f) {
       lastStatus &= 0x40;
+      setError(0);
       listening = false;
     } else if (value == 0x40 + device) {
       talking = true;
@@ -640,15 +831,14 @@ void Floppy::iecout(uint8_t value) {
     } else if (cmd == 0x60) {
       currentSecondary = value & 0x0f;
       if ((currentSecondary == 15) &&
-          (channels[15].bufferidx == channels[15].buffersize)) {
+          (channels[15].bufferidx >= channels[15].buffersize)) {
         if (talking) {
-          const char *okmsg = "00, OK,00,00";
-          memcpy(errmessage, okmsg, 12);
           errmessageidx = 0;
           channels[15].hasChannelName = false;
           channels[15].isOpen = true;
           triggererrorchannel = true;
         } else if (listening) {
+          allocateBufferForChannel(15);
           channels[15].hasChannelName = true;
           channels[15].isOpen = true;
           name = "";
@@ -657,11 +847,18 @@ void Floppy::iecout(uint8_t value) {
       }
     } else if (cmd == 0xe0) {
       currentSecondary = value & 0x0f;
+      releaseBufferForChannel(currentSecondary);
       channels[currentSecondary].hasChannelName = false;
       channels[currentSecondary].isOpen = false;
       name = "";
     } else if (cmd == 0xf0) {
       currentSecondary = value & 0x0f;
+      if (!allocateBufferForChannel(currentSecondary)) {
+        channels[currentSecondary].isOpen = false;
+        PlatformManager::getInstance().log(
+            LOG_ERROR, TAG, "no free buffer for channel %d", currentSecondary);
+        return;
+      }
       channels[currentSecondary].hasChannelName = true;
       channels[currentSecondary].isOpen = true;
       name = "";
@@ -745,9 +942,10 @@ bool Floppy::listnextentry(std::string &name, bool start) {
 uint8_t Floppy::getMem(uint16_t addr) {
   if (addr < 0x0800) {
     return ram[addr];
-  } else {
-    return 0;
+  } else if (addr >= 0xc000) {
+    return rom_1541[addr - 0xc000];
   }
+  return 0;
 }
 
 void Floppy::setMem(uint16_t addr, uint8_t val) {
@@ -757,21 +955,26 @@ void Floppy::setMem(uint16_t addr, uint8_t val) {
 }
 
 void Floppy::logDebugInfo() {
-  PlatformManager::getInstance().log(
-      LOG_INFO, TAG, "pc: %2x, cmd: %s, a: %x, x: %x, y: %x, sp: %x, sr: %x",
-      pc, cmdName[getMem(pc)], a, x, y, sp, sr);
+  PlatformManager::getInstance().log(LOG_INFO, TAG,
+                                     "pc: %2x, cmd: %s, a: %x, x: %x, y: %x, "
+                                     "sp: %x, sr: %x, arg1 = %x, arg2 = %x",
+                                     pc, cmdName[getMem(pc)], a, x, y, sp, sr,
+                                     getMem(pc + 1), getMem(pc + 2));
 }
 
 void Floppy::exeSubroutine(uint16_t regpc) {
+  sp = 0xff;
+  uint16_t i = 20000;
   uint8_t tsp = sp;
   pc = regpc;
-  while (true) {
+  while (i != 0) {
+    i--;
     logDebugInfo();
     uint8_t nextopc = getMem(pc++);
-    execute(nextopc);
-    if ((sp == tsp) && (nextopc == 0x60)) { // rts
+    if ((nextopc == 0x00) || ((sp == tsp) && (nextopc == 0x60))) { // brk or rts
       break;
     }
+    execute(nextopc);
   }
 }
 
