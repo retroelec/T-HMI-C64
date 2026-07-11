@@ -20,10 +20,11 @@
 #include "../Config.h"
 #ifdef BOARD_CYD
 #include "BoardDriver.h"
+#include <esp32-hal-cpu.h>
 
 class CYD : public BoardDriver {
 public:
-  void init() override {}
+  void init() override { setCpuFrequencyMhz(240); }
 
   uint16_t getBatteryVoltage() override { return 4000; }
 

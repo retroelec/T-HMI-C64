@@ -54,7 +54,7 @@ private:
   std::unique_ptr<FileDriver> d64file;
   uint8_t *buffer[5];
   BufferMeta bufferMeta[5];
-  uint8_t errmessage[32];
+  uint8_t errmessage[48];
   uint8_t errmessageidx;
   uint16_t freeBlocks;
   uint8_t track;

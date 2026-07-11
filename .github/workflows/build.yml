@@ -17,46 +17,55 @@ jobs:
             keyboard: BLE_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
             extra_flags: "-DBOARD_HAS_PSRAM"
+            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
           - board: T_HMI
             chip: "esp32s3"
             keyboard: WEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
             extra_flags: "-DBOARD_HAS_PSRAM"
+            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
           - board: T_DISPLAY_S3
             chip: "esp32s3"
             keyboard: BLE_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
             extra_flags: "-DBOARD_HAS_PSRAM"
+            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
           - board: T_DISPLAY_S3
             chip: "esp32s3"
             keyboard: WEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
             extra_flags: "-DBOARD_HAS_PSRAM"
+            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
           - board: WAVESHARE
             chip: "esp32s3"
             keyboard: BLE_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info"
             extra_flags: "-DBOARD_HAS_PSRAM"
+            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
           - board: WAVESHARE
             chip: "esp32s3"
             keyboard: WEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info"
             extra_flags: "-DBOARD_HAS_PSRAM"
+            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
           - board: CYD
             chip: "esp32"
             keyboard: NO_KEYBOARD
             fqbn: "esp32:esp32:esp32:FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,LoopCore=0,DebugLevel=info"
-            extra_flags: ""
+            extra_flags: "-O2"
+            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.2.0"
           - board: LEDMATRIX1
             chip: "esp32s3"
             keyboard: BLE_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=opi,PartitionScheme=default_8MB"
             extra_flags: "-DBOARD_HAS_PSRAM"
+            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
           - board: LEDMATRIX2
             chip: "esp32s3"
             keyboard: BLE_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=opi,PartitionScheme=default_8MB"
             extra_flags: "-DBOARD_HAS_PSRAM"
+            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
 
     steps:
       - name: Checkout Code
@@ -67,7 +76,7 @@ jobs:
           EXPORT_PATH="${{ github.workspace }}/export"
           mkdir -p "$EXPORT_PATH"
           docker run --rm -v ${{ github.workspace }}:/workspace/T-HMI-C64 -v "$EXPORT_PATH":/output \
-            docker.io/retroelec42/arduino-cli-thmic64 compile \
+            ${{ matrix.docker_image }} compile \
             --library . \
             --fqbn "${{ matrix.fqbn }}" \
             --export-binaries --output-dir /output \

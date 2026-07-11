@@ -144,15 +144,11 @@ void BLEKB::init() {
   pAdvertising->setMinInterval(0x30); // min advertising interval (48*0.625ms)
   pAdvertising->setMaxInterval(0x60); // max advertising interval (96*0.625ms)
   pAdvertising->start();
+}
 
-  esp_ble_conn_update_params_t conn_params = {
-      .bda = {},
-      .min_int = 0x30, // min connection interval (0x30 x 1.25ms = 60ms)
-      .max_int = 0x50, // max connection interval (0x50 x 1.25ms = 100ms)
-      .latency = 0,    // slave latency
-      .timeout = 400   // connection supervision timeout (400 x 10ms = 4s)
-  };
-  esp_ble_gap_update_conn_params(&conn_params);
+void BLEKBServerCallback::onConnect(BLEServer *pServer,
+                                    ble_gap_conn_desc *desc) {
+  pServer->requestConnParams(desc->conn_handle, 0x30, 0x50, 0, 400);
 }
 
 void BLEKB::sendExtCmdNotification(uint8_t *data, size_t size) {

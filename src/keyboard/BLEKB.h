@@ -58,6 +58,7 @@ public:
   BLEKBServerCallback(BLEKB &blekb);
   void onConnect(BLEServer *pServer);
   void onDisconnect(BLEServer *pServer);
+  void onConnect(BLEServer *pServer, ble_gap_conn_desc *desc);
 };
 
 class BLEKBCharacteristicCallback : public BLECharacteristicCallbacks {

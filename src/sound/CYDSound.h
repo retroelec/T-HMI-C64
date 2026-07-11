@@ -56,6 +56,7 @@ public:
                 .ws = I2S_GPIO_UNUSED,
                 .dout = (gpio_num_t)Config::I2S_DOUT,
                 .din = I2S_GPIO_UNUSED,
+                .invert_flags = {},
             },
     };
 

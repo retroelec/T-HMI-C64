@@ -55,6 +55,7 @@ else ifeq ($(BOARD), LEDMATRIX2)
   BUILD_EXTRA_FLAGS += -DBOARD_HAS_PSRAM
 else ifeq ($(BOARD), CYD)
   FQBN := esp32:esp32:esp32:FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,LoopCore=0,DebugLevel=info
+  BUILD_EXTRA_FLAGS += -O2
 else ifeq ($(BOARD), LOLIN_C3_PICO)
   FQBN := esp32:esp32:lolin_c3_pico:DebugLevel=info
 else
@@ -110,8 +111,15 @@ compileAll:
 
 # first you have to get the docker image:
 # podman pull docker.io/retroelec42/arduino-cli-thmic64:latest
-podcompile:	arduino/C64Emu/C64Emu.ino $(SOURCEFILES) $(HEADERFILES)
-	podman run -it --rm -v .:/workspace/T-HMI-C64 arduino-cli-thmic64 $(CLI_COMPILE)
+podcompile: SKETCH=arduino/C64Emu/C64Emu.ino
+podcompile: BUILD_PATH=build-$(BOARD)-$(KEYBOARD)
+podcompile: $(SOURCEFILES) $(HEADERFILES)
+	podman run -it --rm -v .:/workspace/T-HMI-C64 docker.io/retroelec42/arduinocli-thmic64:3.3.10 $(CLI_COMPILE) $(SKETCH)
+
+podcompileBLEJoystick: SKETCH=arduino/BLEJoystick/BLEJoystick.ino
+podcompileBLEJoystick: BUILD_PATH=build-$(BOARD)-BLEJoystick
+podcompileBLEJoystick: $(SOURCEFILES) $(HEADERFILES)
+	podman run -it --rm -v .:/workspace/T-HMI-C64 docker.io/retroelec42/arduinocli-thmic64:3.3.10 $(CLI_COMPILE) $(SKETCH)
 
 ifeq ($(BOARD), LOLIN_C3_PICO)
 upload:
@@ -149,7 +157,7 @@ install:	check_install
 	arduino-cli config init --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json --overwrite
 	arduino-cli config set network.connection_timeout 600s
 	arduino-cli core update-index
-	arduino-cli core install esp32:esp32@3.2.0
+	arduino-cli core install esp32:esp32@3.3.10
 	arduino-cli lib install ArduinoJson # used to read config file
 	arduino-cli config set library.enable_unsafe_install true
 	arduino-cli lib install --git-url https://github.com/ESP32Async/AsyncTCP.git # used for web keyboard
