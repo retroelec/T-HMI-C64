@@ -44,7 +44,7 @@ void SDLKB::setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode) {
   shiftctrlcode = ctrlcode;
 }
 
-std::optional<CodeTripleS> SDLKB::getKeyCodes(SDL_Keycode key, bool shift,
+std::optional<CodeTripleS> SDLKB::getKeyCodes(uint32_t key, bool shift,
                                               bool altGr) {
   auto &map = keyboardLayout->getMapping();
   KeySpec spec{key, shift, altGr};

@@ -27,36 +27,36 @@ public:
     layoutName = "German";
     addCommonKeys();
 
-    mapping[{SDLK_MINUS, false, false}] = C64_KEYCODE_MINUS;
-    mapping[{SDLK_PERIOD, false, false}] = C64_KEYCODE_PERIOD;
-    mapping[{SDLK_COMMA, false, false}] = C64_KEYCODE_COMMA;
-    mapping[{SDLK_4, true, false}] = C64_KEYCODE_DOLLAR;
-    mapping[{SDLK_LESS, false, false}] = C64_KEYCODE_LESS;
-    mapping[{SDLK_HASH, false, false}] = C64_KEYCODE_QUOTE;
+    mapping[{(uint32_t)SDLK_MINUS, false, false}] = C64_KEYCODE_MINUS;
+    mapping[{(uint32_t)SDLK_PERIOD, false, false}] = C64_KEYCODE_PERIOD;
+    mapping[{(uint32_t)SDLK_COMMA, false, false}] = C64_KEYCODE_COMMA;
+    mapping[{(uint32_t)SDLK_4, true, false}] = C64_KEYCODE_DOLLAR;
+    mapping[{(uint32_t)SDLK_LESS, false, false}] = C64_KEYCODE_LESS;
+    mapping[{(uint32_t)SDLK_HASH, false, false}] = C64_KEYCODE_QUOTE;
 
-    mapping[{SDLK_LESS, true, false}] = C64_KEYCODE_GREATER;
-    mapping[{SDLK_MINUS, true, false}] = C64_KEYCODE_QUESTION; // wrong position
-    mapping[{SDLK_PLUS, false, false}] = C64_KEYCODE_PLUS;
-    mapping[{SDLK_PLUS, true, false}] = C64_KEYCODE_ASTERISK;
-    mapping[{SDLK_7, true, false}] = C64_KEYCODE_SLASH;
-    mapping[{SDLK_0, true, false}] = C64_KEYCODE_EQUALS;
-    mapping[{SDLK_PERIOD, true, false}] = C64_KEYCODE_COLON;
-    mapping[{SDLK_COMMA, true, false}] = C64_KEYCODE_SEMICOLON;
-    mapping[{SDLK_3, true, false}] = C64_KEYCODE_POUND; // does not work
-    mapping[{SDLK_2, true, false}] = C64_KEYCODE_QUOTEDBL;
-    mapping[{SDLK_5, true, false}] = C64_KEYCODE_PERCENT;
-    mapping[{SDLK_6, true, false}] = C64_KEYCODE_AMPERSAND;
-    mapping[{SDLK_8, true, false}] = C64_KEYCODE_LEFTPAREN;
-    mapping[{SDLK_9, true, false}] = C64_KEYCODE_RIGHTPAREN;
+    mapping[{(uint32_t)SDLK_LESS, true, false}] = C64_KEYCODE_GREATER;
+    mapping[{(uint32_t)SDLK_MINUS, true, false}] = C64_KEYCODE_QUESTION;
+    mapping[{(uint32_t)SDLK_PLUS, false, false}] = C64_KEYCODE_PLUS;
+    mapping[{(uint32_t)SDLK_PLUS, true, false}] = C64_KEYCODE_ASTERISK;
+    mapping[{(uint32_t)SDLK_7, true, false}] = C64_KEYCODE_SLASH;
+    mapping[{(uint32_t)SDLK_0, true, false}] = C64_KEYCODE_EQUALS;
+    mapping[{(uint32_t)SDLK_PERIOD, true, false}] = C64_KEYCODE_COLON;
+    mapping[{(uint32_t)SDLK_COMMA, true, false}] = C64_KEYCODE_SEMICOLON;
+    mapping[{(uint32_t)SDLK_3, true, false}] = C64_KEYCODE_POUND;
+    mapping[{(uint32_t)SDLK_2, true, false}] = C64_KEYCODE_QUOTEDBL;
+    mapping[{(uint32_t)SDLK_5, true, false}] = C64_KEYCODE_PERCENT;
+    mapping[{(uint32_t)SDLK_6, true, false}] = C64_KEYCODE_AMPERSAND;
+    mapping[{(uint32_t)SDLK_8, true, false}] = C64_KEYCODE_LEFTPAREN;
+    mapping[{(uint32_t)SDLK_9, true, false}] = C64_KEYCODE_RIGHTPAREN;
 
-    mapping[{SDLK_q, false, true}] = C64_KEYCODE_AT;
-    mapping[{SDLK_HASH, false, false}] = C64_KEYCODE_HASH;
+    mapping[{(uint32_t)SDLK_q, false, true}] = C64_KEYCODE_AT;
+    mapping[{(uint32_t)SDLK_HASH, false, false}] = C64_KEYCODE_HASH;
 
-    mapping[{SDLK_1, true, false}] = C64_KEYCODE_EXCLAIM;
-    mapping[{SDLK_PLUS, false, true}] = C64_KEYCODE_UPARROW;
-    mapping[{SDLK_LESS, false, true}] = C64_KEYCODE_LEFTARROW;
-    mapping[{SDLK_8, false, true}] = C64_KEYCODE_LEFTBRACKET;
-    mapping[{SDLK_9, false, true}] = C64_KEYCODE_RIGHTBRACKET;
+    mapping[{(uint32_t)SDLK_1, true, false}] = C64_KEYCODE_EXCLAIM;
+    mapping[{(uint32_t)SDLK_PLUS, false, true}] = C64_KEYCODE_UPARROW;
+    mapping[{(uint32_t)SDLK_LESS, false, true}] = C64_KEYCODE_LEFTARROW;
+    mapping[{(uint32_t)SDLK_8, false, true}] = C64_KEYCODE_LEFTBRACKET;
+    mapping[{(uint32_t)SDLK_9, false, true}] = C64_KEYCODE_RIGHTBRACKET;
   }
 };
 
