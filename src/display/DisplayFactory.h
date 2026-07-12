@@ -31,6 +31,8 @@
 #include "SDLDisplay.h"
 #elif defined(USE_LEDMATRIXDISPLAY)
 #include "LEDMatrixDisplay.h"
+#elif defined(USE_NOTCURSES_DISPLAY)
+#include "NotcursesDisplay.h"
 #elif defined(USE_NODISPLAY)
 #include "NoDisplay.h"
 #else
@@ -51,6 +53,8 @@ DisplayDriver *create() {
   return new SDLDisplay();
 #elif defined(USE_LEDMATRIXDISPLAY)
   return new LEDMatrixDisplay();
+#elif defined(USE_NOTCURSES_DISPLAY)
+  return new NotcursesDisplay();
 #elif defined(USE_NODISPLAY)
   return new NoDisplay();
 #endif

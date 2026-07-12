@@ -25,6 +25,8 @@
 #include "SDLKB.h"
 #elif defined(USE_WEB_KEYBOARD)
 #include "WebKB.h"
+#elif defined(USE_NOTCURSES_KEYBOARD)
+#include "NotcursesKB.h"
 #elif defined(USE_NO_KEYBOARD)
 #include "NoKB.h"
 #else
@@ -39,6 +41,8 @@ KeyboardDriver *create() {
   return new SDLKB();
 #elif defined(USE_WEB_KEYBOARD)
   return new WebKB(80);
+#elif defined(USE_NOTCURSES_KEYBOARD)
+  return new NotcursesKB();
 #elif defined(USE_NO_KEYBOARD)
   return new NoKB();
 #endif

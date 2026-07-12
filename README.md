@@ -14,6 +14,7 @@ Further a "joystick-only" operation is possible for most games.
 The code should also be portable to other ESP32-S3 boards (and even other platforms).
 
 The emulator is also available as a Linux, Mac and Windows application using SDL for graphics, input, and sound.
+In addition, there is a Linux terminal version using the notcurses library for graphics and input.
 
 [![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
 
@@ -23,6 +24,7 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- C64 emulation in a terminal (kitty)
 - Arduino core 3.3.10
 - OTA
 - Upload code/data to C64 RAM via Wi-Fi
@@ -298,6 +300,19 @@ Under Windows, the emulator consumes a relatively large amount of CPU time due t
 are too coarse.
 (The CPU time on Windows can be reduced by commenting out #WINDOWS_BUSYWAIT in Config.h, however this results in a delay in audio output.)
 
+### Build terminal version for Linux
+
+The terminal version uses the notcurses library for graphics and keyboard input.
+You need the notcurses development library, which can be installed with:  
+sudo apt install libnotcurses-dev
+
+Once the dependency is installed, you can compile the emulator using:  
+make c64term
+
+You should use the kitty terminal to run the C64 emulator.
+A helper script `c64term.sh` is provided to launch the terminal version with kitty:  
+./c64term.sh
+
 </details>
 
 ## Usage
@@ -483,7 +498,7 @@ The following example shows the configuration options:
 - Create a subdirectory c64prgs in the directory containing the executable
 - Copy the c64 rom/disk files (.prg and .d64) to this directory
 - Configure the keyboard layout in a file .config.json (see previous chapter) and copy it also to this directory
-- Start the emulator
+- Start the emulator with `./c64linux` (Linux), `./c64mac` (Mac) or `c64win.exe` (Windows)
 - Press rctrl + h in the emulator window to display a simple help page on the emulated C64 screen
 - You can use rctrl-a to attach a .d64 file
 - You can use rctrl-k and rctrl-j to configure a keyboard joystick and a "real" joystick offering the possibilty to play two player games

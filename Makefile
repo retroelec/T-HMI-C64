@@ -175,30 +175,44 @@ check_install:
 
 BUILDDIRLINUX := buildlinux
 TARGETLINUX := c64linux
+BUILDDIRTERM := buildterm
+TARGETTERM := c64term
 
 OBJFILESLINUX := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRLINUX)/%.o,$(SOURCEFILES))
+OBJFILESTERM := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRTERM)/%.o,$(SOURCEFILES))
 
 CXX_LINUX := g++
 CXXFLAGS_LINUX := -g -O0 -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc
 LDFLAGS_LINUX := -lSDL2 -pthread
 
+CXXFLAGS_TERM := -g -O0 -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -DLINUX_TERMINAL -Isrc
+LDFLAGS_TERM := -lnotcurses-core -lnotcurses -pthread
+
 check_linux:
 	@if [ "$(UNAME_S)" != "Linux" ]; then \
-		echo "Error: $(TARGETLINUX) can only be built on linux!"; \
+		echo "Error: Linux targets can only be built on linux!"; \
 		exit 1; \
 	fi
 
 $(TARGETLINUX):	check_linux $(OBJFILESLINUX)
 	$(CXX_LINUX) $(OBJFILESLINUX) -o $@ $(LDFLAGS_LINUX)
 
+$(TARGETTERM):	check_linux $(OBJFILESTERM)
+	$(CXX_LINUX) $(OBJFILESTERM) -o $@ $(LDFLAGS_TERM)
+
 $(BUILDDIRLINUX)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX_LINUX) $(CXXFLAGS_LINUX) -c $< -o $@
 
+$(BUILDDIRTERM)/%.o: $(SRCDIR)/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX_LINUX) $(CXXFLAGS_TERM) -c $< -o $@
+
 -include $(OBJFILESLINUX:.o=.d)
+-include $(OBJFILESTERM:.o=.d)
 
 cleanlinux:
-	rm -rf $(BUILDDIRLINUX) $(TARGETLINUX)
+	rm -rf $(BUILDDIRLINUX) $(BUILDDIRTERM) $(TARGETLINUX) $(TARGETTERM)
 
 .PHONY: cleanlinux
 

@@ -25,6 +25,15 @@
 
 #if defined(PLATFORM_LINUX) || defined(_WIN32)
 
+#if defined(LINUX_TERMINAL)
+#define BOARD_LINUX
+#define USE_NOTCURSES_DISPLAY
+#define USE_NOTCURSES_KEYBOARD
+#define USE_LINUXFS
+#define USE_NOJOYSTICK
+#define USE_NOSOUND
+#define LOG_IN_FILE
+#else
 #define BOARD_LINUX
 #define USE_SDL_DISPLAY
 #define USE_SDL_KEYBOARD
@@ -32,6 +41,7 @@
 #define USE_SDLJOYSTICK
 #define USE_SDLSOUND
 #define WINDOWS_BUSYWAIT
+#endif
 
 #elif defined(ESP_PLATFORM)
 

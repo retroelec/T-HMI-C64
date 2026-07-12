@@ -17,6 +17,7 @@
 #ifndef PLATFORMLINUX_H
 #define PLATFORMLINUX_H
 
+#include "../Config.h"
 #ifdef PLATFORM_LINUX
 #include "Platform.h"
 #include <cstdarg>
@@ -35,11 +36,28 @@ public:
 
   void log(LogLevel level, const char *tag, const char *format, ...) override {
     static const char *levelStrs[] = {"[E]", "[W]", "[I]", "[D]", "[V]"};
+    static std::mutex logMutex;
+    std::lock_guard<std::mutex> lock(logMutex);
     va_list args;
     va_start(args, format);
+#ifdef LOG_IN_FILE
+    static bool init = false;
+    static FILE *logFile = nullptr;
+    if (!init) {
+      logFile = std::fopen("c64linux.log", "a");
+      init = true;
+    }
+    if (logFile) {
+      std::fprintf(logFile, "%s[%s] ", levelStrs[level], tag);
+      std::vfprintf(logFile, format, args);
+      std::fprintf(logFile, "\n");
+      std::fflush(logFile);
+    }
+#else
     std::fprintf(stderr, "%s[%s] ", levelStrs[level], tag);
     std::vfprintf(stderr, format, args);
     std::fprintf(stderr, "\n");
+#endif
     va_end(args);
   }
 
