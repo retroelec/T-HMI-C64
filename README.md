@@ -242,6 +242,10 @@ make upload
 In repeated cases, the upload can also take place via OTA. In this case, the following command can be issued:  
 make uploadOTA
 
+Note: OTA requires the board to be connected to a Wi-Fi network.
+On first boot, the board starts a Captive Portal at http://192.168.4.1 for Wi-Fi provisioning
+(see chapter "Wi-Fi Provisioning" for details).
+
 Binary files for the development boards can also be downloaded from https://github.com/retroelec/T-HMI-C64/actions
 (select the latest run to see the artifacts, you must be logged in to download the binary files).
 Alternatively, you can also download the files from https://github.com/retroelec/T-HMI-C64/releases
@@ -373,8 +377,12 @@ When you close this screen again, both options are reset to the previous values.
 If you choosed the web keyboard (Makefile: KEYBOARD := WEB_KEYBOARD), the emulator starts a web server to allow
 keyboard input using a web interface.
 
+### Wi-Fi Provisioning
+
 To ensure flexibility and security, the ESP32-S3 development board utilizes a dynamic Wi-Fi provisioning system.
-This avoids the need to hardcode sensitive credentials during compilation. The process follows a structured fallback logic:
+This avoids the need to hardcode sensitive credentials during compilation. 
+It is required for OTA updates, the web keyboard and Wi-Fi based C64 program uploads.
+The process follows a structured fallback logic:
 
 - Credential Retrieval: Upon startup, the system attempts to retrieve the SSID and password from the non-volatile memory (NVRAM) using the Arduino Preferences library.
 - Connection Attempt: The board attempts to establish a connection to the stored local network in Station (STA) mode.

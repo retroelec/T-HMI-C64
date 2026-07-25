@@ -346,30 +346,7 @@ void WebKB::init() {
   }
 }
 
-static uint8_t ipaddrbox[] =
-    "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
-    "\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x49"
-    "\x42\x15\x13\x5 \x8\x14\x14\x10\x3a\x2f\x2f               \x42"
-    "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
-    "\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x4b";
-
-void WebKB::printIPAddress() {
-  extcmd.param[2] = 6;
-  extcmd.param[3] = 5;
-  extcmd.param[4] = 28;
-  extcmd.param[5] = 3;
-  extcmd.param[6] = 1;
-  extcmd.param[7] = 0;
-  extcmd.param[8] = 10;
-  extcmd.param[9] = 0;
-  extcmd.param[10] = 1;
-  std::string ipString =
-      std::string(WiFiManager::getInstance()->getIPAddress().c_str());
-  memcpy(&ipaddrbox[40], ipString.c_str(), ipString.length());
-  memcpy(&extcmd.param[11], ipaddrbox, 28 * 3);
-  extcmd.cmd = ExtCmd::WRITEOSD;
-  ExtCmdQueue::getInstance().push(extcmd);
-}
+void WebKB::printIPAddress() { WiFiManager::displayIPAddress(); }
 
 void WebKB::startWebServer() {
   PlatformManager::getInstance().log(LOG_INFO, TAG, "Starting web server...");

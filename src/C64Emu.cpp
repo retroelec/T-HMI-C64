@@ -118,6 +118,15 @@ void C64Emu::setup() {
   });
 #endif
 
+// Show IP address on C64 screen when WiFi connects
+#ifndef USE_WEB_KEYBOARD
+  WiFiManager::getInstance()->addConnectedCallback(
+      []() { WiFiManager::displayIPAddress(); });
+  if (WiFiManager::getInstance()->isConnected()) {
+    WiFiManager::displayIPAddress();
+  }
+#endif
+
 #endif // USE_WIFI
 #endif // ESP_PLATFORM
 

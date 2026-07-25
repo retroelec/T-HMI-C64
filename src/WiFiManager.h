@@ -86,6 +86,9 @@ public:
   // Add callback for when WiFi connects (multiple callbacks supported)
   void addConnectedCallback(std::function<void()> callback);
 
+  // Show IP address on C64 screen via OSD
+  static void displayIPAddress();
+
 private:
   WiFiManager(uint16_t port = 80);
   ~WiFiManager();

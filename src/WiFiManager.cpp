@@ -20,8 +20,20 @@
 #ifdef USE_WIFI
 #include "WiFiManager.h"
 
+#include "ExtCmdQueue.h"
 #include "platform/PlatformManager.h"
 #include <algorithm>
+
+// esp_coexist.h is not in the default include path, declare locally
+extern "C" {
+typedef enum {
+  ESP_COEX_PREFER_WIFI = 0,
+  ESP_COEX_PREFER_BT,
+  ESP_COEX_PREFER_BALANCE,
+  ESP_COEX_PREFER_NUM,
+} esp_coex_prefer_t;
+esp_err_t esp_coex_preference_set(esp_coex_prefer_t prefer);
+}
 #include <cstdlib>
 #include <set>
 #include <vector>
@@ -81,6 +93,9 @@ void WiFiManager::init(std::function<void()> onConnected) {
   }
 
   initialized = true;
+
+  // Prefer WiFi over BLE for radio coexistence stability
+  esp_coex_preference_set(ESP_COEX_PREFER_WIFI);
 
   PlatformManager::getInstance().log(LOG_INFO, TAG, "Init Wifi");
 
@@ -207,9 +222,9 @@ void WiFiManager::startCaptivePortal() {
 
   dnsServer.start(53, "*", WiFi.softAPIP());
 
-  server->on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
+  server->on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     String page = WIFI_MANAGER_PORTAL_HTML;
-    page.replace("%NETWORKS%", this->getNetworksHTML());
+    page.replace("%NETWORKS%", "");
     request->send(200, "text/html", page);
   });
 
@@ -287,6 +302,30 @@ void WiFiManager::addConnectedCallback(std::function<void()> callback) {
   if (callback) {
     connectedCallbacks.push_back(callback);
   }
+}
+
+void WiFiManager::displayIPAddress() {
+  static uint8_t ipaddrbox[] =
+      "\x55\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+      "\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x49"
+      "\x42\x15\x13\x05\x20\x08\x14\x14\x10\x3a\x2f\x2f               \x42"
+      "\x4a\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43"
+      "\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x43\x4b";
+  ExtCmdQueue::ExternalCmd extcmd;
+  extcmd.param[2] = 6;
+  extcmd.param[3] = 5;
+  extcmd.param[4] = 28;
+  extcmd.param[5] = 3;
+  extcmd.param[6] = 1;
+  extcmd.param[7] = 0;
+  extcmd.param[8] = 10;
+  extcmd.param[9] = 0;
+  extcmd.param[10] = 1;
+  std::string ip = std::string(getInstance()->getIPAddress().c_str());
+  memcpy(&ipaddrbox[40], ip.c_str(), ip.length());
+  memcpy(&extcmd.param[11], ipaddrbox, 28 * 3);
+  extcmd.cmd = ExtCmd::WRITEOSD;
+  ExtCmdQueue::getInstance().push(extcmd);
 }
 
 #endif // USE_WIFI
