@@ -52,11 +52,6 @@ It has an analog 2-axis thumb joystick and several buttons.
 As there are several games which use the space bar as a second fire button, another button of the Arduino joystick
 can be used to simulate the pressing of the space bar.
 
-### BLE Joystick
-
-In addition to the C64 emulator, there is also a BLE joystick application (ino file) for the ESP32-S3.
-This involves pairing an "Arduino joystick shield" with an ESP32-S3 (or another ESP32-compatible device with BLE) to function as a BLE client.
-
 ### Battery
 
 You can also operate your board with a battery. The T-HMI and Waveshare development boards allow you to switch on the board by pressing
@@ -173,6 +168,40 @@ For the "pixel area follows sprite" modes the sprite to be followed can be deter
 <img src="doc/ledmatrix_loderun_area.png" alt="ledmatrix_loderun_area" width="800"/>
 <img src="doc/ledmatrix_frogger_scaled.png" alt="ledmatrix_frogger_scaled" width="800"/>
 
+### BLE joystick
+
+The emulator supports two different joystick interfaces: a "hardware joystick" (Arduino joystick shield connected directly to the ESP32-S3)
+and a "BLE joystick" (or "virtual keyboard joystick").  
+In addition to the Android app's "virtual joystick," joystick actions can also be sent to the C64 emulator via BLE using a second ESP32* microcontroller.
+You can use an Arduino joystick or a C64 joystick for this, for example.
+
+#### Quickshot II joystick
+
+The following image shows a QuickShot II joystick connected to a (very inexpensive) ESP32-C3 SuperMini development board
+that can transmit joystick actions via BLE to the C64 emulator.
+
+<img src="doc/quickshotII.png" alt="Quickshot II joystick" width="800"/>
+
+The pins of the ESP32-C3 SuperMini are connected to the C64 joystick port as follows:
+
+| Joystick Pin | GPIO Pin | cable color |
+| :--- | :--- | :--- |
+| 1 | GPIO0 | black |
+| 2 | GPIO1 | violet |
+| 3 | GPIO2 | grey |
+| 4 | GPIO3 | white |
+| 6 | GPIO4 | yellow |
+| 7 | 3V3 | green |
+| 8 | GND | blue |
+
+<table>
+  <tr>
+    <td><img src="doc/joystickport_c64.png" alt="C64 joystick port" width="400"/></td>
+    <td><img src="doc/esp32c3supermini.png" alt="ESP32-C3 SuperMini" width="400"/></td>
+  </tr>
+</table>
+<td><img src="doc/joystickmodule.png" alt="Joystick module" width="800"/></td>
+
 </details>
 
 ## Installation
@@ -255,9 +284,11 @@ The available zip files also contain scripts (flash.sh and flash.bat) to upload 
 
 ### Compile and upload code for the BLE joystick
 
-There is no binary available for the BLE joystick application. This means the code must be compiled and uploaded manually.
-First, the development environment must be installed (see above) and the Makefile modified (and possibly a new board defined).
-Then, the code can be compiled using `make compileBLEJoystick` and uploaded using `make uploadBLEJoystick`.
+A dedicated Arduino program (BLEJoystick.ino) is provided for the "joystick microcontroller".
+However, there is no binary available for the BLE joystick application.
+This means the code must be compiled and uploaded manually.
+A Makefile target for the ESP32-C3 SuperMini board (BOARD := ESP32_C3) already exists.
+The code can be compiled using `make compileBLEJoystick` and uploaded using `make uploadBLEJoystick`.
 
 ### Install Android App
 
@@ -424,10 +455,9 @@ Hint: Pressing the spacebar can usually also be simulated by pressing the joysti
 
 ### BLE joystick
 
-The emulator supports two different joystick interfaces: a "hardware joystick" (connected directly to the ESP32-S3) and a "BLE joystick" (or "keyboard joystick").
-Once the "BLE joystick" has connected to the C64 emulator, it is automatically configured as a port2 joystick.
-Pressing the "JoyOnlyMode button" (usually the fire2 button) for at least 2 seconds will change the joystick port.
-
+The BLE joystick only works if the BLE keyboard has been selected.
+Once the "BLE joystick" has connected to the C64 emulator, it is automatically configured as a port 2 joystick.
+Pressing the "JoyOnlyMode button" for at least 2 seconds will change the joystick port.
 If both a "hardware joystick" and a "BLE joystick" are available, then games for two players can also be played.
 
 ### Load a program from SD card
@@ -438,7 +468,7 @@ You have to insert the SD card before you power on the development board.
 
 You then have the following options to load a program:
 
-<img src="doc/loadgame.png" alt="class diagram" width="800"/>
+<img src="doc/loadgame.png" alt="load game" width="800"/>
 
 1.  You can load a prg file into memory using an "external command":
     First type in the name of the program (without extension ".prg"!) so it shows up on the C64 text screen (e.g. dkong).

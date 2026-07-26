@@ -89,7 +89,7 @@
 #define USE_PSRAM
 #define USE_OTA
 #define USE_WIFI_UPLOAD
-#elif defined(BOARD_LOLIN_C3_PICO)
+#elif defined(BOARD_ESP32_C3)
 #define USE_NODISPLAY
 #define USE_NOFS
 #define USE_C64JOYSTICK
@@ -417,7 +417,7 @@ struct Config {
       "3b05e9bf-086f-4b56-9c37-7b7eeb30b28b";
 };
 
-#elif defined(BOARD_LOLIN_C3_PICO)
+#elif defined(BOARD_ESP32_C3)
 
 struct Config {
   // delay until next display refresh

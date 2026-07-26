@@ -5,7 +5,7 @@ BOARD := T_HMI
 #BOARD := CYD
 #BOARD := LEDMATRIX1
 #BOARD := LEDMATRIX2
-#BOARD := LOLIN_C3_PICO
+#BOARD := ESP32_C3
 
 # choose keyboard
 KEYBOARD := BLE_KEYBOARD
@@ -18,9 +18,9 @@ ifeq ($(BOARD), CYD)
   endif
 endif
 
-ifeq ($(BOARD), LOLIN_C3_PICO)
+ifeq ($(BOARD), ESP32_C3)
   ifneq ($(KEYBOARD), BLE_KEYBOARD)
-    $(error ERROR: If BOARD is set to LOLIN_C3_PICO, KEYBOARD MUST have the value BLE_KEYBOARD. (current: $(KEYBOARD)))
+    $(error ERROR: If BOARD is set to ESP32_C3, KEYBOARD MUST have the value BLE_KEYBOARD. (current: $(KEYBOARD)))
   endif
 endif
 
@@ -56,7 +56,7 @@ else ifeq ($(BOARD), LEDMATRIX2)
 else ifeq ($(BOARD), CYD)
   FQBN := esp32:esp32:esp32:FlashMode=qio,FlashSize=4M,PartitionScheme=huge_app,LoopCore=0,DebugLevel=info
   BUILD_EXTRA_FLAGS += -O2
-else ifeq ($(BOARD), LOLIN_C3_PICO)
+else ifeq ($(BOARD), ESP32_C3)
   FQBN := esp32:esp32:lolin_c3_pico:DebugLevel=info
 else
   FQBN := esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info
@@ -76,9 +76,9 @@ CLI_COMPILE = compile \
 	--build-property "build.extra_flags=$(BUILD_EXTRA_FLAGS)" \
 	--build-path $(BUILD_PATH)
 
-ifeq ($(BOARD), LOLIN_C3_PICO)
+ifeq ($(BOARD), ESP32_C3)
 compile:
-	@echo "ERROR: For LOLIN_C3_PICO board, only compileBLEJoystick and uploadBLEJoystick are supported"
+	@echo "ERROR: For ESP32_C3 board, only compileBLEJoystick and uploadBLEJoystick are supported"
 	@echo "       Please use: make compileBLEJoystick"
 	@exit 1
 else
@@ -121,14 +121,14 @@ podcompileBLEJoystick: BUILD_PATH=build-$(BOARD)-BLEJoystick
 podcompileBLEJoystick: $(SOURCEFILES) $(HEADERFILES)
 	podman run -it --rm -v .:/workspace/T-HMI-C64 docker.io/retroelec42/arduinocli-thmic64:3.3.10 $(CLI_COMPILE) $(SKETCH)
 
-ifeq ($(BOARD), LOLIN_C3_PICO)
+ifeq ($(BOARD), ESP32_C3)
 upload:
-	@echo "ERROR: For LOLIN_C3_PICO board, only uploadBLEJoystick is supported"
+	@echo "ERROR: For ESP32_C3 board, only uploadBLEJoystick is supported"
 	@echo "       Please use: make uploadBLEJoystick"
 	@exit 1
 
 uploadOTA:
-	@echo "ERROR: For LOLIN_C3_PICO board, OTA upload is not supported"
+	@echo "ERROR: For ESP32_C3 board, OTA upload is not supported"
 	@echo "       Please use: make uploadBLEJoystick"
 	@exit 1
 else
