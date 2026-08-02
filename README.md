@@ -1,4 +1,4 @@
-# C64 Emulator for ESP32-S3 (and ESP32) with "Android BLE keyboard" or "Web keyboard"
+# C64 Emulator for ESP32-S3 (and ESP32) with "Android BLE keyboard" and/or "Web keyboard"
 
 A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD, and an SD card slot.
 The emulator was later expanded to support the
@@ -6,7 +6,7 @@ The emulator was later expanded to support the
 and the [ESP32 CYD board](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display).
 The emulator is also running on an ESP32-S3 with a 64x64 or a 128x64 LED matrix panel.
 
-Keyboard input is implemented via a custom Android app or via a web interface.  
+Keyboard input is implemented via a custom Android app and/or via a web interface.  
 The Android app communicates with the emulator via Bluetooth Low Energy (BLE).
 The web keyboard was provided by uliuc@gmx.net.  
 Further a "joystick-only" operation is possible for most games.
@@ -24,10 +24,9 @@ Contact: retroelec42@gmail.com
 
 ## News
 
+- combined BLE and web keyboard
 - C64 emulation in a terminal (kitty)
 - Arduino core 3.3.10
-- OTA
-- Upload code/data to C64 RAM via Wi-Fi
 
 ## Hardware
 
@@ -241,7 +240,7 @@ You first have to install the environment (see previous chapter).
 You then adapt the Makefile and choose
 
 - the board you want the code to be compiled for (adapt variable BOARD)
-- the keyboard type: Android BLE keyboard, web keyboard (adapt variable KEYBOARD)
+- the keyboard type: BLE_KEYBOARD, WEB_KEYBOARD or BLEWEB_KEYBOARD (adapt variable KEYBOARD)
 
 The web keyboard requires the following libraries for a successful compilation: ArduinoJson, AsyncTCP, ESPAsyncWebServer and ESPAsyncDNSServer.
 The libraries AsyncTCP, ESPAsyncWebServer and ESPAsyncDNSServer need to be installed from their respective GitHub pages, as the versions available
@@ -357,7 +356,7 @@ A helper script `c64term.sh` is provided to launch the terminal version with kit
 
 ### Android keyboard
 
-If you choosed the BLE keyboard (Makefile: KEYBOARD := BLE_KEYBOARD), the emulator starts a BLE server to receive
+If you choosed the BLE or BLEWEB keyboard, the emulator starts a BLE server to receive
 keystrokes from the Android client.
 
 Once the app is installed and launched, you must accept the requested permissions once
@@ -408,6 +407,11 @@ When you close this screen again, both options are reset to the previous values.
 If you choosed the web keyboard (Makefile: KEYBOARD := WEB_KEYBOARD), the emulator starts a web server to allow
 keyboard input using a web interface.
 
+### BLEWeb keyboard
+
+The emulator supports a combined BLE and web keyboard (Makefile: KEYBOARD := BLEWEB_KEYBOARD).  
+Both input methods are available simultaneously:
+
 ### Wi-Fi Provisioning
 
 To ensure flexibility and security, the ESP32-S3 development board utilizes a dynamic Wi-Fi provisioning system.
@@ -455,7 +459,7 @@ Hint: Pressing the spacebar can usually also be simulated by pressing the joysti
 
 ### BLE joystick
 
-The BLE joystick only works if the BLE keyboard has been selected.
+The BLE joystick only works if the BLE or BLEWeb keyboard has been selected.
 Once the "BLE joystick" has connected to the C64 emulator, it is automatically configured as a port 2 joystick.
 Pressing the "JoyOnlyMode button" for at least 2 seconds will change the joystick port.
 If both a "hardware joystick" and a "BLE joystick" are available, then games for two players can also be played.
@@ -478,7 +482,7 @@ You then have the following options to load a program:
 2.  You can also load a prg file into memory using the C64 Load command:  
     LOAD"DKONG",8,1  
     This will load the file dkong.prg.
-3.  If you are using the BLE keyboard, you also can attach a ".d64" file using the ATTACH button on the DIV screen.
+3.  If you are using the BLE or BLEWeb keyboard, you also can attach a ".d64" file using the ATTACH button on the DIV screen.
     You can then use LOAD"$",8 to load the directory and subsequently load a specific program or
     you can load the first file from disk using LOAD"*",8,1.
 

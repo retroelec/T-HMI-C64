@@ -46,6 +46,11 @@
 #elif defined(ESP_PLATFORM)
 
 // keyboard type (ble, web) is determined in the Makefile
+#if defined(USE_BLEWEB_KEYBOARD)
+#define USE_BLE_KEYBOARD
+#define USE_WEB_KEYBOARD
+#endif
+
 #if defined(BOARD_T_HMI)
 #define USE_ST7789V
 #define USE_SDCARD

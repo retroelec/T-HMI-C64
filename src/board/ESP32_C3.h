@@ -14,14 +14,14 @@
  For the complete text of the GNU General Public License see
  http://www.gnu.org/licenses/.
 */
-#ifndef LOLIN_C3_PICO_H
-#define LOLIN_C3_PICO_H
+#ifndef ESP32_C3_H
+#define ESP32_C3_H
 
 #include "../Config.h"
-#ifdef BOARD_LOLIN_C3_PICO
+#ifdef BOARD_ESP32_C3
 #include "BoardDriver.h"
 
-class LOLIN_C3_PICO : public BoardDriver {
+class ESP32_C3 : public BoardDriver {
 public:
   void init() override {}
 
@@ -31,4 +31,4 @@ public:
 };
 
 #endif
-#endif // LOLIN_C3_PICO_H
+#endif // ESP32_C3_H

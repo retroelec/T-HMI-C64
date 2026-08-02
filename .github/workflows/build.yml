@@ -14,37 +14,19 @@ jobs:
         include:
           - board: T_HMI
             chip: "esp32s3"
-            keyboard: BLE_KEYBOARD
-            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
-            extra_flags: "-DBOARD_HAS_PSRAM"
-            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
-          - board: T_HMI
-            chip: "esp32s3"
-            keyboard: WEB_KEYBOARD
+            keyboard: BLEWEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
             extra_flags: "-DBOARD_HAS_PSRAM"
             docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
           - board: T_DISPLAY_S3
             chip: "esp32s3"
-            keyboard: BLE_KEYBOARD
-            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
-            extra_flags: "-DBOARD_HAS_PSRAM"
-            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
-          - board: T_DISPLAY_S3
-            chip: "esp32s3"
-            keyboard: WEB_KEYBOARD
+            keyboard: BLEWEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=huge_app,PSRAM=opi,DebugLevel=info"
             extra_flags: "-DBOARD_HAS_PSRAM"
             docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
           - board: WAVESHARE
             chip: "esp32s3"
-            keyboard: BLE_KEYBOARD
-            fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info"
-            extra_flags: "-DBOARD_HAS_PSRAM"
-            docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
-          - board: WAVESHARE
-            chip: "esp32s3"
-            keyboard: WEB_KEYBOARD
+            keyboard: BLEWEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,DFUOnBoot=dfu,FlashSize=16M,JTAGAdapter=builtin,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,DebugLevel=info"
             extra_flags: "-DBOARD_HAS_PSRAM"
             docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
@@ -56,13 +38,13 @@ jobs:
             docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.2.0"
           - board: LEDMATRIX1
             chip: "esp32s3"
-            keyboard: BLE_KEYBOARD
+            keyboard: BLEWEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=opi,PartitionScheme=default_8MB"
             extra_flags: "-DBOARD_HAS_PSRAM"
             docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"
           - board: LEDMATRIX2
             chip: "esp32s3"
-            keyboard: BLE_KEYBOARD
+            keyboard: BLEWEB_KEYBOARD
             fqbn: "esp32:esp32:esp32s3:CDCOnBoot=cdc,FlashSize=8M,PSRAM=opi,PartitionScheme=default_8MB"
             extra_flags: "-DBOARD_HAS_PSRAM"
             docker_image: "docker.io/retroelec42/arduinocli-thmic64:3.3.10"

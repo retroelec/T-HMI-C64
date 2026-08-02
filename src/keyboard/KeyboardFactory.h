@@ -19,7 +19,9 @@
 
 #include "../Config.h"
 #include "KeyboardDriver.h"
-#if defined(USE_BLE_KEYBOARD)
+#if defined(USE_BLEWEB_KEYBOARD)
+#include "BLEWebKB.h"
+#elif defined(USE_BLE_KEYBOARD)
 #include "BLEKB.h"
 #elif defined(USE_SDL_KEYBOARD)
 #include "SDLKB.h"
@@ -35,7 +37,9 @@
 
 namespace Keyboard {
 KeyboardDriver *create() {
-#if defined(USE_BLE_KEYBOARD)
+#if defined(USE_BLEWEB_KEYBOARD)
+  return new BLEWebKB();
+#elif defined(USE_BLE_KEYBOARD)
   return new BLEKB();
 #elif defined(USE_SDL_KEYBOARD)
   return new SDLKB();
