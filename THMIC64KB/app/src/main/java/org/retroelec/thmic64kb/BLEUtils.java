@@ -3,6 +3,7 @@ package org.retroelec.thmic64kb;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
@@ -15,7 +16,7 @@ public class BLEUtils {
     private final Settings settings;
 
     private long startTime = 0;
-    private final Handler handler = new Handler();
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private byte joystickPressed = 0;
 
     public BLEUtils(Context context) {
@@ -44,7 +45,7 @@ public class BLEUtils {
         return (arg0, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 if (vibration) {
-                    Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+                    Vibrator vibrator = context.getSystemService(Vibrator.class);
                     if (vibrator != null && vibrator.hasVibrator()) {
                         vibrator.vibrate(VibrationEffect.createOneShot(Config.DURATION_VIBRATION_EFFECT, VibrationEffect.DEFAULT_AMPLITUDE));
                     }

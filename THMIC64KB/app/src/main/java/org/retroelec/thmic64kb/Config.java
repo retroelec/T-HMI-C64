@@ -5,6 +5,7 @@ import java.util.UUID;
 public class Config {
     public static final UUID THMIC64_CHARACTERISTIC_UUID = UUID.fromString("3b05e9bf-086f-4b56-9c37-7b7eeb30b28b");
     public static final UUID THMIC64_SERVICE_UUID = UUID.fromString("695ba701-a48c-43f6-9028-3c885771f19f");
+    public static final UUID THMIC64_CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
     public static final String TARGET_DEVICE_NAME = "THMIC64";
     public static final long CHECK_INTERVAL = 1000;
     public static final long BATTERY_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes

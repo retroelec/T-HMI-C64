@@ -5,7 +5,9 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
@@ -20,6 +22,7 @@ import androidx.annotation.NonNull;
 public class BLEManager {
     private BluetoothGatt bluetoothGatt = null;
     private BluetoothGattCharacteristic characteristic = null;
+    private BluetoothDevice device = null;
     private final BluetoothLeScanner bluetoothLeScanner;
     private final MainActivity mainActivity;
     private final String targetDeviceName;
@@ -31,9 +34,14 @@ public class BLEManager {
 
     private boolean servicesDiscovered = false;
     private boolean isWriteInProgress = false;
+    private ConnectionStateListener connectionStateListener = null;
 
     public BluetoothGattCharacteristic getCharacteristic() {
         return characteristic;
+    }
+
+    public void setConnectionStateListener(ConnectionStateListener connectionStateListener) {
+        this.connectionStateListener = connectionStateListener;
     }
 
     public BLEManager(MainActivity mainActivity, String targetDeviceName, Settings settings, Type2Notification type2Notification, Type3Notification type3Notification, Type4Notification type4Notification, Type5Notification type5Notification) {
@@ -44,9 +52,10 @@ public class BLEManager {
         this.type3Notification = type3Notification;
         this.type4Notification = type4Notification;
         this.type5Notification = type5Notification;
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-        if (!bluetoothAdapter.isEnabled() || bluetoothLeScanner == null) {
+        BluetoothManager bluetoothManager = (BluetoothManager) mainActivity.getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter bluetoothAdapter = (bluetoothManager != null) ? bluetoothManager.getAdapter() : null;
+        bluetoothLeScanner = (bluetoothAdapter != null) ? bluetoothAdapter.getBluetoothLeScanner() : null;
+        if ((bluetoothAdapter == null) || !bluetoothAdapter.isEnabled() || bluetoothLeScanner == null) {
             Toast.makeText(mainActivity, "bluetooth not available, please close app", Toast.LENGTH_LONG).show();
         }
     }
@@ -66,9 +75,13 @@ public class BLEManager {
             } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
                 Log.i("THMIC64", "disconnected from GATT server");
                 servicesDiscovered = false;
-                disconnect();
+                characteristic = null;
+                if (connectionStateListener != null) {
+                    connectionStateListener.onDisconnected();
+                }
+            } else {
+                characteristic = null;
             }
-            characteristic = null;
         }
 
         @Override
@@ -81,6 +94,22 @@ public class BLEManager {
                     if (characteristic != null) {
                         Log.i("THMIC64", "Characteristic found successfully.");
                         gatt.setCharacteristicNotification(characteristic, true);
+                        try {
+                            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(Config.THMIC64_CCCD_UUID);
+                            if (descriptor != null) {
+                                gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                            } else {
+                                Log.w("BLEManager", "CCCD descriptor not found, notifying connected");
+                                if (connectionStateListener != null) {
+                                    connectionStateListener.onConnected();
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e("BLEManager", "CCCD descriptor write failed", e);
+                            if (connectionStateListener != null) {
+                                connectionStateListener.onConnected();
+                            }
+                        }
                     } else {
                         Log.e("THMIC64", "Characteristic not found.");
                     }
@@ -101,11 +130,23 @@ public class BLEManager {
         }
 
         @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.i("THMIC64", "CCCD descriptor write success");
+            } else {
+                Log.w("BLEManager", "Descriptor write failed with status: " + status);
+            }
+            if (connectionStateListener != null) {
+                connectionStateListener.onConnected();
+            }
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value) {
             Log.d("THMIC64", "characteristic changed");
-            super.onCharacteristicChanged(gatt, characteristic);
+            super.onCharacteristicChanged(gatt, characteristic, value);
             if (characteristic.getUuid().equals(Config.THMIC64_CHARACTERISTIC_UUID)) {
-                byte[] receivedData = characteristic.getValue();
+                byte[] receivedData = value;
                 Log.i("THMIC64", "received notification, len = " + receivedData.length);
                 if (receivedData.length > 0) {
                     byte type = receivedData[0];
@@ -120,7 +161,7 @@ public class BLEManager {
                             settings.setDetectReleaseKey(receivedData[6] != 0);
                             settings.setVolume(Byte.toUnsignedInt(receivedData[7]));
                             settings.setD64attached(receivedData[8] != 0);
-                            settings.notifySettingsObserver();
+                            mainActivity.runOnUiThread(settings::notifySettingsObserver);
                             break;
                         // get register content from esp
                         case 2:
@@ -185,10 +226,26 @@ public class BLEManager {
     private void connectToDevice(BluetoothDevice device) {
         mainActivity.getSystemService(Context.BLUETOOTH_SERVICE);
         if (bluetoothGatt == null) {
+            this.device = device;
             bluetoothGatt = device.connectGatt(mainActivity, false, gattCallback);
         } else {
             Log.i("THMIC64", "already connected to GATT server");
         }
+    }
+
+    public void reconnect() {
+        if (device != null) {
+            if (bluetoothGatt != null) {
+                bluetoothGatt.disconnect();
+                bluetoothGatt.close();
+                bluetoothGatt = null;
+            }
+            bluetoothGatt = device.connectGatt(mainActivity, true, gattCallback);
+        }
+    }
+
+    public boolean hasDevice() {
+        return device != null;
     }
 
     public void scanForDevice() {
@@ -226,12 +283,12 @@ public class BLEManager {
             }
             isWriteInProgress = true;
         }
-        characteristic.setValue(data);
-        bluetoothGatt.writeCharacteristic(characteristic);
+        bluetoothGatt.writeCharacteristic(characteristic, data, characteristic.getWriteType());
     }
 
     public void disconnect() {
         characteristic = null;
+        device = null;
         if (bluetoothGatt != null) {
             bluetoothGatt.disconnect();
             bluetoothGatt.close();

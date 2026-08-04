@@ -26,8 +26,8 @@ public class Settings {
         }
     }
 
-    public void removeSettingsObserver() {
-        observerList.clear();
+    public void removeSettingsObserver(SettingsObserver observer) {
+        observerList.remove(observer);
     }
 
     public byte getJoymode() {

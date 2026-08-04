@@ -3,6 +3,7 @@ package org.retroelec.thmic64kb;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.AttributeSet;
@@ -294,7 +295,7 @@ public class C64Keyboard extends LinearLayout {
     }
 
     private void sendKey(Context context, byte[] data) {
-        Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+        Vibrator vibrator = context.getSystemService(Vibrator.class);
         if (vibrator != null && vibrator.hasVibrator()) {
             vibrator.vibrate(VibrationEffect.createOneShot(Config.DURATION_VIBRATION_EFFECT, VibrationEffect.DEFAULT_AMPLITUDE));
         }
@@ -350,7 +351,7 @@ public class C64Keyboard extends LinearLayout {
     private final ActionDownHandler shiftLeftActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
             keyshiftleft.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keyshiftleft.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> keyshiftleft.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
         } else if (keycommodore.isSelected() && (!keyshiftleft.isSelected())) {
             sendKey(context, new byte[]{(byte) 0xfd, (byte) 0x7f, (byte) 0x05});
@@ -368,7 +369,7 @@ public class C64Keyboard extends LinearLayout {
     private final ActionDownHandler shiftRightActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
             keyshiftright.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keyshiftright.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> keyshiftright.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
         } else if (keycommodore.isSelected() && (!keyshiftright.isSelected())) {
             sendKey(context, new byte[]{(byte) 0xbf, (byte) 0xef, (byte) 0x05});
@@ -386,7 +387,7 @@ public class C64Keyboard extends LinearLayout {
     private final ActionDownHandler ctrlActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
             keyctrl.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keyctrl.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> keyctrl.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
         } else {
             keyctrl.setSelected(!keyctrl.isSelected());
@@ -417,7 +418,7 @@ public class C64Keyboard extends LinearLayout {
     private final ActionDownHandler commodoreActionDown = (context, key) -> {
         if (settings.isSendRawKeyCodes()) {
             keycommodore.setBackgroundColor(KEYSELECTEDCOLOR);
-            new Handler().postDelayed(() -> keycommodore.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> keycommodore.setBackgroundColor(KEYBGCOLOR), Config.DURATION_VISUAL_EFFECT);
             sendKey(context, map.get(key));
         } else if ((keyshiftleft.isSelected() || keyshiftright.isSelected()) && (!keycommodore.isSelected())) {
             sendKey(context, new byte[]{(byte) 0x7f, (byte) 0xdf, (byte) 0x05});

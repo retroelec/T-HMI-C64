@@ -1,7 +1,6 @@
 package org.retroelec.thmic64kb;
 
 import android.Manifest;
-import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
@@ -9,6 +8,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -25,7 +25,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-public class MainActivity extends AppCompatActivity implements SettingsObserver, NotificationObserver {
+public class MainActivity extends AppCompatActivity implements SettingsObserver, NotificationObserver, ConnectionStateListener {
 
     private static final int PERMISSION_REQUEST_CODE = 1234;
     private BLEManager bleManager = null;
@@ -40,10 +40,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
     private Button joystick2;
     private boolean joystick1active = false;
     private boolean joystick2active = false;
-    private final Handler handler = new Handler();
-    private final Handler handlerBatteryCheck = new Handler();
-    private BluetoothGattCharacteristic oldcharacteristic;
-    private BluetoothGattCharacteristic actcharacteristic = null;
+    private final Handler handlerBatteryCheck = new Handler(Looper.getMainLooper());
 
     // get battery voltage
     private void startPeriodicBatteryCheck() {
@@ -62,24 +59,32 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
     }
 
     // check BLE connection
-    private void startPeriodicCheck() {
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (bleManager != null) {
-                    oldcharacteristic = actcharacteristic;
-                    actcharacteristic = bleManager.getCharacteristic();
-                    bleSwitch.setChecked(actcharacteristic != null);
-                    if ((oldcharacteristic == null) && (actcharacteristic != null)) {
-                        // get initial settings
-                        bleManager.sendData(new byte[]{Config.GETSTATUS, (byte) 0x00, (byte) 0x80}, false);
-                    }
-                    handler.postDelayed(this, Config.CHECK_INTERVAL);
-                } else {
-                    actcharacteristic = null;
-                }
+    @Override
+    public void onConnected() {
+        runOnUiThread(() -> {
+            bleSwitch.setChecked(true);
+            // refresh GUI from model
+            updateSettings();
+            if (bleManager != null) {
+                // get initial settings
+                bleManager.sendData(new byte[]{Config.GETSTATUS, (byte) 0x00, (byte) 0x80}, false);
             }
-        }, Config.CHECK_INTERVAL);
+        });
+    }
+
+    @Override
+    public void onDisconnected() {
+        runOnUiThread(() -> {
+            bleSwitch.setChecked(false);
+            joystick1active = false;
+            joystick2active = false;
+            refreshActiveJoystickButtons(false, false);
+            batteryvoltage.setText("BATT: ???");
+            if (bleManager != null) {
+                // try to reconnect automatically
+                bleManager.reconnect();
+            }
+        });
     }
 
     @Override
@@ -88,13 +93,14 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
         if (bleManager != null) {
             bleManager.disconnect();
         }
-        handler.removeCallbacksAndMessages(null);
+        handlerBatteryCheck.removeCallbacksAndMessages(null);
     }
 
     private void scanForBLEDevice() {
         // init BLEManager
         Log.d("THMIC64", "init BLEManager");
         bleManager = new BLEManager(this, Config.TARGET_DEVICE_NAME, settings, type2Notification, type3Notification, type4Notification, type5Notification);
+        bleManager.setConnectionStateListener(this);
         final MyApplication myApplication = (MyApplication) getApplication();
         myApplication.setBleManager(bleManager);
 
@@ -135,9 +141,9 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
     @Override
     public void updateSettings() {
         byte joymode = settings.getJoymode();
-        boolean joy1active = (joymode == 1);
-        boolean joy2active = (joymode == 2);
-        refreshActiveJoystickButtons(joy1active, joy2active);
+        joystick1active = (joymode == 1);
+        joystick2active = (joymode == 2);
+        refreshActiveJoystickButtons(joystick1active, joystick2active);
     }
 
     @Override
@@ -154,13 +160,16 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
             settings.registerSettingsObserver(this);
         }
         updateSettings();
+        if ((bleManager != null) && (bleManager.getCharacteristic() != null)) {
+            bleManager.sendData(new byte[]{Config.GETSTATUS, (byte) 0x00, (byte) 0x80}, false);
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         if (settings != null) {
-            settings.removeSettingsObserver();
+            settings.removeSettingsObserver(this);
         }
     }
 
@@ -172,7 +181,6 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
         setContentView(R.layout.activity_main);
 
         settings = new Settings();
-        settings.registerSettingsObserver(this);
         settings.setMinKeyPressedDuration(Config.DEFAULT_MINKEYPRESSEDDURATION);
         type2Notification = new Type2Notification();
         type3Notification = new Type3Notification();
@@ -247,7 +255,6 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
                 }
             }
         });
-        startPeriodicCheck();
 
         // add C64 virtual keyboard
         findViewById(R.id.keyboard);

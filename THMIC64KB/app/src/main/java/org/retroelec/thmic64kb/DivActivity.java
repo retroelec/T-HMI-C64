@@ -221,12 +221,16 @@ public class DivActivity extends AppCompatActivity implements SettingsObserver, 
         super.onResume();
         settings.registerSettingsObserver(this);
         updateSettings();
+        BLEManager bleManager = myApplication.getBleManager();
+        if ((bleManager != null) && (bleManager.getCharacteristic() != null) && (!myApplication.isBleTransferActive())) {
+            bleUtils.send(new byte[]{Config.GETSTATUS, (byte) 0x00, (byte) 0x80}, false);
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        settings.removeSettingsObserver();
+        settings.removeSettingsObserver(this);
     }
 
     private byte[] getAttachInputBytes() {
