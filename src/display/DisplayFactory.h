@@ -33,6 +33,8 @@
 #include "LEDMatrixDisplay.h"
 #elif defined(USE_NOTCURSES_DISPLAY)
 #include "NotcursesDisplay.h"
+#elif defined(USE_TERMINALTEXT_DISPLAY)
+#include "TerminalTextDisplay.h"
 #elif defined(USE_NODISPLAY)
 #include "NoDisplay.h"
 #else
@@ -55,6 +57,8 @@ DisplayDriver *create() {
   return new LEDMatrixDisplay();
 #elif defined(USE_NOTCURSES_DISPLAY)
   return new NotcursesDisplay();
+#elif defined(USE_TERMINALTEXT_DISPLAY)
+  return new TerminalTextDisplay();
 #elif defined(USE_NODISPLAY)
   return new NoDisplay();
 #endif

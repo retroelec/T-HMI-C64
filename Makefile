@@ -176,18 +176,24 @@ check_install:
 
 BUILDDIRLINUX := buildlinux
 TARGETLINUX := c64linux
-BUILDDIRTERM := buildterm
-TARGETTERM := c64term
+BUILDDIRNCTERM := buildncterm
+TARGETNCTERM := c64ncterm
+BUILDDIRTEXTTERM := buildtextterm
+TARGETTEXTTERM := c64textterm
 
 OBJFILESLINUX := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRLINUX)/%.o,$(SOURCEFILES))
-OBJFILESTERM := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRTERM)/%.o,$(SOURCEFILES))
+OBJFILESNCTERM := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRNCTERM)/%.o,$(SOURCEFILES))
+OBJFILESTEXTTERM := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRTEXTTERM)/%.o,$(SOURCEFILES))
 
 CXX_LINUX := g++
 CXXFLAGS_LINUX := -g -O0 -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -Isrc
 LDFLAGS_LINUX := -lSDL2 -pthread
 
-CXXFLAGS_TERM := -g -O0 -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -DLINUX_TERMINAL -Isrc
-LDFLAGS_TERM := -lnotcurses-core -lnotcurses -pthread
+CXXFLAGS_NCTERM := -g -O0 -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -DLINUX_NCTERM -Isrc
+LDFLAGS_NCTERM := -lnotcurses-core -lnotcurses -lSDL2 -pthread
+
+CXXFLAGS_TEXTTERM := -g -O0 -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -DLINUX_TEXTTERM -Isrc
+LDFLAGS_TEXTTERM := -pthread
 
 check_linux:
 	@if [ "$(UNAME_S)" != "Linux" ]; then \
@@ -198,22 +204,30 @@ check_linux:
 $(TARGETLINUX):	check_linux $(OBJFILESLINUX)
 	$(CXX_LINUX) $(OBJFILESLINUX) -o $@ $(LDFLAGS_LINUX)
 
-$(TARGETTERM):	check_linux $(OBJFILESTERM)
-	$(CXX_LINUX) $(OBJFILESTERM) -o $@ $(LDFLAGS_TERM)
+$(TARGETNCTERM):	check_linux $(OBJFILESNCTERM)
+	$(CXX_LINUX) $(OBJFILESNCTERM) -o $@ $(LDFLAGS_NCTERM)
+
+$(TARGETTEXTTERM):	check_linux $(OBJFILESTEXTTERM)
+	$(CXX_LINUX) $(OBJFILESTEXTTERM) -o $@ $(LDFLAGS_TEXTTERM)
 
 $(BUILDDIRLINUX)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX_LINUX) $(CXXFLAGS_LINUX) -c $< -o $@
 
-$(BUILDDIRTERM)/%.o: $(SRCDIR)/%.cpp
+$(BUILDDIRNCTERM)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX_LINUX) $(CXXFLAGS_TERM) -c $< -o $@
+	$(CXX_LINUX) $(CXXFLAGS_NCTERM) -c $< -o $@
+
+$(BUILDDIRTEXTTERM)/%.o: $(SRCDIR)/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX_LINUX) $(CXXFLAGS_TEXTTERM) -c $< -o $@
 
 -include $(OBJFILESLINUX:.o=.d)
--include $(OBJFILESTERM:.o=.d)
+-include $(OBJFILESNCTERM:.o=.d)
+-include $(OBJFILESTEXTTERM:.o=.d)
 
 cleanlinux:
-	rm -rf $(BUILDDIRLINUX) $(BUILDDIRTERM) $(TARGETLINUX) $(TARGETTERM)
+	rm -rf $(BUILDDIRLINUX) $(BUILDDIRNCTERM) $(BUILDDIRTEXTTERM) $(TARGETLINUX) $(TARGETNCTERM) $(TARGETTEXTTERM)
 
 .PHONY: cleanlinux
 

@@ -63,7 +63,7 @@ void ILI9341::drawFrame(uint8_t frameColor) {
   }
 }
 
-void ILI9341::drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) {
+void ILI9341::drawBitmap(const uint8_t *bitmap) {
   uint16_t xstart = BORDERWIDTH;
   uint16_t ystart = BORDERHEIGHT;
   uint16_t xend = 319 + BORDERWIDTH;

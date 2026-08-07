@@ -25,10 +25,18 @@
 
 #if defined(PLATFORM_LINUX) || defined(_WIN32)
 
-#if defined(LINUX_TERMINAL)
+#if defined(LINUX_NCTERM)
 #define BOARD_LINUX
 #define USE_NOTCURSES_DISPLAY
 #define USE_NOTCURSES_KEYBOARD
+#define USE_LINUXFS
+#define USE_NOJOYSTICK
+#define USE_SDLSOUND
+#define LOG_IN_FILE
+#elif defined(LINUX_TEXTTERM)
+#define BOARD_LINUX
+#define USE_TERMINALTEXT_DISPLAY
+#define USE_TERMINALTEXT_KEYBOARD
 #define USE_LINUXFS
 #define USE_NOJOYSTICK
 #define USE_NOSOUND

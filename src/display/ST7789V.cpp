@@ -207,7 +207,7 @@ void ST7789V::drawFrame(uint8_t frameColor) {
   }
 }
 
-void ST7789V::drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) {
+void ST7789V::drawBitmap(const uint8_t *bitmap) {
   ST7789V::copyData(BORDERWIDTH, BORDERHEIGHT, 320, 200, bitmap);
 }
 #endif

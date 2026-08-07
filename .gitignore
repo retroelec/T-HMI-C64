@@ -6,7 +6,8 @@ README.html
 tmp
 build*
 c64linux
-c64term
+c64ncterm
+c64textterm
 c64mac
 c64prgs
 __pycache__

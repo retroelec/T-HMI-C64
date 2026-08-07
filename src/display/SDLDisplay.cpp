@@ -97,7 +97,7 @@ void SDLDisplay::drawFrame(uint8_t frameColor) {
   SDL_RenderFillRect(renderer, &right);
 }
 
-void SDLDisplay::drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) {
+void SDLDisplay::drawBitmap(const uint8_t *bitmap) {
   BitmapUtils::getBitmap(bitmap, bitmap16, c64Colors, 320 * 200);
   SDL_UpdateTexture(texture, nullptr, bitmap16, 320 * sizeof(uint16_t));
   SDL_Rect dst{BORDERWIDTH, BORDERHEIGHT, 320, 200};

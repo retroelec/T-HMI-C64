@@ -14,7 +14,7 @@ Further a "joystick-only" operation is possible for most games.
 The code should also be portable to other ESP32-S3 boards (and even other platforms).
 
 The emulator is also available as a Linux, Mac and Windows application using SDL for graphics, input, and sound.
-In addition, there is a Linux terminal version using the notcurses library for graphics and input.
+In addition, there is a Linux terminal version using the notcurses library for graphics and input (`c64ncterm`), as well as a lightweight text-mode version that renders the C64 screen directly using ANSI escape codes (`c64textterm`).
 
 [![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
 
@@ -336,16 +336,26 @@ are too coarse.
 
 ### Build terminal version for Linux
 
-The terminal version uses the notcurses library for graphics and keyboard input.
-You need the notcurses development library, which can be installed with:  
-sudo apt install libnotcurses-dev
+The terminal version is available in two variants:
 
-Once the dependency is installed, you can compile the emulator using:  
-make c64term
+1. **c64ncterm** — uses the notcurses library for pixel-precise rendering and keyboard input.  
+   You need the notcurses development library, which can be installed with:  
+   sudo apt install libnotcurses-dev
 
-You should use the kitty terminal to run the C64 emulator.
-A helper script `c64term.sh` is provided to launch the terminal version with kitty:  
-./c64term.sh
+   Once the dependency is installed, you can compile the emulator using:  
+   make c64ncterm
+
+   You should use the kitty terminal to run the C64 emulator.  
+   A helper script `c64ncterm.sh` is provided to launch the terminal version with kitty:  
+   ./c64ncterm.sh
+
+2. **c64textterm** — renders the C64 text screen directly in any Linux terminal without external dependencies:  
+   make c64textterm
+
+   This variant reads the C64 screen memory and displays characters using ANSI escape codes.  
+   It does not require notcurses and works in any terminal emulator that supports truecolor.  
+   Run it directly:  
+   ./c64textterm
 
 </details>
 

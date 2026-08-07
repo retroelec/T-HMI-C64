@@ -810,7 +810,9 @@ void C64Sys::run() {
     checkciatimers(31);
 
     // draw rasterline
+#if !defined(LINUX_TEXTTERM)
     vic.drawRasterline();
+#endif
 
     // execute CPU cycles and check CIA timers
     while (numofcycles < numofcyclestoexe) {

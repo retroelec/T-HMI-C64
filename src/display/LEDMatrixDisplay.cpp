@@ -148,7 +148,6 @@ void LEDMatrixDisplay::pixelAreaFollowsSprite(const uint8_t *__restrict bitmap,
     }
   }
 }
-
 void LEDMatrixDisplay::drawBitmap(const uint8_t *bitmap,
                                   const uint8_t *vicreg) {
   switch (mode) {

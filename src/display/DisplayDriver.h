@@ -74,10 +74,37 @@ public:
    * The bitmap contains pixel data in 8-bit C64 color data format.
    *
    * @param bitmap Pointer to the bitmap data.
-   * @param vicreg Pointer to the VIC registers (usually ignored, used be
-   * LEDMatrixDisplay).
    */
-  virtual void drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) = 0;
+  virtual void drawBitmap(const uint8_t *bitmap) = 0;
+
+  /**
+   * @brief Draws the provided bitmap with VIC register access.
+   *
+   * Default implementation ignores vicreg and delegates to drawBitmap(bitmap).
+   *
+   * @param bitmap Pointer to the bitmap data.
+   * @param vicreg Pointer to the VIC registers.
+   */
+  virtual void drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg) {
+    (void)vicreg;
+    drawBitmap(bitmap);
+  }
+
+  /**
+   * @brief Draws the provided bitmap with VIC register and RAM access.
+   *
+   * Default implementation ignores ram and delegates to drawBitmap(bitmap,
+   * vicreg).
+   *
+   * @param bitmap Pointer to the bitmap data.
+   * @param vicreg Pointer to the VIC registers.
+   * @param ram Pointer to the C64 RAM.
+   */
+  virtual void drawBitmap(const uint8_t *bitmap, const uint8_t *vicreg,
+                          const uint8_t *ram) {
+    (void)ram;
+    drawBitmap(bitmap, vicreg);
+  }
 
   /**
    * @brief Sets a hardware-specific operational mode for the display.

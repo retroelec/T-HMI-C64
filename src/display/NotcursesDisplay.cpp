@@ -58,9 +58,7 @@ void NotcursesDisplay::drawFrame(uint8_t frameColor) {
   currentFrameColor = frameColor;
 }
 
-void NotcursesDisplay::drawBitmap(const uint8_t *bitmap,
-                                  const uint8_t *vicreg) {
-  (void)vicreg;
+void NotcursesDisplay::drawBitmap(const uint8_t *bitmap) {
   unsigned int term_rows, term_cols;
   ncplane_dim_yx(stdplane, &term_rows, &term_cols);
 

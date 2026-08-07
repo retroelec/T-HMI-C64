@@ -29,6 +29,8 @@
 #include "WebKB.h"
 #elif defined(USE_NOTCURSES_KEYBOARD)
 #include "NotcursesKB.h"
+#elif defined(USE_TERMINALTEXT_KEYBOARD)
+#include "TerminalTextKB.h"
 #elif defined(USE_NO_KEYBOARD)
 #include "NoKB.h"
 #else
@@ -47,6 +49,8 @@ KeyboardDriver *create() {
   return new WebKB(80);
 #elif defined(USE_NOTCURSES_KEYBOARD)
   return new NotcursesKB();
+#elif defined(USE_TERMINALTEXT_KEYBOARD)
+  return new TerminalTextKB();
 #elif defined(USE_NO_KEYBOARD)
   return new NoKB();
 #endif

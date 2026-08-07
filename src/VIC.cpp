@@ -566,7 +566,7 @@ void VIC::init(uint8_t *ram, const uint8_t *charrom) {
 
 void VIC::refresh() {
   dispOverlayInfo();
-  display->drawBitmap(bitmap, vicreg);
+  display->drawBitmap(bitmap, vicreg, this->ram);
   display->drawFrame(vicreg[0x20] & 15);
   cntRefreshs.fetch_add(1, std::memory_order_release);
 }
