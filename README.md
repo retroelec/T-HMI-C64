@@ -255,7 +255,7 @@ You may have installed already a specfic Arduino core for other projects (e.g. A
 For this situation you can use a prepared docker image to compile the code:
 
 - install podman
-- get prepared docker image: podman pull docker.io/retroelec42/arduino-cli-thmic64:latest
+- get prepared docker image: podman pull docker.io/retroelec42/arduinocli-thmic64:3.3.10 (resp. 3.2.0 for the CYD board)
 - compile using docker image: make podcompile
 
 ### Upload C64 Emulator to the development board
@@ -330,10 +330,6 @@ Follow these steps to build the emulator for Windows:
 The windows exe can also be downloaded from https://github.com/retroelec/T-HMI-C64/actions
 or https://github.com/retroelec/T-HMI-C64/releases.
 
-Under Windows, the emulator consumes a relatively large amount of CPU time due to busy waiting, as the available sleep functions
-are too coarse.
-(The CPU time on Windows can be reduced by commenting out #WINDOWS_BUSYWAIT in Config.h, however this results in a delay in audio output.)
-
 ### Build terminal version for Linux
 
 The terminal version is available in two variants:
@@ -357,6 +353,70 @@ The terminal version is available in two variants:
    Run it directly:  
    ./c64textterm
 
+<!--
+### Build Raspberry Pi version with HUB75 LED matrix panels
+
+The emulator can run on a Raspberry Pi 3 or 4 using an Adafruit Triple LED Matrix Bonnet (or compatible HUB75 adapter) to drive up to 3 parallel chains of LED matrix panels.
+
+#### 1. Install the rpi-rgb-led-matrix library
+
+```bash
+git clone https://github.com/hzeller/rpi-rgb-led-matrix.git
+cd rpi-rgb-led-matrix
+make -j4
+```
+
+#### 2. Build the emulator
+
+```bash
+cd T-HMI-C64
+make c64rpiled
+```
+
+#### 3. Run the emulator (requires root for GPIO access)
+
+```bash
+sudo ./c64rpiled
+```
+
+#### 4. Configuration
+
+The panel setup is configured in `src/Config.h` under the `LINUX_RPILED` section:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `RPI_PANEL_WIDTH` | 64 | Panel width in pixels (cols) |
+| `RPI_PANEL_HEIGHT` | 64 | Panel height in pixels (rows) |
+| `RPI_CHAIN_LENGTH` | 2 | Number of daisy-chained panels per port |
+| `RPI_PARALLEL` | 3 | Number of parallel chains (ports) |
+| `RPI_GPIO_SLOWDOWN` | 2 | GPIO timing slowdown for Pi 3/4 |
+| `RPI_BRIGHTNESS` | 50 | Brightness in percent |
+
+#### 5. System tweaks for stable display
+
+To reduce flickering, add the following to `/boot/firmware/cmdline.txt` (or `/boot/cmdline.txt` on older systems):
+
+```
+sudo sed -i 's/$/ isolcpus=3/' /boot/firmware/cmdline.txt
+sudo reboot
+```
+
+This isolates CPU core 3 for the matrix refresh task.
+
+The on-board sound hardware shares timing resources with the LED matrix and may cause flickering. Deactivate it with:
+
+```bash
+echo "blacklist snd_bcm2835" | sudo tee /etc/modprobe.d/blacklist-rgb-matrix.conf
+sudo update-initramfs -u
+sudo reboot
+```
+
+If you need audio output, use a USB sound dongle instead (has its own timing hardware, no conflict with the matrix).
+
+#### 6. Keyboard input
+
+The emulator reads keyboard input from stdin (raw mode). This allows you to control the C64 emulator directly from your SSH terminal. Control commands are sent by pressing Ctrl + the corresponding key (e.g. Ctrl+Q to quit, Ctrl+H for help).
+-->
 </details>
 
 ## Usage

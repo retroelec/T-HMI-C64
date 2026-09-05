@@ -18,6 +18,7 @@
 #define PLATFORMESP32S3_H
 
 #ifdef ESP_PLATFORM
+#include "../Config.h"
 #include "Platform.h"
 #include <cstdarg>
 #include <cstdint>
@@ -27,6 +28,9 @@
 #include <esp_random.h>
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
+#ifdef USE_SDCARDCYD
+#include <freertos/semphr.h>
+#endif
 #include <memory>
 #include <mutex>
 
@@ -36,6 +40,9 @@
 
 class PlatformESP32 : public Platform {
 private:
+#ifdef USE_SDCARDCYD
+  SemaphoreHandle_t mutex;
+#endif
   struct TimerContext {
     std::function<void()> func;
   };
@@ -59,7 +66,12 @@ private:
   }
 
 public:
-  PlatformESP32() { esp_log_level_set("*", ESP_LOG_INFO); }
+  PlatformESP32() {
+    esp_log_level_set("*", ESP_LOG_INFO);
+#ifdef USE_SDCARDCYD
+    mutex = xSemaphoreCreateMutex();
+#endif
+  }
 
   void log(LogLevel level, const char *tag, const char *format, ...) override {
     va_list args;
@@ -133,6 +145,14 @@ public:
     xTaskCreatePinnedToCore(taskEntryPoint, "genericTask", 10000, ctx, prio,
                             nullptr, core);
   }
+
+#ifdef USE_SDCARDCYD
+  bool lock(TickType_t wait = portMAX_DELAY) override {
+    return xSemaphoreTake(mutex, wait) == pdTRUE;
+  }
+
+  void unlock() override { xSemaphoreGive(mutex); }
+#endif
 };
 #endif
 

@@ -21,7 +21,9 @@
 #ifdef BOARD_WAVESHARE
 #include "BoardDriver.h"
 #include "CalibrateBattery.h"
+#include "Wakeup.h"
 #include <driver/gpio.h>
+#include <esp32-hal-ledc.h>
 #include <esp_sleep.h>
 #include <freertos/FreeRTOS.h>
 
@@ -64,14 +66,20 @@ public:
   }
 
   void powerOff() override {
-    // switch off display
+#if defined(EXT1_WAKEUP)
+    // keep the power latch asserted during deep sleep (board stays
+    // powered and can be woken via ext1)
+    gpio_set_level(Config::PWR_CONTROL_PIN, 1);
+    gpio_hold_en(Config::PWR_CONTROL_PIN);
+    ledcWrite(Config::LCD_BACKLIGHT_PIN, 0);
+    configureExt1Wakeup(Config::WAKEUP_PIN, true);
+#else
+    // release the power latch (true hard-off); only the hard/Boot button
+    // can power the board on again
     gpio_set_direction(Config::PWR_CONTROL_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(Config::PWR_CONTROL_PIN, 0);
-
-    // configure wakeup (wake on button press)
-    esp_sleep_enable_ext0_wakeup(Config::PWR_KEY_INPUT_PIN, 0);
-
-    // deep sleep
+    esp_sleep_enable_ext0_wakeup(Config::WAKEUP_PIN, 0);
+#endif
     vTaskDelay(pdMS_TO_TICKS(100));
     esp_deep_sleep_start();
   }

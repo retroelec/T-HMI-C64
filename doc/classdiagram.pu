@@ -68,7 +68,6 @@ skinparam class {
 package "PlatformComponent" {
 interface Platform
 class PlatformESP32 <<os_specific>>
-class PlatformCYD <<os_specific>>
 class PlatformLinux <<os_specific>>
 class PlatformWindows <<os_specific>>
 class Config
@@ -82,10 +81,8 @@ Globally used singleton providing
 platform-specific services
 (logging, timers, etc.)
 end note
-class PlatformFactory <<factory>>
 
 PlatformESP32 ..|> Platform
-PlatformCYD ..|> Platform
 PlatformLinux ..|> Platform
 PlatformWindows ..|> Platform
 PlatformManager --> Platform

@@ -21,6 +21,7 @@
 #ifdef BOARD_T_DISPLAY_S3
 #include "../display/rm67162/rm67162.h"
 #include "BoardDriver.h"
+#include "Wakeup.h"
 #include "esp_sleep.h"
 
 class T_DISPLAY_S3 : public BoardDriver {
@@ -30,7 +31,8 @@ public:
   uint16_t getBatteryVoltage() override { return 4000; }
 
   void powerOff() override {
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)21, 0);
+    // configure ext1 wakeup on the configurable pin (active low: button to GND)
+    configureExt1Wakeup(Config::WAKEUP_PIN, true);
     lcd_sleep();
     esp_deep_sleep_start();
   }

@@ -79,6 +79,6 @@ void ILI9341::drawBitmap(const uint8_t *bitmap) {
   LCD_WriteDate(buffer, DBBUFSIZE);
 }
 
-void ILI9341::reconfigureSPICYD() { LCD_Restore_Interface(); }
+void ILI9341::reconfigureSPI() { LCD_Restore_Interface(); }
 
 #endif

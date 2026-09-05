@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <termios.h>
 
 class TerminalTextKB : public KeyboardDriver {
 private:
@@ -48,6 +49,8 @@ private:
   uint32_t lastKey = 0;
   bool keyActive = false;
   uint8_t holdCounter = 0;
+
+  struct termios origTermios;
 
   void setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode);
   std::optional<CodeTripleS> getKeyCodes(uint32_t key, bool shift, bool alt);

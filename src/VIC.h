@@ -29,7 +29,6 @@ private:
   bool spritedatacoll[320];
   uint8_t startbyte;
   bool vertborder;
-  uint8_t lineC64map;
   bool denbadline;
   uint8_t caccbadlinecnt;
 

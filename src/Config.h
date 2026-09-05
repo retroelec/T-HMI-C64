@@ -41,6 +41,13 @@
 #define USE_NOJOYSTICK
 #define USE_NOSOUND
 #define LOG_IN_FILE
+#elif defined(LINUX_RPILED)
+#define BOARD_LINUX
+#define USE_RPILED_DISPLAY
+#define USE_TERMINALTEXT_KEYBOARD
+#define USE_LINUXFS
+#define USE_SDLSOUND
+#define USE_NOJOYSTICK
 #else
 #define BOARD_LINUX
 #define USE_SDL_DISPLAY
@@ -65,15 +72,13 @@
 #define USE_ARDUINOJOYSTICK
 #define USE_NOSOUND
 // #define USE_PSRAM
-#define USE_OTA
-#define USE_WIFI_UPLOAD
+#define USE_WIFI
 #elif defined(BOARD_T_DISPLAY_S3)
 #define USE_RM67162
 #define USE_NOFS
 #define USE_NOJOYSTICK
 #define USE_NOSOUND
-#define USE_OTA
-#define USE_WIFI_UPLOAD
+#define USE_WIFI
 #elif defined(BOARD_CYD)
 #define USE_ILI9341
 #define USE_SDCARDCYD
@@ -84,24 +89,21 @@
 #define USE_SDCARD
 #define USE_ARDUINOJOYSTICK
 #define USE_I2SSOUND
-#define USE_OTA
-#define USE_WIFI_UPLOAD
+#define USE_WIFI
 #elif defined(BOARD_LEDMATRIX1)
 #define USE_LEDMATRIXDISPLAY
 #define USE_NOFS
 #define USE_NOJOYSTICK
 #define USE_NOSOUND
 #define USE_PSRAM
-#define USE_OTA
-#define USE_WIFI_UPLOAD
+#define USE_WIFI
 #elif defined(BOARD_LEDMATRIX2)
 #define USE_LEDMATRIXDISPLAY
 #define USE_NOFS
 #define USE_NOJOYSTICK
 #define USE_I2SSOUND
 #define USE_PSRAM
-#define USE_OTA
-#define USE_WIFI_UPLOAD
+#define USE_WIFI
 #elif defined(BOARD_ESP32_C3)
 #define USE_NODISPLAY
 #define USE_NOFS
@@ -109,8 +111,8 @@
 #define USE_NOSOUND
 #endif
 
-// WiFi is needed when OTA, Web-Keyboard or WLAN Upload is enabled
-#if defined(USE_OTA) || defined(USE_WEB_KEYBOARD) || defined(USE_WIFI_UPLOAD)
+// WiFi is needed when Web-Keyboard is enabled
+#if defined(USE_WEB_KEYBOARD) && !defined(USE_WIFI)
 #define USE_WIFI
 #endif
 
@@ -118,6 +120,15 @@
 
 // global defines
 #define AUDIO_SAMPLE_RATE 44100
+
+// Power-off behavior for ESP32S3 boards with a real power latch (Waveshare,
+// T_HMI). T_DISPLAY_S3 always uses the new behavior (no hard power-off
+// available).
+// define EXT1_WAKEUP
+//   - default / undefined: board is hard powered off (power latch released)
+//   - defined: deep sleep with ext1 wakeup; board stays powered and can be
+//     woken by the configured WAKEUP_PIN.
+// #define EXT1_WAKEUP
 
 #if defined(PLATFORM_LINUX) || defined(_WIN32)
 
@@ -136,6 +147,14 @@ struct Config {
   static const uint16_t LCDWIDTH = 404;
   static const uint16_t LCDHEIGHT = 284;
   static inline uint16_t LCDSCALE = 3;
+
+  // RPi LED Matrix panel
+  static const uint16_t RPI_PANEL_WIDTH = 64;
+  static const uint16_t RPI_PANEL_HEIGHT = 64;
+  static const uint8_t RPI_CHAIN_LENGTH = 2;
+  static const uint8_t RPI_PARALLEL = 3;
+  static const uint8_t RPI_BRIGHTNESS = 50;
+  static const uint8_t RPI_GPIO_SLOWDOWN = 2;
 
   // filesystem
   static constexpr const char *PATH = "c64prgs/";
@@ -161,6 +180,10 @@ struct Config {
   static const uint8_t PWR_EN = 10;
   static const uint8_t PWR_ON = 14;
   static const adc_channel_t BAT_ADC = ADC_CHANNEL_4; // GPIO5
+
+  // ext1 wakeup (External Wakeup) - MUST be an RTC GPIO (ESP32-S3: 0-21)
+  // adjust this to the pin connected to the wake/power button
+  static const gpio_num_t WAKEUP_PIN = GPIO_NUM_17;
 
   // ST7789V
   static const uint8_t BL = 38;
@@ -216,6 +239,8 @@ struct Config {
   // --- driver specific constants ---
 
   // power
+  // ext1 wakeup (External Wakeup) - MUST be an RTC GPIO (ESP32-S3: 0-21)
+  static const gpio_num_t WAKEUP_PIN = GPIO_NUM_21;
   static const adc_channel_t BAT_ADC = ADC_CHANNEL_3; // GPIO4
 
   // filesystem
@@ -278,7 +303,8 @@ struct Config {
   // --- driver specific constants ---
 
   // power
-  static const gpio_num_t PWR_KEY_INPUT_PIN = GPIO_NUM_6;
+  // ext1 wakeup (External Wakeup) - MUST be an RTC GPIO (ESP32-S3: 0-21)
+  static const gpio_num_t WAKEUP_PIN = GPIO_NUM_10;
   static const gpio_num_t PWR_CONTROL_PIN = GPIO_NUM_7;
   static const adc_channel_t BAT_ADC = ADC_CHANNEL_7; // GPIO8
 

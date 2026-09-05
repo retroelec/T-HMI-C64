@@ -19,9 +19,7 @@
 
 #include "PlatformFactory.h"
 #include "Platform.h"
-#if defined(ESP_PLATFORM) && defined(BOARD_CYD)
-#include "PlatformCYD.h"
-#elif defined(ESP_PLATFORM)
+#if defined(ESP_PLATFORM)
 #include "PlatformESP32.h"
 #elif defined(PLATFORM_LINUX)
 #include "PlatformLinux.h"
@@ -33,9 +31,7 @@
 
 namespace PlatformNS {
 Platform *create() {
-#if defined(ESP_PLATFORM) && defined(BOARD_CYD)
-  return new PlatformCYD();
-#elif defined(ESP_PLATFORM)
+#if defined(ESP_PLATFORM)
   return new PlatformESP32();
 #elif defined(PLATFORM_LINUX)
   return new PlatformLinux();

@@ -32,8 +32,10 @@
 static const char *TAG = "SDLKB";
 
 static const uint8_t CHARPIXSIZE = 4;
+#ifdef USE_SDL_DISPLAY
 extern void drawChar(SDL_Renderer *ren, uint16_t c, uint16_t x, uint16_t y,
                      uint8_t size);
+#endif
 
 SDLKB::SDLKB() = default;
 SDLKB::~SDLKB() = default;
@@ -58,6 +60,7 @@ std::optional<CodeTripleS> SDLKB::getKeyCodes(uint32_t key, bool shift,
 void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
   SDL_Keycode key = keysym.sym;
   ExtCmdQueue::ExternalCmd extcmd;
+#ifdef USE_SDL_DISPLAY
   if (attachwinopen) {
     SDL_SetRenderDrawColor(attachrenderer, 0, 0, 50, 255);
     SDL_RenderClear(attachrenderer);
@@ -113,6 +116,7 @@ void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
     }
     return;
   }
+#endif
   if (pressed) {
     if (mod & KMOD_RCTRL) {
       // help + quit
@@ -163,11 +167,13 @@ void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
         extcmd.cmd = ExtCmd::LIST;
         ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_a) {
+#ifdef USE_SDL_DISPLAY
         if (!attachwinopen && !openattachwin) {
           std::lock_guard<std::mutex> lock(attachWinMutex);
           openattachwin = true;
           diskname[0] = '\0';
         }
+#endif
       } else if (key == SDLK_n) {
         extcmd.cmd = ExtCmd::SHOWREG;
         ExtCmdQueue::getInstance().push(extcmd);
@@ -321,6 +327,7 @@ void SDLKB::syncAndCreateAttachWinSDL() {
     std::lock_guard<std::mutex> lock(eventMutex);
     eventQueue.push(ev);
   }
+#ifdef USE_SDL_DISPLAY
   // create the attach window when needed
   if (openattachwin) {
     std::lock_guard<std::mutex> lock(attachWinMutex);
@@ -337,6 +344,7 @@ void SDLKB::syncAndCreateAttachWinSDL() {
         SDL_CreateRenderer(attachwin, -1, SDL_RENDERER_ACCELERATED);
     attachwinopen = true;
   }
+#endif
 }
 
 void SDLKB::scanKeyboard() {

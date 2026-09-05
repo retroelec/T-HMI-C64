@@ -607,7 +607,6 @@ uint8_t VIC::nextRasterline() {
   uint8_t d011 = vicreg[0x11];
   if (rasterline > 311) {
     rasterline = 0;
-    lineC64map = 0;
   } else if (rasterline == 49) {
     denbadline = (d011 & 0x10) ? true : false;
   }
@@ -640,7 +639,6 @@ uint8_t VIC::nextRasterline() {
   if (((vicreg[0x11] & 7) == (rasterline & 7)) && (rasterline >= 0x30) &&
       (rasterline <= 0xf7)) {
     viccycles = 40;
-    lineC64map++;
     caccbadlinecnt = 8;
   }
   // active sprites?
@@ -655,6 +653,9 @@ uint8_t VIC::nextRasterline() {
         viccycles += 2;
       }
     }
+  }
+  if (viccycles > 54) {
+    viccycles = 54;
   }
   return viccycles;
 }
@@ -675,11 +676,21 @@ void VIC::drawRasterline() {
         bool bmm = d011 & 32;
         bool mcm = d016 & 16;
         // variables for the draw* methods
-        y = lineC64map - 1;
-        row = ((line & 7) - deltay) & 7;
+        int16_t dl = (int16_t)line - deltay;
+        if (dl < 0) {
+          dl = 0;
+        }
+        row = dl & 7;
+        y = dl >> 3;
         yidx = y * 40;
         xp = 0;
-        if (bmm) {
+        if (ecm && (bmm || mcm)) {
+          // illegal VIC-II modes
+          uint8_t bg = vicreg[0x21] & 0x0f;
+          for (uint16_t i = 0; i < 320; i++) {
+            bitmap[idx++] = bg;
+          }
+        } else if (bmm) {
           if (mcm) {
             drawMCBitmapMode(ram + bitmapstart, ram + screenmemstart,
                              vicreg[0x21]);

@@ -874,9 +874,7 @@ uint16_t Floppy::load(const std::string &filename, uint8_t *ram) {
                                        path.c_str());
     return 0;
   }
-#if defined(BOARD_CYD)
-  vTaskDelay(0);
-#endif
+  PlatformManager::getInstance().feedWDT();
   uint8_t buf[256];
   if (sysfile->read(buf, 2) != 2) {
     PlatformManager::getInstance().log(LOG_ERROR, TAG,
@@ -886,21 +884,15 @@ uint16_t Floppy::load(const std::string &filename, uint8_t *ram) {
   uint8_t addrLow = buf[0], addrHigh = buf[1];
   uint16_t addr = addrLow | (addrHigh << 8);
   uint16_t bytesRead;
-#if defined(BOARD_CYD)
-  vTaskDelay(0);
-#endif
+  PlatformManager::getInstance().feedWDT();
   while ((bytesRead = sysfile->read(buf, sizeof(buf))) > 0) {
-#if defined(BOARD_CYD)
-    vTaskDelay(0);
-#endif
+    PlatformManager::getInstance().feedWDT();
     for (uint16_t i = 0; i < bytesRead; i++) {
       ram[addr++] = buf[i];
     }
   }
   sysfile->close();
-#if defined(BOARD_CYD)
-  vTaskDelay(100);
-#endif
+  PlatformManager::getInstance().feedWDT();
   return addr;
 }
 

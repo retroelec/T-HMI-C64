@@ -80,6 +80,7 @@ public:
   uint8_t sidreg[0x20];
 
   SID();
+  void initSID();
   void init();
   void startSound(uint8_t voice, uint8_t val);
   void stopSound(uint8_t voice);

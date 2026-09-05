@@ -127,16 +127,17 @@ public:
   virtual void setSpecial2() {}
 
   /**
-   * @brief Used only for the CYD. Reconfigures the SPI bus parameters
-   * specifically for the LCD operation.
+   * @brief Reconfigures the SPI bus parameters specifically for the LCD
+   * operation after it has been changed by other components (e.g., SD card over
+   * SPI).
    *
-   * On the CYD (Cheap Yellow Display), the LCD and SD card share the same
-   * physical SPI bus. Since SD card operations change the SPI frequency, bit
-   * order, or data mode, this method restores the bus configuration to the
-   * requirements of the display controller.
+   * Some boards share the same physical SPI bus between the LCD and other
+   * peripherals (e.g., SD card on the CYD). Since the peripheral operations
+   * change the SPI frequency, bit order, or data mode, this method restores the
+   * bus configuration to the requirements of the display controller.
    *
    */
-  virtual void reconfigureSPICYD() {}
+  virtual void reconfigureSPI() {}
 
   virtual ~DisplayDriver() {}
 };

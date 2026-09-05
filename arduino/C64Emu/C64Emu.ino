@@ -19,6 +19,7 @@
 #define CONFIG_LOG_MAXIMUM_LEVEL 5
 
 #include "C64Emu.h"
+#include "platform/PlatformFactory.h"
 #include "platform/PlatformManager.h"
 
 static const char *TAG = "T-HMI-C64";
@@ -28,6 +29,7 @@ TaskHandle_t core0TaskHandle;
 C64Emu c64Emu;
 
 void core0Task(void *param) {
+  PlatformManager::initialize(PlatformNS::create());
   try {
     c64Emu.setup();
   } catch (...) {

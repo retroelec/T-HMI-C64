@@ -83,12 +83,14 @@ void CIA::checkTimerB(uint8_t deltaT) {
   if (bit56 == 0) {
     int32_t tmp = timerB - deltaT;
     timerB = (tmp < 0) ? 0 : tmp;
+    underflowTimerA = false;
   } else if (bit56 == 0x40) {
     if (underflowTimerA) {
       underflowTimerA = false;
       timerB--;
     }
   } else {
+    underflowTimerA = false;
     return;
   }
   if (timerB == 0) {
@@ -136,6 +138,7 @@ void CIA::init(bool isCIA1) {
   latchalarmdc09.store(0, std::memory_order_release);
   latchalarmdc0a.store(0, std::memory_order_release);
   latchalarmdc0b.store(0, std::memory_order_release);
+  todSeq.store(0, std::memory_order_release);
 
   if (isCIA1) {
     ciareg[0] = 127;
@@ -182,11 +185,15 @@ uint8_t CIA::getCommonCIAReg(uint8_t ciaidx) {
       return latchrundc0a.load(std::memory_order_acquire);
     }
   } else if (ciaidx == 0x0b) {
+    uint16_t s;
+    do {
+      s = todSeq.load(std::memory_order_acquire);
+      ciareg[0x08] = latchrundc08.load(std::memory_order_acquire);
+      ciareg[0x09] = latchrundc09.load(std::memory_order_acquire);
+      ciareg[0x0a] = latchrundc0a.load(std::memory_order_acquire);
+      ciareg[0x0b] = latchrundc0b.load(std::memory_order_acquire);
+    } while (s != todSeq.load(std::memory_order_acquire) || (s & 1));
     isTODFreezed = true;
-    ciareg[0x08] = latchrundc08.load(std::memory_order_acquire);
-    ciareg[0x09] = latchrundc09.load(std::memory_order_acquire);
-    ciareg[0x0a] = latchrundc0a.load(std::memory_order_acquire);
-    ciareg[0x0b] = latchrundc0b.load(std::memory_order_acquire);
     return ciareg[ciaidx];
   } else if (ciaidx == 0x0d) {
     uint8_t val = latchdc0d;
@@ -273,6 +280,7 @@ void CIA::setCommonCIAReg(uint8_t ciaidx, uint8_t val) {
 }
 
 bool CIA::updateTODInt() {
+  todSeq.fetch_add(1, std::memory_order_release);
   uint8_t dc08 = latchrundc08.load(std::memory_order_acquire);
   dc08++;
   if (dc08 > 9) {
@@ -309,7 +317,7 @@ bool CIA::updateTODInt() {
                 pm = !pm;
               }
             }
-            latchrundc0b.store(dc0bone | (dc0bten << 4) | (pm ? 127 : 0),
+            latchrundc0b.store(dc0bone | (dc0bten << 4) | (pm ? 128 : 0),
                                std::memory_order_release);
           }
         }
@@ -319,6 +327,7 @@ bool CIA::updateTODInt() {
     latchrundc09.store(dc09one | (dc09ten << 4), std::memory_order_release);
   }
   latchrundc08.store(dc08, std::memory_order_release);
+  todSeq.fetch_add(1, std::memory_order_release);
   uint8_t alarmdc08 = latchalarmdc08.load(std::memory_order_acquire);
   if (dc08 == alarmdc08) {
     uint8_t dc09 = latchrundc09.load(std::memory_order_acquire);

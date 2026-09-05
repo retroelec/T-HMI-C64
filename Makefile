@@ -111,11 +111,15 @@ compileAll:
 	$(MAKE) clean compile BOARD=LEDMATRIX2 KEYBOARD=BLE_KEYBOARD || exit $$?; \
 
 # first you have to get the docker image:
-# podman pull docker.io/retroelec42/arduino-cli-thmic64:latest
+# podman pull docker.io/retroelec42/arduinocli-thmic64:3.3.10 (resp. 3.2.0 for the CYD board)
+POD_IMAGE := docker.io/retroelec42/arduinocli-thmic64:3.3.10
+ifeq ($(BOARD), CYD)
+POD_IMAGE := docker.io/retroelec42/arduinocli-thmic64:3.2.0
+endif
 podcompile: SKETCH=arduino/C64Emu/C64Emu.ino
 podcompile: BUILD_PATH=build-$(BOARD)-$(KEYBOARD)
 podcompile: $(SOURCEFILES) $(HEADERFILES)
-	podman run -it --rm -v .:/workspace/T-HMI-C64 docker.io/retroelec42/arduinocli-thmic64:3.3.10 $(CLI_COMPILE) $(SKETCH)
+	podman run -it --rm -v .:/workspace/T-HMI-C64 $(POD_IMAGE) $(CLI_COMPILE) $(SKETCH)
 
 podcompileBLEJoystick: SKETCH=arduino/BLEJoystick/BLEJoystick.ino
 podcompileBLEJoystick: BUILD_PATH=build-$(BOARD)-BLEJoystick
@@ -230,6 +234,44 @@ cleanlinux:
 	rm -rf $(BUILDDIRLINUX) $(BUILDDIRNCTERM) $(BUILDDIRTEXTTERM) $(TARGETLINUX) $(TARGETNCTERM) $(TARGETTEXTTERM)
 
 .PHONY: cleanlinux
+
+
+# RPi LED Matrix (needs hzeller's rpi-rgb-led-matrix library)
+#
+# Build:
+#   git clone https://github.com/hzeller/rpi-rgb-led-matrix.git
+#   cd rpi-rgb-led-matrix && make -j4
+#
+#   cd T-HMI-C64 && make c64rpiled
+#
+# Override library paths if needed:
+#   make c64rpiled CXXFLAGS_RPILED_EXTRA="-I/opt/matrix/include" \
+#                 LDFLAGS_RPILED_EXTRA="-L/opt/matrix/lib"
+
+BUILDDIRRPILED := buildrpiled
+TARGETRPILED := c64rpiled
+
+OBJFILESRPILED := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIRRPILED)/%.o,$(SOURCEFILES))
+
+CXXFLAGS_RPILED_EXTRA ?= -I../rpi-rgb-led-matrix/include
+LDFLAGS_RPILED_EXTRA ?= -L../rpi-rgb-led-matrix/lib
+
+CXXFLAGS_RPILED := -g -O2 -std=c++17 -Wall -MMD -MP -DPLATFORM_LINUX -DLINUX_RPILED -Isrc $(CXXFLAGS_RPILED_EXTRA)
+LDFLAGS_RPILED := -lrgbmatrix -lSDL2 -pthread $(LDFLAGS_RPILED_EXTRA)
+
+$(TARGETRPILED):	check_linux $(OBJFILESRPILED)
+	$(CXX) $(OBJFILESRPILED) -o $@ $(LDFLAGS_RPILED)
+
+$(BUILDDIRRPILED)/%.o: $(SRCDIR)/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS_RPILED) -c $< -o $@
+
+-include $(OBJFILESRPILED:.o=.d)
+
+cleanrpiled:
+	rm -rf $(BUILDDIRRPILED) $(TARGETRPILED)
+
+.PHONY: cleanrpiled
 
 
 # macOS

@@ -16,7 +16,6 @@
 */
 #include "Config.h"
 
-#ifdef ESP_PLATFORM
 #ifdef USE_WIFI
 #include "WiFiManager.h"
 
@@ -103,7 +102,7 @@ void WiFiManager::init(std::function<void()> onConnected) {
   server = new AsyncWebServer(port);
 
 // Add C64 program upload endpoint if WIFI_UPLOAD is enabled
-#ifdef USE_WIFI_UPLOAD
+#ifdef USE_WIFI
   server->on(
       "/upload_c64_program", HTTP_POST, [this](AsyncWebServerRequest *request) {
         PlatformManager::getInstance().log(
@@ -153,7 +152,7 @@ void WiFiManager::init(std::function<void()> onConnected) {
           request->send(400, "text/plain", "ERROR: Missing 'start' parameter");
         }
       });
-#endif // USE_WIFI_UPLOAD
+#endif // USE_WIFI
 
   // event callback to start services when WiFi is ready
   WiFi.onEvent([this](WiFiEvent_t event, WiFiEventInfo_t info) {
@@ -329,4 +328,3 @@ void WiFiManager::displayIPAddress() {
 }
 
 #endif // USE_WIFI
-#endif // ESP_PLATFORM

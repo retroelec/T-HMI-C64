@@ -20,6 +20,7 @@
 
 #include "Config.h"
 #include "ExtCmd.h"
+#include "ExtCmdQueue.h"
 #include "board/BoardDriver.h"
 #include "board/BoardFactory.h"
 #include "joystick/JoystickDriver.h"
@@ -183,13 +184,18 @@ void loop() {
     if (joystick->getJoyOnlyModeButton()) {
       cntfire2++;
       if (cntfire2 == 200) {
+        ExtCmdQueue::ExternalCmd extcmd;
         if (actJoyMode == ExtCmd::KBJOYSTICKMODE2) {
           PlatformManager::getInstance().log(LOG_INFO, TAG,
                                              "change BLE joystick port to 1");
+          extcmd.cmd = ExtCmd::JOYSTICKMODE1;
+          ExtCmdQueue::getInstance().push(extcmd);
           actJoyMode = ExtCmd::KBJOYSTICKMODE1;
         } else {
           PlatformManager::getInstance().log(LOG_INFO, TAG,
                                              "change BLE joystick port to 2");
+          extcmd.cmd = ExtCmd::JOYSTICKMODE2;
+          ExtCmdQueue::getInstance().push(extcmd);
           actJoyMode = ExtCmd::KBJOYSTICKMODE2;
         }
         uint8_t cmd[3];
@@ -220,9 +226,10 @@ void loop() {
       }
     }
     uint8_t joyVal = joystick->getValue();
-    if (joyVal != 0xff) {
-      PlatformManager::getInstance().log(LOG_INFO, TAG, "joyval = %d", joyVal);
-    }
+    // if (joyVal != 0xff) {
+    //   PlatformManager::getInstance().log(LOG_INFO, TAG, "joyval = %d",
+    //   joyVal);
+    // }
     cnt--;
     if ((joyVal != oldJoyVal) || (cnt == 0)) {
       cnt = 5;

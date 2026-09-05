@@ -45,7 +45,11 @@ public:
    * @brief Initializes the global platform instance.
    * @param p Pointer to a platform implementation.
    */
-  static void initialize(Platform *p) { instance = p; }
+  static void initialize(Platform *p) {
+    if (!instance) {
+      instance = p;
+    }
+  }
 };
 
 #endif // PLATFORM_MANAGER_H

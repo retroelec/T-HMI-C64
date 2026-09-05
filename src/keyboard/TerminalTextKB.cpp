@@ -29,7 +29,10 @@
 
 TerminalTextKB::TerminalTextKB()
     : kbcode1(0xff), kbcode2(0xff), shiftctrlcode(0) {}
-TerminalTextKB::~TerminalTextKB() = default;
+TerminalTextKB::~TerminalTextKB() {
+  // Restore terminal to original settings
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &origTermios);
+}
 
 void TerminalTextKB::setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode) {
   kbcode1.store(code1, std::memory_order_release);
@@ -339,6 +342,12 @@ void TerminalTextKB::init() {
   keyActive = false;
   holdCounter = 0;
   keyboardLayout = std::make_unique<TerminalTextKeyboardLayout>();
+
+  // Switch stdin to raw mode for immediate key reading
+  tcgetattr(STDIN_FILENO, &origTermios);
+  struct termios raw = origTermios;
+  cfmakeraw(&raw);
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
 void TerminalTextKB::scanKeyboard() {

@@ -17,7 +17,6 @@
 #ifndef WIFIMANAGER_H
 #define WIFIMANAGER_H
 
-#ifdef ESP_PLATFORM
 #ifdef USE_WIFI
 
 #include <Arduino.h>
@@ -114,6 +113,5 @@ private:
 };
 
 #endif // USE_WIFI
-#endif // ESP_PLATFORM
 
 #endif // WIFIMANAGER_H

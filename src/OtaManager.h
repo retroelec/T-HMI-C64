@@ -17,8 +17,7 @@
 #ifndef OTAMANAGER_H
 #define OTAMANAGER_H
 
-#ifdef ESP_PLATFORM
-#ifdef USE_OTA
+#ifdef USE_WIFI
 
 #include <ArduinoOTA.h>
 
@@ -29,7 +28,6 @@ public:
   static void handle();
 };
 
-#endif // USE_OTA
-#endif // ESP_PLATFORM
+#endif // USE_WIFI
 
 #endif // OTAMANAGER_H

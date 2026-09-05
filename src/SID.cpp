@@ -213,7 +213,7 @@ float SIDVoice::generateSample() {
   return sample;
 }
 
-void SID::init() {
+void SID::initSID() {
   setEmuVolume(Config::DEFAULT_VOLUME);
   c64Volume = 0.0f;
   actSampleIdx = 0;
@@ -237,10 +237,12 @@ void SID::init() {
   sidVoice[2].prevVoice = &sidVoice[1];
 }
 
-SID::SID() {
+SID::SID() { initSID(); }
+
+void SID::init() {
   sound = Sound::create();
   sound->init();
-  init();
+  initSID();
 }
 
 int16_t SID::generateSample() {

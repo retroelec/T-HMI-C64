@@ -42,12 +42,14 @@ private:
   bool keyDown = false;
   bool keyFire = false;
 
+#ifdef USE_SDL_DISPLAY
   bool attachwinopen = false;
   bool openattachwin = false;
   static const uint16_t DISKNAMEMAXLEN = 17;
   char diskname[DISKNAMEMAXLEN];
   SDL_Window *attachwin = NULL;
   SDL_Renderer *attachrenderer = NULL;
+#endif
 
   std::atomic<uint8_t> kbcode1;
   std::atomic<uint8_t> kbcode2;
@@ -55,7 +57,9 @@ private:
 
   std::queue<SDL_Event> eventQueue;
   std::mutex eventMutex;
+#ifdef USE_SDL_DISPLAY
   std::mutex attachWinMutex;
+#endif
 
   std::unique_ptr<LinuxBaseKeyboardLayout> keyboardLayout;
 

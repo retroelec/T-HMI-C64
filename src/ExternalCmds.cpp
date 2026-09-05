@@ -422,11 +422,9 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     cpu->vic.initVarsAndRegs();
     cpu->cia1.init(true);
     cpu->cia2.init(false);
-    cpu->sid.init();
+    cpu->sid.initSID();
     cpu->floppy.init(8);
     cpu->cpuhalted = false;
-    cpu->joystickmode = 0;
-    cpu->kbjoystickmode = 0;
     setType1Notification();
     return 1;
   case ExtCmd::JOYSTICKMODE1:
@@ -582,7 +580,7 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
       std::string filename(reinterpret_cast<char *>(&cmd->param[2]));
       filename += ".prg";
       uint16_t addr = cpu->floppy.load(filename, ram);
-      cpu->vic.display->reconfigureSPICYD();
+      cpu->vic.display->reconfigureSPI();
       if (addr != 0) {
         cpu->joystickOnlyModeState = JoystickOnlyModeState::RUN;
         setVarTab(addr);

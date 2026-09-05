@@ -16,8 +16,7 @@
 */
 #include "Config.h"
 
-#ifdef ESP_PLATFORM
-#ifdef USE_OTA
+#ifdef USE_WIFI
 #include "OtaManager.h"
 
 #include "WiFiManager.h"
@@ -67,5 +66,4 @@ void OtaManager::handle() {
   }
 }
 
-#endif // USE_OTA
-#endif // ESP_PLATFORM
+#endif // USE_WIFI

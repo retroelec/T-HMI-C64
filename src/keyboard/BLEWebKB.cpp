@@ -40,7 +40,7 @@ void BLEWebKB::scanKeyboard() {
   uint8_t sc = blekb.getShiftctrlcode() | webkb.getShiftctrlcode();
   shiftctrlcode.store(sc, std::memory_order_release);
 
-  uint8_t joy = blekb.getKBJoyValue() & webkb.getKBJoyValue();
+  uint8_t joy = blekb.getKBJoyValue();
   joyvalue.store(joy, std::memory_order_release);
 }
 

@@ -19,6 +19,7 @@
 
 #include "../Config.h"
 #ifdef USE_SDLSOUND
+#include "../platform/PlatformManager.h"
 #include "SoundDriver.h"
 #include <SDL2/SDL.h>
 #include <mutex>
@@ -56,8 +57,9 @@ public:
 
   void init() override {
     if (SDL_Init(SDL_INIT_AUDIO) < 0) {
-      throw std::runtime_error("SDL_Init failed: " +
-                               std::string(SDL_GetError()));
+      PlatformManager::getInstance().log(
+          LOG_ERROR, "SDLSound", "SDL_Init audio failed: %s", SDL_GetError());
+      return;
     }
     SDL_AudioSpec desiredSpec = {};
     desiredSpec.freq = AUDIO_SAMPLE_RATE;
@@ -70,8 +72,11 @@ public:
     audioDevice =
         SDL_OpenAudioDevice(nullptr, 0, &desiredSpec, &obtainedSpec, 0);
     if (audioDevice == 0) {
-      throw std::runtime_error("SDL_OpenAudioDevice failed: " +
-                               std::string(SDL_GetError()));
+      PlatformManager::getInstance().log(LOG_ERROR, "SDLSound",
+                                         "SDL_OpenAudioDevice failed: %s",
+                                         SDL_GetError());
+      SDL_QuitSubSystem(SDL_INIT_AUDIO);
+      return;
     }
     SDL_PauseAudioDevice(audioDevice, 0);
     initialized = true;

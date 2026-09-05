@@ -262,19 +262,12 @@ void C64Sys::adaptVICBaseAddrs(bool fromcia) {
   uint16_t vicmem = vic.vicmem;
   // screenmem is used for text mode and bitmap mode
   vic.screenmemstart = vicmem + val1;
+  vic.bitmapstart = vicmem + ((val & 0x0e) << 10);
   bool bmm = vic.vicreg[0x11] & 32;
-  if ((bmm) || fromcia) {
-    if ((val & 8) == 0) {
-      vic.bitmapstart = vicmem;
-    } else {
-      vic.bitmapstart = vicmem + 0x2000;
-    }
-  }
-  uint16_t charmemstart;
   if ((!bmm) || fromcia) {
     // charactermem
     val1 = (val & 0x0e) << 10;
-    charmemstart = vicmem + val1;
+    uint16_t charmemstart = vicmem + val1;
     if ((charmemstart == 0x1800) || (charmemstart == 0x9800)) {
       vic.charset = vic.chrom + 0x0800;
     } else if ((charmemstart == 0x1000) || (charmemstart == 0x9000)) {
@@ -449,48 +442,48 @@ void C64Sys::checkciatimers(uint8_t cycles) {
   // CIA 1 TOD alarm
   cia1.checkAlarm();
   // check for CIA 1 TOD alarm interrupt
-  if (((cia1.latchdc0d & 0x84) == 0x84) && (!iflag)) {
+  if ((cia1.latchdc0d & 0x04) && (cia1.ciareg[0x0d] & 0x04) && (!iflag)) {
     setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
   }
   // CIA 1 Timer A
   cia1.checkTimerA(cycles);
   // check for CIA 1 Timer A interrupt
-  if (((cia1.latchdc0d & 0x81) == 0x81) && (!iflag)) {
+  if ((cia1.latchdc0d & 0x01) && (cia1.ciareg[0x0d] & 0x01) && (!iflag)) {
     setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
   }
   // CIA 1 Timer B
   cia1.checkTimerB(cycles);
   // check for CIA 1 Timer B interrupt
-  if (((cia1.latchdc0d & 0x82) == 0x82) && (!iflag)) {
+  if ((cia1.latchdc0d & 0x02) && (cia1.ciareg[0x0d] & 0x02) && (!iflag)) {
     setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
   }
   // check for CIA 1 SDR interrupt
-  if (((cia1.latchdc0d & 0x88) == 0x88) && (!iflag)) {
+  if ((cia1.latchdc0d & 0x08) && (cia1.ciareg[0x0d] & 0x08) && (!iflag)) {
     setPCToIntVec(getMem(0xfffe) + (getMem(0xffff) << 8), false);
   }
   // CIA 2 TOD alarm
   cia2.checkAlarm();
   // check for CIA 2 TOD alarm interrupt
-  if (((cia2.latchdc0d & 0x84) == 0x84) && nmiAck) {
+  if ((cia2.latchdc0d & 0x04) && (cia2.ciareg[0x0d] & 0x04) && nmiAck) {
     nmiAck = false;
     setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
   }
   // CIA 2 Timer A
   cia2.checkTimerA(cycles);
   // check for CIA 2 Timer A interrupt
-  if (((cia2.latchdc0d & 0x81) == 0x81) && nmiAck) {
+  if ((cia2.latchdc0d & 0x01) && (cia2.ciareg[0x0d] & 0x01) && nmiAck) {
     nmiAck = false;
     setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
   }
   // CIA 2 Timer B
   cia2.checkTimerB(cycles);
   // check for CIA 2 Timer B interrupt
-  if (((cia2.latchdc0d & 0x82) == 0x82) && nmiAck) {
+  if ((cia2.latchdc0d & 0x02) && (cia2.ciareg[0x0d] & 0x02) && nmiAck) {
     nmiAck = false;
     setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
   }
   // check for CIA 2 SDR interrupt
-  if (((cia2.latchdc0d & 0x88) == 0x88) && nmiAck) {
+  if ((cia2.latchdc0d & 0x08) && (cia2.ciareg[0x0d] & 0x08) && nmiAck) {
     nmiAck = false;
     setPCToIntVec(getMem(0xfffa) + (getMem(0xfffb) << 8), false);
   }
@@ -634,7 +627,7 @@ void C64Sys::checkJoystickOnlyStatemachine(bool jOMBpressed) {
       if (floppy.fsinitialized) {
         cpuhalted = true;
         uint16_t addr = floppy.load(actfilename, ram);
-        vic.display->reconfigureSPICYD();
+        vic.display->reconfigureSPI();
         if (addr != 0) {
           joystickOnlyModeState = JoystickOnlyModeState::RUN;
           vic.doiactive[1] = false;
@@ -784,9 +777,9 @@ void C64Sys::run() {
 
     // prepare next rasterline
     badlinecycles = vic.nextRasterline();
-    if (deactivateTemp) {
-      badlinecycles = 0;
-    }
+    // hack to make commando work (seems to have no negative effect to other
+    // games)
+    badlinecycles = 0;
 
     // calculate number of cycles to execute
     numofcycles = 0;
@@ -828,6 +821,9 @@ void C64Sys::run() {
     }
     checkciatimers(32);
     adjustcycles = numofcycles - numofcyclestoexe;
+    if (adjustcycles > 0) {
+      adjustcycles = 0;
+    }
 
     // sprite collision interrupt?
     if ((vic.vicreg[0x19] & 0x86) && (vic.vicreg[0x1a] & 6) && (!iflag)) {
@@ -906,6 +902,7 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
     PlatformManager::getInstance().log(LOG_INFO, TAG, "error in vic.init(): %s",
                                        e.what());
   }
+  sid.init();
   floppy.init(8);
   this->ram = ram;
   this->charrom = charrom;
@@ -927,7 +924,7 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
   initMemAndRegs();
   externalCmds->init(ram, this);
   hooks->init(ram, this);
-  vic.display->reconfigureSPICYD();
+  vic.display->reconfigureSPI();
   std::vector<JoystickOnlyTextKeycode> listAdditionalInGameKeycodes =
       FileConfig::getJoystickOnlyKeycodes();
   listInGameKeycodes.insert(listInGameKeycodes.end(),

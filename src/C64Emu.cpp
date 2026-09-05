@@ -19,7 +19,6 @@
 #include "OtaManager.h"
 #include "WiFiManager.h"
 #include "board/BoardFactory.h"
-#include "platform/PlatformFactory.h"
 #include "platform/PlatformManager.h"
 #include "roms/charset.h"
 #include <cstdint>
@@ -89,8 +88,6 @@ void C64Emu::cpuCode(void *parameter) {
 }
 
 void C64Emu::setup() {
-  // init platform
-  PlatformManager::initialize(PlatformNS::create());
   PlatformManager::getInstance().log(LOG_INFO, TAG, "start setup...");
 
   // init board
@@ -98,28 +95,21 @@ void C64Emu::setup() {
   board->init();
 
 // initialize WiFiManager if any WiFi feature is enabled
-#ifdef ESP_PLATFORM
 #if defined(USE_WIFI)
   // initialize the singleton WiFiManager
   WiFiManager::getInstance()->init();
 
-// register OTA callback if enabled
-#ifdef USE_OTA
   // Initialize OTA manager (registers callback and starts if already connected)
   OtaManager::init();
-#endif
 
-// register WiFi upload callback if enabled
-// upload functionality should be available regardless of keyboard type
-#if defined(USE_WIFI_UPLOAD)
+  // register WiFi upload callback (available regardless of keyboard type)
   WiFiManager::getInstance()->addConnectedCallback([]() {
     PlatformManager::getInstance().log(LOG_INFO, "WIFI_UPLOAD",
                                        "WiFi ready for uploads");
   });
-#endif
 
-// Show IP address on C64 screen when WiFi connects
-#ifndef USE_WEB_KEYBOARD
+  // Show IP address on C64 screen when WiFi connects
+#if !defined(USE_WEB_KEYBOARD)
   WiFiManager::getInstance()->addConnectedCallback(
       []() { WiFiManager::displayIPAddress(); });
   if (WiFiManager::getInstance()->isConnected()) {
@@ -128,7 +118,6 @@ void C64Emu::setup() {
 #endif
 
 #endif // USE_WIFI
-#endif // ESP_PLATFORM
 
   // init. instance variables
   cntSecondsForBatteryCheck =
@@ -141,10 +130,8 @@ void C64Emu::setup() {
   cpu.init(ram, charset_rom);
 
 // set RAM pointer for WiFi upload functionality
-#ifdef ESP_PLATFORM
-#if defined(USE_WIFI_UPLOAD)
+#if defined(USE_WIFI)
   WiFiManager::getInstance()->setRamPointer(ram);
-#endif
 #endif
 
   // start cpu task
@@ -160,10 +147,8 @@ void C64Emu::setup() {
 }
 
 void C64Emu::loop() {
-#ifdef ESP_PLATFORM
-#ifdef USE_OTA
+#if defined(USE_WIFI)
   OtaManager::handle();
-#endif
 #endif
   PlatformManager::getInstance().lock();
   cpu.vic.refresh();

@@ -54,6 +54,7 @@ public:
   std::atomic<uint8_t> latchalarmdc09;
   std::atomic<uint8_t> latchalarmdc0a;
   std::atomic<uint8_t> latchalarmdc0b;
+  std::atomic<uint16_t> todSeq{0};
 
   CIA(bool isCIA1);
   void init(bool isCIA1);

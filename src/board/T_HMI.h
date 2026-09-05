@@ -21,6 +21,7 @@
 #ifdef BOARD_T_HMI
 #include "BoardDriver.h"
 #include "CalibrateBattery.h"
+#include "Wakeup.h"
 #include <driver/gpio.h>
 #include <soc/gpio_struct.h>
 #include <stdexcept>
@@ -59,14 +60,25 @@ public:
   }
 
   void powerOff() override {
-    gpio_config_t io_conf;
-    io_conf.intr_type = GPIO_INTR_DISABLE;
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = (1ULL << Config::PWR_ON);
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-    gpio_config(&io_conf);
+    // turn off the display backlight to save power
+    gpio_set_level((gpio_num_t)Config::BL, 0);
+
+#if defined(EXT1_WAKEUP)
+    // keep the power latch asserted during deep sleep (board stays
+    // powered and can be woken via ext1).
+    gpio_set_level((gpio_num_t)Config::PWR_ON, 1);
+    gpio_set_level((gpio_num_t)Config::PWR_EN, 1);
+    gpio_hold_en((gpio_num_t)Config::PWR_ON);
+    gpio_hold_en((gpio_num_t)Config::PWR_EN);
+    configureExt1Wakeup(Config::WAKEUP_PIN, true);
+#else
+    // release the power latch (true hard-off); only the hard/Boot button
+    // can power the board on again.
     gpio_set_level((gpio_num_t)Config::PWR_ON, 0);
+#endif
+
+    // enter deep sleep
+    esp_deep_sleep_start();
   }
 };
 #endif
