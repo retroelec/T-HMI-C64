@@ -40,7 +40,6 @@ enum class ExtCmd {
    * @brief Joystick in port 1.
    *
    * No parameters needed.
-   * This command sends back a notification of type NotificationStruct1.
    */
   JOYSTICKMODE1 = 1,
 
@@ -48,7 +47,6 @@ enum class ExtCmd {
    * @brief Joystick in port 2.
    *
    * No parameters needed.
-   * This command sends back a notification of type NotificationStruct1.
    */
   JOYSTICKMODE2 = 2,
 
@@ -70,7 +68,6 @@ enum class ExtCmd {
    * @brief No joystick in any port.
    *
    * No parameters needed.
-   * This command sends back a notification of type NotificationStruct1.
    */
   JOYSTICKMODEOFF = 5,
 
@@ -105,23 +102,6 @@ enum class ExtCmd {
   RECEIVEDATA = 12,
 
   /**
-   * @brief Gets content of CPU registers and "important" VIC and CIA registers.
-   *
-   * No parameters needed.
-   * This command sends back a notification of type NotificationStruct2.
-   */
-  SHOWREG = 13,
-
-  /**
-   * @brief Gets the content of 16 bytes memory starting from a given address.
-   *
-   * Start address of memory is transfered in byte 3 + 4 of the buffer resp.
-   * param[1] + param[2]. This command sends back a notification of type
-   * NotificationStruct3.
-   */
-  SHOWMEM = 14,
-
-  /**
    * @brief Sends pressing the RESTORE key or the combination RESTORE +
    * RUN/STOP.
    *
@@ -146,11 +126,9 @@ enum class ExtCmd {
   GETSTATUS = 21,
 
   /**
-   * @brief Switches the "deaktivate temp" switch (used for "emulator hacks"
-   * like "ignoring badlines").
+   * @brief deprecated
    *
    * No parameters needed.
-   * This command sends back a notification of type NotificationStruct1.
    */
   SWITCHDEACTIVATETEMP = 22,
 
@@ -158,7 +136,6 @@ enum class ExtCmd {
    * @brief Switches to "send raw key codes mode" and back.
    *
    * No parameters needed.
-   * This command sends back a notification of type NotificationStruct1.
    */
   SENDRAWKEYS = 24,
 
@@ -166,7 +143,6 @@ enum class ExtCmd {
    * @brief Switches to "debug mode" and back.
    *
    * No parameters needed.
-   * This command sends back a notification of type NotificationStruct1.
    */
   SWITCHDEBUG = 25,
 
@@ -174,7 +150,6 @@ enum class ExtCmd {
    * @brief Switches to "show performance mode" and back.
    *
    * No parameters needed.
-   * This command sends back a notification of type NotificationStruct1.
    */
   SWITCHPERF = 26,
 
@@ -182,7 +157,6 @@ enum class ExtCmd {
    * @brief Switches to "detect releasing of a key mode" and back.
    *
    * No parameters needed.
-   * This command sends back a notification of type NotificationStruct1.
    */
   SWITCHDETECTRELEASEKEY = 27,
 
@@ -251,8 +225,7 @@ enum class ExtCmd {
    * @brief Attach a d64 file to the floppy drive emulation.
    *
    * The name of the d64 file is stored starting at buffer position 4 resp.
-   * &param[2]. This command sends back a notification of type
-   * NotificationStruct1.
+   * &param[2].
    */
   ATTACHD64 = 37,
 
@@ -260,7 +233,6 @@ enum class ExtCmd {
    * @brief Detach a d64 file from the floppy drive emulation.
    *
    * No parameters needed.
-   * This command sends back a notification of type NotificationStruct1.
    */
   DETACHD64 = 38,
 
@@ -317,6 +289,48 @@ enum class ExtCmd {
    * No parameters needed.
    */
   SPECIAL2 = 44,
+
+  /**
+   * @brief Simulates a key press on the C64 keyboard.
+   *
+   * Parameters:
+   * - param[0]: dc00 value (matrix column)
+   * - param[1]: dc01 value (matrix row)
+   * - param[2]: shiftctrlcode (bit 0=shift, bit 1=ctrl, bit 2=commodore)
+   * - param[3]: duration (number of scans, 1 scan = 8ms, 0 = use default)
+   */
+  SENDKEY = 45,
+
+  /**
+   * @brief Sets the joystick value via REST API.
+   *
+   * Parameters:
+   * - param[0]: joystick bitfield (like getValue(): bit 0=up, 1=down, 2=left,
+   *             3=right, 4=fire1, 0xff = released)
+   */
+  SENDJOY = 46,
+
+  /**
+   * @brief Saves a snapshot (RAM, CPU, VIC, CIA, SID) to the internal buffer.
+   *
+   * No parameters needed.
+   */
+  SAVESNAPSHOT = 47,
+
+  /**
+   * @brief Restores emulator state from the previously saved snapshot.
+   *
+   * No parameters needed.
+   */
+  LOADSNAPSHOT = 48,
+
+  /**
+   * @brief Gets the THMIC64KB version of the emulator.
+   *
+   * No parameters needed.
+   * This command sends back a notification of type NotificationStruct6.
+   */
+  GETVERSION = 49,
 };
 
 #endif // EXTCMD_H

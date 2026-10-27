@@ -5,10 +5,9 @@ import android.app.Application;
 public class MyApplication extends Application {
     private BLEManager bleManager;
     private Settings settings;
-    private Type2Notification type2Notification;
-    private Type3Notification type3Notification;
     private Type4Notification type4Notification;
     private Type5Notification type5Notification;
+    private Type6Notification type6Notification;
     private boolean bleTransferActive;
 
     public BLEManager getBleManager() {
@@ -27,22 +26,6 @@ public class MyApplication extends Application {
         this.settings = settings;
     }
 
-    public Type2Notification getType2Notification() {
-        return type2Notification;
-    }
-
-    public void setType2Notification(Type2Notification type2Notification) {
-        this.type2Notification = type2Notification;
-    }
-
-    public Type3Notification getType3Notification() {
-        return type3Notification;
-    }
-
-    public void setType3Notification(Type3Notification type3Notification) {
-        this.type3Notification = type3Notification;
-    }
-
     public Type4Notification getType4Notification() {
         return type4Notification;
     }
@@ -57,6 +40,14 @@ public class MyApplication extends Application {
 
     public void setType5Notification(Type5Notification type5Notification) {
         this.type5Notification = type5Notification;
+    }
+
+    public Type6Notification getType6Notification() {
+        return type6Notification;
+    }
+
+    public void setType6Notification(Type6Notification type6Notification) {
+        this.type6Notification = type6Notification;
     }
 
     public boolean isBleTransferActive() {

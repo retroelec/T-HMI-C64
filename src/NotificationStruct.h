@@ -36,38 +36,15 @@ struct NotificationStruct1 : NotificationStruct {
   uint8_t switchattached;
 };
 
-struct NotificationStruct2 : NotificationStruct {
-  uint8_t cpuRunning;
-  uint16_t pc;
-  uint8_t a;
-  uint8_t x;
-  uint8_t y;
-  uint8_t sr;
-  uint8_t d011;
-  uint8_t d016;
-  uint8_t d018;
-  uint8_t d019;
-  uint8_t d01a;
-  uint8_t register1;
-  uint8_t dc0d;
-  uint8_t dc0e;
-  uint8_t dc0f;
-  uint8_t dd0d;
-  uint8_t dd0e;
-  uint8_t dd0f;
-};
-
-static const uint8_t NOTIFICATIONTYPE3NUMOFBYTES = 16; // must be divisible by 8
-
-struct NotificationStruct3 : NotificationStruct {
-  uint8_t mem[NOTIFICATIONTYPE3NUMOFBYTES];
-};
-
 struct NotificationStruct4 : NotificationStruct {};
 
 struct NotificationStruct5 : NotificationStruct {
   uint8_t batteryVolLow;
   uint8_t batteryVolHi;
+};
+
+struct NotificationStruct6 : NotificationStruct {
+  uint8_t version;
 };
 
 #endif // NOTIFICATIONSTRUCT_H

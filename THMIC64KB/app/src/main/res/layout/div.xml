@@ -19,18 +19,6 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <Switch
-            android:id="@+id/toggleDeactivateTemp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Commando hack" />
-
-        <!--Switch
-            android:id="@+id/toggleDebug"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Monitor CPU" /-->
-
-        <Switch
             android:id="@+id/togglePerf"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

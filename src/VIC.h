@@ -116,6 +116,14 @@ public:
   // public only for CYD special logic
   DisplayDriver *display;
 
+  /**
+   * @brief Get the raw framebuffer bitmap (320x200 color indices).
+   *
+   * Each byte is a C64 color index (0-15). Used by the REST API for
+   * screen capture endpoints.
+   */
+  uint8_t *getBitmap() { return bitmap; }
+
   // profiling info
   std::atomic<uint8_t> cntRefreshs;
 

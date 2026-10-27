@@ -33,22 +33,26 @@ private:
   uint16_t actaddrreceivecmd;
 
   void setType1Notification();
-  void setType2Notification();
-  void setType3Notification(uint16_t addr);
   void setType4Notification();
   void setType5Notification(uint8_t batteryVolLow, uint8_t batteryVolHi);
+  void setType6Notification();
   void dispVolume();
   void writeTextToC64Screen(uint16_t addr, int16_t sizebuffer);
   bool isBasicInputMode();
+  void setJ1();
+  void setJ2();
+  void setNoJoy();
+  void setJB1();
+  void setJB2();
+  void setNoJoyB();
 
 public:
   bool liststartflag;
 
   NotificationStruct1 type1notification;
-  NotificationStruct2 type2notification;
-  NotificationStruct3 type3notification;
   NotificationStruct4 type4notification;
   NotificationStruct5 type5notification;
+  NotificationStruct6 type6notification;
 
   void init(uint8_t *ram, C64Sys *cpu);
   void setVarTab(uint16_t addr);

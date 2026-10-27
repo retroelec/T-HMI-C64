@@ -36,12 +36,6 @@
             android:name=".KBInpActivity"
             android:screenOrientation="landscape" />
         <activity
-            android:name=".StatusActivity"
-            android:screenOrientation="landscape" />
-        <activity
-            android:name=".MemoryActivity"
-            android:screenOrientation="landscape" />
-        <activity
             android:name=".Pinball1Activity"
             android:screenOrientation="landscape" />
     </application>

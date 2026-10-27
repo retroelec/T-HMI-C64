@@ -17,6 +17,8 @@
 
 #include "../Config.h"
 #ifdef USE_RPILED_DISPLAY
+#include "../ExtCmd.h"
+#include "../ExtCmdQueue.h"
 #include "../platform/PlatformManager.h"
 #include "RPiLEDMatrixDisplay.h"
 #include <cstdint>
@@ -35,12 +37,16 @@ void RPiLEDMatrixDisplay::init() {
   opts.chain_length = Config::RPI_CHAIN_LENGTH;
   opts.parallel = Config::RPI_PARALLEL;
   opts.hardware_mapping = "regular";
+  opts.led_rgb_sequence = "GBR";
   opts.show_refresh_rate = false;
   opts.brightness = Config::RPI_BRIGHTNESS;
-
   rgb_matrix::RuntimeOptions rt;
-  rt.gpio_slowdown = Config::RPI_GPIO_SLOWDOWN;
-  rt.drop_privileges = 1;
+
+  // tuning
+  opts.pwm_bits = 7;
+  opts.pwm_dither_bits = 0;
+  rt.gpio_slowdown = 2;
+  rt.drop_privileges = 0; // retain root privileges for precise timing
 
   int argc = savedArgc;
   char **argv = savedArgv;
@@ -80,10 +86,22 @@ void RPiLEDMatrixDisplay::copyViewport(const uint8_t *bitmap) {
   const int16_t canvasWidth =
       Config::RPI_PANEL_WIDTH * Config::RPI_CHAIN_LENGTH;
   const int16_t canvasHeight = Config::RPI_PANEL_HEIGHT * Config::RPI_PARALLEL;
+  int16_t startY;
+  switch (mode) {
+  case 1:
+    startY = 0;
+    break;
+  case 2:
+    startY = 8;
+    break;
+  default:
+    startY = (200 - canvasHeight) / 2;
+    break;
+  }
 
   for (int16_t y = 0; y < canvasHeight; y++) {
     for (int16_t x = 0; x < canvasWidth; x++) {
-      uint8_t c64color = bitmap[y * 320 + x];
+      uint8_t c64color = bitmap[(y + startY) * 320 + x];
       uint8_t r, g, b;
       convertPixel(c64color, r, g, b);
       offscreen->SetPixel(x, y, r, g, b);
@@ -99,5 +117,32 @@ void RPiLEDMatrixDisplay::drawBitmap(const uint8_t *bitmap) {
   copyViewport(bitmap);
 
   offscreen = matrix->SwapOnVSync(offscreen);
+}
+
+void RPiLEDMatrixDisplay::setSpecial1() {
+  mode++;
+  if (mode > 2) {
+    mode = 0;
+  }
+
+  static uint8_t osdtext[] = "M0";
+  osdtext[1] = '0' + mode;
+
+  ExtCmdQueue::ExternalCmd extcmd;
+  extcmd.cmd = ExtCmd::WRITEOSD;
+  extcmd.param[2] = 30; // x (character cell)
+  extcmd.param[3] = 22; // y (character cell)
+  extcmd.param[4] = 2;  // width (chars)
+  extcmd.param[5] = 1;  // height
+  extcmd.param[6] = 1;  // fg color (white)
+  extcmd.param[7] = 0;  // bg color (black)
+  extcmd.param[8] = 5;  // duration low
+  extcmd.param[9] = 0;  // duration hi
+  extcmd.param[10] = 0; // doiidx
+  memcpy(&extcmd.param[11], osdtext, 2);
+  ExtCmdQueue::getInstance().push(extcmd);
+
+  PlatformManager::getInstance().log(LOG_INFO, "RPiLEDMatrix",
+                                     "switch display mode to %d", mode);
 }
 #endif

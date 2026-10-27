@@ -24,6 +24,7 @@
 #include "IDebugBus.h"
 #include "JoystickOnlyTextKeycode.h"
 #include "SID.h"
+#include "Snapshot.h"
 #include "VIC.h"
 #include "joystick/JoystickDriver.h"
 #include "keyboard/C64Keycodes.h"
@@ -91,6 +92,7 @@ public:
   ExternalCmds *externalCmds;
   Hooks *hooks;
   KeyboardDriver *keyboard;
+  Snapshot snapshot;
 
   C64Sys() : cia1(true), cia2(false), floppy(this) {}
 
@@ -101,14 +103,18 @@ public:
   uint8_t getY();
   void setY(uint8_t yp);
   uint8_t getSP();
+  void setSP(uint8_t spval);
   uint8_t getSR();
+  void setSR(uint8_t srval);
   uint16_t getPC();
+  uint8_t *getRamPtr();
 
   std::atomic<uint32_t> numofcyclespersecond;
   std::atomic<uint32_t> numofburnedcyclespersecond;
   std::atomic<bool> perf;
   std::atomic<uint16_t> batteryVoltage;
   std::atomic<bool> poweroff;
+  std::atomic<uint8_t> restJoyValue{0xff};
 
   CodeTripleS actInGameKeycode;
   std::atomic<bool> actInGameKeycodeChosen;
@@ -140,6 +146,9 @@ public:
   void exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx, uint8_t regy);
   void exeSubroutine(uint16_t regpc);
   void scanKeyboard();
+
+private:
+  static const uint32_t MAX_EXE_SUBROUTINE_ITERATIONS = 1000000;
 };
 
 #endif // C64SYS_H

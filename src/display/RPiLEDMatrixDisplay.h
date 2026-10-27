@@ -31,6 +31,7 @@ private:
   rgb_matrix::RGBMatrix *matrix;
   rgb_matrix::FrameCanvas *offscreen;
   uint8_t frameColor;
+  uint8_t mode = 0;
 
   void convertPixel(uint8_t c64color, uint8_t &r, uint8_t &g, uint8_t &b);
   void fillBackground(uint8_t r, uint8_t g, uint8_t b);
@@ -43,6 +44,7 @@ public:
   void init() override;
   void drawFrame(uint8_t frameColor) override;
   void drawBitmap(const uint8_t *bitmap) override;
+  void setSpecial1() override;
 };
 #endif
 #endif

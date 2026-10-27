@@ -88,5 +88,6 @@ public:
   void playAudio();
   uint8_t getEmuVolume();
   void setEmuVolume(uint8_t volume);
+  void resetVoices();
 };
 #endif // SID_H

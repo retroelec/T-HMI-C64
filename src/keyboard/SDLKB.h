@@ -63,6 +63,11 @@ private:
 
   std::unique_ptr<LinuxBaseKeyboardLayout> keyboardLayout;
 
+  // Paste function (RCTRL+V)
+  std::queue<CodeTripleS> pasteQueue;
+  bool pasteActive = false;
+  uint8_t pasteStepCounter = 0;
+
   std::optional<CodeTripleS> getKeyCodes(uint32_t key, bool shift, bool altGr);
   void setCodes(uint8_t code1, uint8_t code2, uint8_t ctrlcode);
   void handleKeyEvent(SDL_Keysym key, SDL_Keymod mod, bool pressed);

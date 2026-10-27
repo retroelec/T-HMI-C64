@@ -19,6 +19,7 @@
 #include "../ExtCmd.h"
 #include "../ExtCmdQueue.h"
 #include "../FileConfig.h"
+#include "C64PasteMapping.h"
 #include "SDLKB.h"
 #include "SDLKeyboardFactory.h"
 #include "SDLKeyboardLayout.h"
@@ -141,6 +142,7 @@ void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
                                "        IN PORT 1, IN PORT 2, NO\r"
                                "        JOYSTICK\r"
                                "RCTRL-P TO PAUSE\r"
+                               "RCTRL-V TO PASTE\r"
                                "COMMODORE KEY = LEFT ALT\r\x9a\0";
         extcmd.cmd = ExtCmd::WRITETEXT;
         int16_t helpsize = sizeof(help);
@@ -174,9 +176,6 @@ void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
           diskname[0] = '\0';
         }
 #endif
-      } else if (key == SDLK_n) {
-        extcmd.cmd = ExtCmd::SHOWREG;
-        ExtCmdQueue::getInstance().push(extcmd);
       } else if (key == SDLK_r) {
         extcmd.cmd = ExtCmd::RESET;
         ExtCmdQueue::getInstance().push(extcmd);
@@ -194,6 +193,29 @@ void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
       } else if (key == SDLK_p) {
         extcmd.cmd = ExtCmd::PAUSE;
         ExtCmdQueue::getInstance().push(extcmd);
+      } else if (key == SDLK_v) {
+        // Paste: read clipboard text, convert it to C64 key codes and queue
+        // them
+        char *clipText = SDL_GetClipboardText();
+        if (clipText) {
+          pasteActive = true;
+          // Clear the event queue during paste to avoid interference
+          while (!eventQueue.empty()) {
+            eventQueue.pop();
+          }
+          const char *ptr = clipText;
+          while (*ptr) {
+            uint32_t cp = decodeUtf8Char(ptr);
+            if (cp == 0) {
+              continue;
+            }
+            auto code = getC64CodeForChar(cp);
+            if (code.has_value()) {
+              pasteQueue.push(code.value());
+            }
+          }
+          SDL_free(clipText);
+        }
       } else if (key == SDLK_k) {
         switch (kbjoystickmode) {
         case ExtCmd::KBJOYSTICKMODEOFF:
@@ -349,6 +371,38 @@ void SDLKB::syncAndCreateAttachWinSDL() {
 
 void SDLKB::scanKeyboard() {
   std::lock_guard<std::mutex> lock(eventMutex);
+
+  // Prioritize paste: during paste, no regular events are processed
+  // to avoid interference
+  if (pasteActive) {
+    // Clear the event queue
+    while (!eventQueue.empty()) {
+      eventQueue.pop();
+    }
+    if (pasteStepCounter == 0) {
+      // Press the next key from the paste queue
+      if (!pasteQueue.empty()) {
+        CodeTripleS code = pasteQueue.front();
+        pasteQueue.pop();
+        setCodes(code.dc00, code.dc01, code.modifier);
+        // Keep the key pressed for 3 scan cycles (~24ms) to ensure the
+        // C64 kernel reliably detects it (IRQ occurs every ~16-20ms)
+        pasteStepCounter = 3;
+      } else {
+        // Paste finished
+        pasteActive = false;
+        setCodes(0xff, 0xff, 0x00);
+      }
+    } else {
+      pasteStepCounter--;
+      if (pasteStepCounter == 0) {
+        // Release the key; next scan cycle will pick the next one
+        setCodes(0xff, 0xff, 0x00);
+      }
+    }
+    return;
+  }
+
   while (!eventQueue.empty()) {
     auto ev = eventQueue.front();
     eventQueue.pop();

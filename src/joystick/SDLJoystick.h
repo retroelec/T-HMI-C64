@@ -28,7 +28,9 @@ typedef struct _SDL_Joystick SDL_Joystick;
 class SDLJoystick : public JoystickDriver {
 private:
   SDL_Joystick *m_joystick;
-  const int m_deadzone = 16000;
+  int16_t m_centerX;
+  int16_t m_centerY;
+  const int m_deadzone = 5000;
 
 public:
   SDLJoystick();

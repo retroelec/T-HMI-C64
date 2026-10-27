@@ -686,9 +686,8 @@ void VIC::drawRasterline() {
         xp = 0;
         if (ecm && (bmm || mcm)) {
           // illegal VIC-II modes
-          uint8_t bg = vicreg[0x21] & 0x0f;
           for (uint16_t i = 0; i < 320; i++) {
-            bitmap[idx++] = bg;
+            bitmap[idx++] = 0;
           }
         } else if (bmm) {
           if (mcm) {

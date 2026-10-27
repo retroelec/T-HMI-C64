@@ -63,25 +63,9 @@ void TerminalTextKB::handleKeyEvent(uint32_t ch, bool shift, bool ctrl,
     shift = true;
   }
 
-  if (joystickActive) {
-    switch (ch) {
-    case TKEY_UP:
-      kbKeyUp = pressed;
-      return;
-    case TKEY_DOWN:
-      kbKeyDown = pressed;
-      return;
-    case TKEY_LEFT:
-      kbKeyLeft = pressed;
-      return;
-    case TKEY_RIGHT:
-      kbKeyRight = pressed;
-      return;
-    }
-  }
-
   if (pressed && ctrl) {
-    ExtCmdQueue::ExternalCmd extcmd;
+    ExtCmdQueue::ExternalCmd extcmd{};
+    extcmd.cmd = ExtCmd::NOEXTCMD;
     switch (ch) {
     case 'h':
     case 'H': {
@@ -93,19 +77,14 @@ void TerminalTextKB::handleKeyEvent(uint32_t ch, bool shift, bool ctrl,
                                     "         (SEE CONFIG::PATH, README.MD)\r"
                                     "CTRL-S TO SAVE A PROGRAM\r"
                                     "CTRL-T TO LIST PROGRAMS\r"
-                                    "CTRL-A TO ATTACH/DETACH A D64 FILE\r"
                                     "CTRL-R TO RESET THE EMULATOR\r"
-                                    "CTRL-, TO DECREMENT SOUND VOLUME\r"
-                                    "CTRL-. TO INCREMENT SOUND VOLUME\r"
-                                    "CTRL-K TO SWITCH BETWEEN KB-JOYSTICK\r"
-                                    "        IN PORT 1, IN PORT 2, NO\r"
-                                    "        JOYSTICK. CURSOR AND CTRL KEYS\r"
-                                    "        ARE USED AS JOYSTICK KEYS\r"
-                                    "CTRL-J TO SWITCH BETWEEN JOYSTICK\r"
+                                    "CTRL-D TO DECREMENT SOUND VOLUME\r"
+                                    "CTRL-U TO INCREMENT SOUND VOLUME\r"
+                                    "CTRL-K TO SWITCH BETWEEN JOYSTICK\r"
                                     "        IN PORT 1, IN PORT 2, NO\r"
                                     "        JOYSTICK\r"
                                     "CTRL-P TO PAUSE\r"
-                                    "COMMODORE KEY = LEFT ALT\r\x9a\0";
+                                    "CTRL-X TO SWITCH DISPLAY MODE\r\x9a\0";
       extcmd.cmd = ExtCmd::WRITETEXT;
       int16_t helpsize = sizeof(help);
       uint8_t *helpptr = (uint8_t *)help;
@@ -138,30 +117,26 @@ void TerminalTextKB::handleKeyEvent(uint32_t ch, bool shift, bool ctrl,
     case 'T':
       extcmd.cmd = ExtCmd::LIST;
       break;
-    case 'a':
-    case 'A':
-      extcmd.cmd = ExtCmd::ATTACHD64;
-      break;
-    case 'n':
-    case 'N':
-      extcmd.cmd = ExtCmd::SHOWREG;
-      break;
     case 'd':
     case 'D':
-      extcmd.cmd = ExtCmd::SWITCHDEBUG;
-      break;
-    case ',':
       extcmd.cmd = ExtCmd::DECVOLUME;
+      extcmd.param[0] = 10;
       break;
-    case '.':
+    case 'u':
+    case 'U':
       extcmd.cmd = ExtCmd::INCVOLUME;
+      extcmd.param[0] = 10;
       break;
     case 'p':
     case 'P':
       extcmd.cmd = ExtCmd::PAUSE;
       break;
-    case 'j':
-    case 'J':
+    case 'x':
+    case 'X':
+      extcmd.cmd = ExtCmd::SPECIAL1;
+      break;
+    case 'k':
+    case 'K':
       switch (joystickmode) {
       case ExtCmd::JOYSTICKMODEOFF:
         joystickmode = ExtCmd::JOYSTICKMODE1;
@@ -180,32 +155,14 @@ void TerminalTextKB::handleKeyEvent(uint32_t ch, bool shift, bool ctrl,
       }
       ExtCmdQueue::getInstance().push(extcmd);
       return;
-    case 'k':
-    case 'K':
-      switch (kbjoystickmode) {
-      case ExtCmd::KBJOYSTICKMODEOFF:
-        kbjoystickmode = ExtCmd::KBJOYSTICKMODE1;
-        extcmd.cmd = ExtCmd::KBJOYSTICKMODE1;
-        break;
-      case ExtCmd::KBJOYSTICKMODE1:
-        kbjoystickmode = ExtCmd::KBJOYSTICKMODE2;
-        extcmd.cmd = ExtCmd::KBJOYSTICKMODE2;
-        break;
-      case ExtCmd::KBJOYSTICKMODE2:
-        kbjoystickmode = ExtCmd::KBJOYSTICKMODEOFF;
-        extcmd.cmd = ExtCmd::KBJOYSTICKMODEOFF;
-        break;
-      default:
-        break;
-      }
-      joystickActive = (kbjoystickmode != ExtCmd::KBJOYSTICKMODEOFF);
+    default:
+      break;
+    }
+    if (extcmd.cmd != ExtCmd::NOEXTCMD) {
       ExtCmdQueue::getInstance().push(extcmd);
       return;
-    default:
-      return;
     }
-    ExtCmdQueue::getInstance().push(extcmd);
-    return;
+    // fall through: non-ExtCmd Ctrl key → normal key processing
   }
 
   bool lctrl = ctrl;
@@ -219,6 +176,14 @@ void TerminalTextKB::handleKeyEvent(uint32_t ch, bool shift, bool ctrl,
     setCodes(c1, c2, c3);
   };
   processKeyEvent(key, shift, lctrl, rctrl, lalt, ralt, pressed, getKc, setCd);
+}
+
+static bool hasStdinData() {
+  struct pollfd pfd;
+  pfd.fd = STDIN_FILENO;
+  pfd.events = POLLIN;
+  pfd.revents = 0;
+  return poll(&pfd, 1, 0) > 0;
 }
 
 uint32_t TerminalTextKB::readKey() {
@@ -242,13 +207,19 @@ uint32_t TerminalTextKB::readKey() {
     return buf[0];
   }
 
-  // escape sequence
+  // escape sequence: check if there are more bytes (non-blocking)
+  if (!hasStdinData()) {
+    return TKEY_ESC;
+  }
   n = read(STDIN_FILENO, buf, 1);
   if (n <= 0) {
     return TKEY_ESC;
   }
 
   if (buf[0] == '[') {
+    if (!hasStdinData()) {
+      return TKEY_ESC;
+    }
     n = read(STDIN_FILENO, buf, 1);
     if (n <= 0) {
       return TKEY_ESC;
@@ -258,6 +229,9 @@ uint32_t TerminalTextKB::readKey() {
     if (buf[0] >= '0' && buf[0] <= '9') {
       uint8_t num = buf[0] - '0';
       while (true) {
+        if (!hasStdinData()) {
+          return TKEY_ESC;
+        }
         n = read(STDIN_FILENO, buf, 1);
         if (n <= 0) {
           return TKEY_ESC;
@@ -313,6 +287,9 @@ uint32_t TerminalTextKB::readKey() {
       }
     }
   } else if (buf[0] == 'O') {
+    if (!hasStdinData()) {
+      return TKEY_ESC;
+    }
     n = read(STDIN_FILENO, buf, 1);
     if (n <= 0) {
       return TKEY_ESC;

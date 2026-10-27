@@ -19,6 +19,7 @@
 
 #include "ExtCmd.h"
 #include "platform/PlatformManager.h"
+#include <atomic>
 #include <cstdint>
 #include <cstring>
 
@@ -41,54 +42,63 @@ public:
   ExtCmdQueue(const ExtCmdQueue &) = delete;
   ExtCmdQueue &operator=(const ExtCmdQueue &) = delete;
 
-  bool empty() const { return count == 0; }
+  bool empty() const { return count.load(std::memory_order_acquire) == 0; }
 
   void push(const ExternalCmd &value) {
-    PlatformManager::getInstance().log(
-        LOG_INFO, "push ExtCmd", "count = %d, cmd = %d", count, value.cmd);
-    if (count == SIZE) {
+    // PlatformManager::getInstance().log(
+    //     LOG_INFO, "push ExtCmd", "count = %d, cmd = %d",
+    //     count.load(), value.cmd);
+    if (count.load(std::memory_order_relaxed) == SIZE) {
       PlatformManager::getInstance().log(LOG_ERROR, "ExtCmdQueue", "overflow");
       return;
     }
-    data[tail] = value;
-    tail = (tail + 1) % SIZE;
-    ++count;
+    uint8_t t = tail.load(std::memory_order_relaxed);
+    data[t] = value;
+    tail.store((t + 1) % SIZE, std::memory_order_relaxed);
+    count.fetch_add(1, std::memory_order_release);
   }
 
   ExternalCmd *pop() {
-    if (count == 0) {
+    if (count.load(std::memory_order_relaxed) == 0) {
       PlatformManager::getInstance().log(LOG_ERROR, "ExtCmdQueue", "underflow");
       return nullptr;
     }
-    ExternalCmd *value = &data[head];
-    head = (head + 1) % SIZE;
-    --count;
-    PlatformManager::getInstance().log(
-        LOG_INFO, "pop ExtCmd", "count = %d, cmd = %d", count, value->cmd);
+    uint8_t h = head.load(std::memory_order_relaxed);
+    ExternalCmd *value = &data[h];
+    head.store((h + 1) % SIZE, std::memory_order_relaxed);
+    count.fetch_sub(1, std::memory_order_acquire);
+    // PlatformManager::getInstance().log(
+    //     LOG_INFO, "pop ExtCmd", "count = %d, cmd = %d", count.load(),
+    //     value->cmd);
     return value;
   }
 
   ExternalCmd *waitTestAndDec() {
-    if (count == 0) {
+    if (count.load(std::memory_order_relaxed) == 0) {
       PlatformManager::getInstance().log(LOG_ERROR, "ExtCmdQueue", "underflow");
       return nullptr;
     }
-    ExternalCmd *cmd = &data[head];
+    uint8_t h = head.load(std::memory_order_relaxed);
+    ExternalCmd *cmd = &data[h];
     if ((cmd->cmd == ExtCmd::WAIT) && (cmd->param[0] > 0)) {
       cmd->param[0]--;
     }
     return cmd;
   }
 
-  void clear() { head = tail = count = 0; }
+  void clear() {
+    head.store(0);
+    tail.store(0);
+    count.store(0, std::memory_order_release);
+  }
 
 private:
   ExtCmdQueue() = default;
   static const uint8_t SIZE = 6;
   ExternalCmd data[SIZE];
-  uint8_t head = 0;
-  uint8_t tail = 0;
-  uint8_t count = 0;
+  std::atomic<uint8_t> head = 0;
+  std::atomic<uint8_t> tail = 0;
+  std::atomic<uint8_t> count = 0;
 };
 
 #endif // EXTCMDQUEUE_H

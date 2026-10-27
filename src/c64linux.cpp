@@ -1,5 +1,8 @@
 #if defined(PLATFORM_LINUX) || defined(_WIN32)
 #include "C64Emu.h"
+#ifdef PLATFORM_LINUX
+#include "RestAPI.h"
+#endif
 #include "platform/PlatformFactory.h"
 #include "platform/PlatformManager.h"
 
@@ -31,6 +34,12 @@ int main(int argc, char *argv[]) {
   // start emulator
   try {
     c64Emu.setup();
+
+#ifdef PLATFORM_LINUX
+    // start REST API server
+    RestAPI *restAPI = new RestAPI(&c64Emu.cpu, 8080);
+    restAPI->start();
+#endif
   } catch (const std::exception &e) {
     PlatformManager::getInstance().log(LOG_ERROR, TAG, "setup() failed: %s",
                                        e.what());

@@ -27,10 +27,9 @@ public class BLEManager {
     private final MainActivity mainActivity;
     private final String targetDeviceName;
     private final Settings settings;
-    private final Type2Notification type2Notification;
-    private final Type3Notification type3Notification;
     private final Type4Notification type4Notification;
     private final Type5Notification type5Notification;
+    private final Type6Notification type6Notification;
 
     private boolean servicesDiscovered = false;
     private boolean isWriteInProgress = false;
@@ -44,14 +43,13 @@ public class BLEManager {
         this.connectionStateListener = connectionStateListener;
     }
 
-    public BLEManager(MainActivity mainActivity, String targetDeviceName, Settings settings, Type2Notification type2Notification, Type3Notification type3Notification, Type4Notification type4Notification, Type5Notification type5Notification) {
+    public BLEManager(MainActivity mainActivity, String targetDeviceName, Settings settings, Type4Notification type4Notification, Type5Notification type5Notification, Type6Notification type6Notification) {
         this.mainActivity = mainActivity;
         this.targetDeviceName = targetDeviceName;
         this.settings = settings;
-        this.type2Notification = type2Notification;
-        this.type3Notification = type3Notification;
         this.type4Notification = type4Notification;
         this.type5Notification = type5Notification;
+        this.type6Notification = type6Notification;
         BluetoothManager bluetoothManager = (BluetoothManager) mainActivity.getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter bluetoothAdapter = (bluetoothManager != null) ? bluetoothManager.getAdapter() : null;
         bluetoothLeScanner = (bluetoothAdapter != null) ? bluetoothAdapter.getBluetoothLeScanner() : null;
@@ -154,7 +152,6 @@ public class BLEManager {
                         // get status (e.g. state of switches, joystick mode, volume)
                         case 1:
                             settings.setJoymode(receivedData[1]);
-                            settings.setDeactivateTemp(receivedData[2] != 0);
                             settings.setSendRawKeyCodes(receivedData[3] != 0);
                             settings.setDebug(receivedData[4] != 0);
                             settings.setPerf(receivedData[5] != 0);
@@ -162,39 +159,6 @@ public class BLEManager {
                             settings.setVolume(Byte.toUnsignedInt(receivedData[7]));
                             settings.setD64attached(receivedData[8] != 0);
                             mainActivity.runOnUiThread(settings::notifySettingsObserver);
-                            break;
-                        // get register content from esp
-                        case 2:
-                            type2Notification.setCpuRunning(receivedData[1] != 0);
-                            int pcl = receivedData[2] & 0xff;
-                            int pch = receivedData[3] & 0xff;
-                            type2Notification.setPc(pcl | (pch << 8));
-                            type2Notification.setA(receivedData[4]);
-                            type2Notification.setX(receivedData[5]);
-                            type2Notification.setY(receivedData[6]);
-                            type2Notification.setSr(receivedData[7]);
-                            type2Notification.setD011(receivedData[8]);
-                            type2Notification.setD016(receivedData[9]);
-                            type2Notification.setD018(receivedData[10]);
-                            type2Notification.setD019(receivedData[11]);
-                            type2Notification.setD01a(receivedData[12]);
-                            type2Notification.setRegister1(receivedData[13]);
-                            type2Notification.setDc0d(receivedData[14]);
-                            type2Notification.setDc0e(receivedData[15]);
-                            type2Notification.setDc0f(receivedData[16]);
-                            type2Notification.setDd0d(receivedData[17]);
-                            type2Notification.setDd0e(receivedData[18]);
-                            type2Notification.setDd0f(receivedData[19]);
-                            type2Notification.notifyObserver();
-                            break;
-                        // get memory content from esp
-                        case 3:
-                            short[] mem = new short[16];
-                            for (byte i = 0; i < 16; i++) {
-                                mem[i] = receivedData[i + 1];
-                            }
-                            type3Notification.setMem(mem);
-                            type3Notification.notifyObserver();
                             break;
                         // used to send data from android to esp
                         case 4:
@@ -212,6 +176,12 @@ public class BLEManager {
                                     type5Notification.notifyObserver();
                                 }
                             });
+                            break;
+                        // THMIC64KB version
+                        case 6:
+                            type6Notification.setVersion(receivedData[1] & 0xff);
+                            Log.i("THMIC64", "THMIC64KB version: " + (receivedData[1] & 0xff));
+                            type6Notification.notifyObserver();
                             break;
                     }
                 } else {

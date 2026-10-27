@@ -141,10 +141,6 @@ void NotcursesKB::handleKeyEvent(uint32_t ch, bool shift, bool ctrl, bool alt,
     case 'A':
       extcmd.cmd = ExtCmd::ATTACHD64;
       break;
-    case 'n':
-    case 'N':
-      extcmd.cmd = ExtCmd::SHOWREG;
-      break;
     case 'd':
     case 'D':
       extcmd.cmd = ExtCmd::SWITCHDEBUG;

@@ -154,7 +154,10 @@ uint8_t C64Sys::getMem(uint16_t addr) {
             input = joystick->getValue();
           }
         } else if (kbjoystickmode == 2) {
-          if (input == 0xff) {
+          uint8_t restJoy = restJoyValue.load(std::memory_order_acquire);
+          if (restJoy != 0xff) {
+            input = restJoy;
+          } else if (input == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
             input = keyboard->getKBJoyValue();
           }
@@ -175,7 +178,10 @@ uint8_t C64Sys::getMem(uint16_t addr) {
             input = joystick->getValue();
           }
         } else if (kbjoystickmode == 1) {
-          if (input == 0xff) {
+          uint8_t restJoy = restJoyValue.load(std::memory_order_acquire);
+          if (restJoy != 0xff) {
+            input = restJoy;
+          } else if (input == 0xff) {
             // no key pressed -> return joystick value (of keyboard joystick)
             input = keyboard->getKBJoyValue();
           }
@@ -437,6 +443,9 @@ uint8_t C64Sys::getSR() { return sr; }
 
 uint16_t C64Sys::getPC() { return pc; }
 void C64Sys::setPC(uint16_t newPC) { pc = newPC; }
+void C64Sys::setSP(uint8_t spval) { sp = spval; }
+void C64Sys::setSR(uint8_t srval) { sr = srval; }
+uint8_t *C64Sys::getRamPtr() { return ram; }
 
 void C64Sys::checkciatimers(uint8_t cycles) {
   // CIA 1 TOD alarm
@@ -731,14 +740,6 @@ void C64Sys::check4extcmd() {
     data = reinterpret_cast<uint8_t *>(&(externalCmds->type1notification));
     size = sizeof(externalCmds->type1notification);
     break;
-  case 2:
-    data = reinterpret_cast<uint8_t *>(&(externalCmds->type2notification));
-    size = sizeof(externalCmds->type2notification);
-    break;
-  case 3:
-    data = reinterpret_cast<uint8_t *>(&(externalCmds->type3notification));
-    size = sizeof(externalCmds->type3notification);
-    break;
   case 4:
     data = reinterpret_cast<uint8_t *>(&(externalCmds->type4notification));
     size = sizeof(externalCmds->type4notification);
@@ -746,6 +747,10 @@ void C64Sys::check4extcmd() {
   case 5:
     data = reinterpret_cast<uint8_t *>(&(externalCmds->type5notification));
     size = sizeof(externalCmds->type5notification);
+    break;
+  case 6:
+    data = reinterpret_cast<uint8_t *>(&(externalCmds->type6notification));
+    size = sizeof(externalCmds->type6notification);
     break;
   default:
     type = 0;
@@ -951,7 +956,16 @@ void C64Sys::init(uint8_t *ram, const uint8_t *charrom) {
 void C64Sys::exeSubroutine(uint16_t regpc) {
   uint8_t tsp = sp;
   pc = regpc;
+  uint32_t cnt = 0;
   while (true) {
+    if (cnt++ >= MAX_EXE_SUBROUTINE_ITERATIONS) {
+      PlatformManager::getInstance().log(
+          LOG_WARN, TAG,
+          "exeSubroutine iteration limit reached, "
+          "aborting (pc = %x, sp = %x)",
+          pc, sp);
+      break;
+    }
     uint8_t nextopc = getMem(pc++);
     execute(nextopc);
     if ((sp == tsp) && (nextopc == 0x60)) { // rts
@@ -984,7 +998,16 @@ void C64Sys::exeSubroutine(uint16_t addr, uint8_t rega, uint8_t regx,
   ram[0x033d] = addr & 0xff;
   ram[0x033e] = addr >> 8;
   pc = 0x033c;
+  uint32_t cnt = 0;
   while (true) {
+    if (cnt++ >= MAX_EXE_SUBROUTINE_ITERATIONS) {
+      PlatformManager::getInstance().log(
+          LOG_WARN, TAG,
+          "exeSubroutine iteration limit reached, "
+          "aborting (pc = %x, sp = %x)",
+          pc, sp);
+      break;
+    }
     uint8_t nextopc = getMem(pc++);
     execute(nextopc);
     if ((sp == tsp) && (nextopc == 0x60)) { // rts

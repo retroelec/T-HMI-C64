@@ -237,6 +237,17 @@ void SID::initSID() {
   sidVoice[2].prevVoice = &sidVoice[1];
 }
 
+void SID::resetVoices() {
+  // Reset only the voice oscillators – does NOT clear sidreg[].
+  actSampleIdx = 0;
+  for (uint16_t i = 0; i < NUMSAMPLESPERFRAME; i++) {
+    samples[i] = 0;
+  }
+  for (int i = 0; i < 3; i++) {
+    sidVoice[i].init();
+  }
+}
+
 SID::SID() { initSID(); }
 
 void SID::init() {

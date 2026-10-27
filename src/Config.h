@@ -24,7 +24,6 @@
 #endif
 
 #if defined(PLATFORM_LINUX) || defined(_WIN32)
-
 #if defined(LINUX_NCTERM)
 #define BOARD_LINUX
 #define USE_NOTCURSES_DISPLAY
@@ -47,7 +46,7 @@
 #define USE_TERMINALTEXT_KEYBOARD
 #define USE_LINUXFS
 #define USE_SDLSOUND
-#define USE_NOJOYSTICK
+#define USE_SDLJOYSTICK
 #else
 #define BOARD_LINUX
 #define USE_SDL_DISPLAY
@@ -56,6 +55,7 @@
 #define USE_SDLJOYSTICK
 #define USE_SDLSOUND
 #define WINDOWS_BUSYWAIT
+#define USE_SNAPSHOT
 #endif
 
 #elif defined(ESP_PLATFORM)
@@ -132,6 +132,34 @@
 
 #if defined(PLATFORM_LINUX) || defined(_WIN32)
 
+#if defined(LINUX_RPILED)
+
+struct Config {
+  // --- constants to be defined for each board ---
+
+  // delay until next display refresh
+  static const uint8_t REFRESHDELAY = 20;
+
+  // audio
+  static const uint8_t DEFAULT_VOLUME = 128;
+
+  // has no function for Raspberry Pi
+  static inline uint16_t LCDSCALE = 1;
+
+  // RPi LED Matrix panel
+  static const uint16_t RPI_PANEL_WIDTH = 64;
+  static const uint16_t RPI_PANEL_HEIGHT = 64;
+  static const uint8_t RPI_CHAIN_LENGTH = 5;
+  static const uint8_t RPI_PARALLEL = 3;
+  static const uint8_t RPI_BRIGHTNESS = 50;
+
+  // filesystem
+  static constexpr const char *PATH = "c64prgs/";
+  static constexpr const char *CONFIGFILE = ".config.json";
+};
+
+#else
+
 struct Config {
   // --- constants to be defined for each board ---
 
@@ -141,25 +169,17 @@ struct Config {
   // audio
   static const uint8_t DEFAULT_VOLUME = 10;
 
-  // --- driver specific constants ---
-
   // display driver
   static const uint16_t LCDWIDTH = 404;
   static const uint16_t LCDHEIGHT = 284;
   static inline uint16_t LCDSCALE = 3;
 
-  // RPi LED Matrix panel
-  static const uint16_t RPI_PANEL_WIDTH = 64;
-  static const uint16_t RPI_PANEL_HEIGHT = 64;
-  static const uint8_t RPI_CHAIN_LENGTH = 2;
-  static const uint8_t RPI_PARALLEL = 3;
-  static const uint8_t RPI_BRIGHTNESS = 50;
-  static const uint8_t RPI_GPIO_SLOWDOWN = 2;
-
   // filesystem
   static constexpr const char *PATH = "c64prgs/";
   static constexpr const char *CONFIGFILE = ".config.json";
 };
+
+#endif
 
 #elif defined(ESP_PLATFORM)
 

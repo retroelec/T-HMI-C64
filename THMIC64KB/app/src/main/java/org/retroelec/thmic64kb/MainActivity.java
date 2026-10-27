@@ -30,16 +30,16 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
     private static final int PERMISSION_REQUEST_CODE = 1234;
     private BLEManager bleManager = null;
     private Settings settings;
-    private Type2Notification type2Notification;
-    private Type3Notification type3Notification;
     private Type4Notification type4Notification;
     private Type5Notification type5Notification;
+    private Type6Notification type6Notification;
     private Switch bleSwitch;
     private TextView batteryvoltage;
     private Button joystick1;
     private Button joystick2;
     private boolean joystick1active = false;
     private boolean joystick2active = false;
+    private boolean versionCheckDone = false;
     private final Handler handlerBatteryCheck = new Handler(Looper.getMainLooper());
 
     // get battery voltage
@@ -68,6 +68,8 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
             if (bleManager != null) {
                 // get initial settings
                 bleManager.sendData(new byte[]{Config.GETSTATUS, (byte) 0x00, (byte) 0x80}, false);
+                // get THMIC64KB version
+                bleManager.sendData(new byte[]{Config.GETVERSION, (byte) 0x00, (byte) 0x80}, false);
             }
         });
     }
@@ -99,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
     private void scanForBLEDevice() {
         // init BLEManager
         Log.d("THMIC64", "init BLEManager");
-        bleManager = new BLEManager(this, Config.TARGET_DEVICE_NAME, settings, type2Notification, type3Notification, type4Notification, type5Notification);
+        bleManager = new BLEManager(this, Config.TARGET_DEVICE_NAME, settings, type4Notification, type5Notification, type6Notification);
         bleManager.setConnectionStateListener(this);
         final MyApplication myApplication = (MyApplication) getApplication();
         myApplication.setBleManager(bleManager);
@@ -148,9 +150,22 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
 
     @Override
     public void update() {
+        // battery voltage update (from Type5)
         int voltage = type5Notification.getBatteryVoltage();
         int percentage = Math.max(0, Math.min(100, ((voltage - 3600) / 6)));
         batteryvoltage.setText("BATT: " + Integer.toString(percentage) + "%");
+
+        // THMIC64KB version check (from Type6)
+        if (!versionCheckDone) {
+            int fwVersion = type6Notification.getVersion();
+            if (fwVersion > 0) {
+                versionCheckDone = true;
+                if (fwVersion > Config.THMIC64KB_VERSION) {
+                    Toast.makeText(this, "New app version required! ESP THMIC64KB version "
+                            + fwVersion + " needs a newer THMIC64KB app. Please update.", Toast.LENGTH_LONG).show();
+                }
+            }
+        }
     }
 
     @Override
@@ -182,17 +197,16 @@ public class MainActivity extends AppCompatActivity implements SettingsObserver,
 
         settings = new Settings();
         settings.setMinKeyPressedDuration(Config.DEFAULT_MINKEYPRESSEDDURATION);
-        type2Notification = new Type2Notification();
-        type3Notification = new Type3Notification();
         type4Notification = new Type4Notification();
         type5Notification = new Type5Notification();
         type5Notification.registerObserver(this);
+        type6Notification = new Type6Notification();
+        type6Notification.registerObserver(this);
         final MyApplication myApplication = (MyApplication) getApplication();
         myApplication.setSettings(settings);
-        myApplication.setType2Notification(type2Notification);
-        myApplication.setType3Notification(type3Notification);
         myApplication.setType4Notification(type4Notification);
         myApplication.setType5Notification(type5Notification);
+        myApplication.setType6Notification(type6Notification);
         BLEUtils bleUtils = new BLEUtils(this);
 
         setContentView(R.layout.activity_main);

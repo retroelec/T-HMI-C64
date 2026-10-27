@@ -8,7 +8,6 @@ public class Settings {
     private byte joymode;
     private int volume;
     private boolean d64attached;
-    private boolean deactivateTemp;
     private boolean sendRawKeyCodes;
     private boolean debug;
     private boolean perf;
@@ -52,14 +51,6 @@ public class Settings {
 
     public void setD64attached(boolean d64attached) {
         this.d64attached = d64attached;
-    }
-
-    public boolean isDeactivateTemp() {
-        return deactivateTemp;
-    }
-
-    public void setDeactivateTemp(boolean deactivateTemp) {
-        this.deactivateTemp = deactivateTemp;
     }
 
     public boolean isSendRawKeyCodes() {

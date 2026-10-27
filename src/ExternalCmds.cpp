@@ -19,6 +19,7 @@
 #include "C64Sys.h"
 #include "ExtCmd.h"
 #include "ExtCmdQueue.h"
+#include "Version.h"
 #include "platform/PlatformManager.h"
 #include <algorithm>
 #include <cstring>
@@ -45,35 +46,6 @@ void ExternalCmds::setType1Notification() {
   type1notification.switchattached = cpu->floppy.d64attached;
 }
 
-void ExternalCmds::setType2Notification() {
-  type2notification.type = 2;
-  type2notification.cpuRunning = !cpu->cpuhalted;
-  type2notification.pc = cpu->getPC();
-  type2notification.a = cpu->getA();
-  type2notification.x = cpu->getX();
-  type2notification.y = cpu->getY();
-  type2notification.sr = cpu->getSR();
-  type2notification.d011 = cpu->getMem(0xd011);
-  type2notification.d016 = cpu->getMem(0xd016);
-  type2notification.d018 = cpu->getMem(0xd018);
-  type2notification.d019 = cpu->getMem(0xd019);
-  type2notification.d01a = cpu->getMem(0xd01a);
-  type2notification.register1 = cpu->getMem(1);
-  type2notification.dc0d = cpu->getMem(0xdc0d);
-  type2notification.dc0e = cpu->getMem(0xdc0e);
-  type2notification.dc0f = cpu->getMem(0xdc0f);
-  type2notification.dd0d = cpu->getMem(0xdd0d);
-  type2notification.dd0e = cpu->getMem(0xdd0e);
-  type2notification.dd0f = cpu->getMem(0xdd0f);
-}
-
-void ExternalCmds::setType3Notification(uint16_t addr) {
-  type3notification.type = 3;
-  for (uint8_t i = 0; i < NOTIFICATIONTYPE3NUMOFBYTES; i++) {
-    type3notification.mem[i] = cpu->getMem(addr + i);
-  }
-}
-
 void ExternalCmds::setType4Notification() { type4notification.type = 4; }
 
 void ExternalCmds::setType5Notification(uint8_t batteryVolLow,
@@ -81,6 +53,11 @@ void ExternalCmds::setType5Notification(uint8_t batteryVolLow,
   type5notification.type = 5;
   type5notification.batteryVolLow = batteryVolLow;
   type5notification.batteryVolHi = batteryVolHi;
+}
+
+void ExternalCmds::setType6Notification() {
+  type6notification.type = 6;
+  type6notification.version = THMIC64KB_VERSION;
 }
 
 void ExternalCmds::setVarTab(uint16_t addr) {
@@ -155,6 +132,48 @@ void ExternalCmds::writeTextToC64Screen(uint16_t addr, int16_t sizebuffer) {
     ram[addr] = ch;
     sizebuffer -= 250;
   }
+}
+
+void ExternalCmds::setJ1() {
+  cpu->joystickmode = 1;
+  cpu->vic.drawDOIBox((uint8_t *)"\xa\x31", 37, 23, 2, 1, 1, 0, 3, 0);
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
+                                     cpu->joystickmode);
+}
+
+void ExternalCmds::setJ2() {
+  cpu->joystickmode = 2;
+  cpu->vic.drawDOIBox((uint8_t *)"\xa\x32", 37, 23, 2, 1, 1, 0, 3, 0);
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
+                                     cpu->joystickmode);
+}
+
+void ExternalCmds::setNoJoy() {
+  cpu->joystickmode = 0;
+  cpu->vic.drawDOIBox((uint8_t *)"\xe\xf", 37, 23, 2, 1, 1, 0, 3, 0);
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
+                                     cpu->joystickmode);
+}
+
+void ExternalCmds::setJB1() {
+  cpu->kbjoystickmode = 1;
+  cpu->vic.drawDOIBox((uint8_t *)"\xa\x2\x31", 36, 22, 3, 1, 1, 0, 3, 1);
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
+                                     cpu->kbjoystickmode);
+}
+
+void ExternalCmds::setJB2() {
+  cpu->kbjoystickmode = 2;
+  cpu->vic.drawDOIBox((uint8_t *)"\xa\x2\x32", 36, 22, 3, 1, 1, 0, 3, 1);
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
+                                     cpu->kbjoystickmode);
+}
+
+void ExternalCmds::setNoJoyB() {
+  cpu->kbjoystickmode = 0;
+  cpu->vic.drawDOIBox((uint8_t *)"\xe\xf", 37, 22, 2, 1, 1, 0, 3, 1);
+  PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
+                                     cpu->kbjoystickmode);
 }
 
 uint8_t ExternalCmds::executeNextExternalCmd() {
@@ -306,8 +325,7 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
         cpu->vic.drawDOIBox((uint8_t *)"\xf\xb", 37, 23, 2, 1, 1, 0, 4, 0);
       }
     }
-    setType1Notification();
-    return 1;
+    return 0;
   }
   case ExtCmd::DETACHD64: {
     PlatformManager::getInstance().log(LOG_INFO, TAG, "detach d64 file");
@@ -315,8 +333,7 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
       cpu->floppy.detach();
     }
     cpu->vic.drawDOIBox((uint8_t *)"\xe\xf", 37, 23, 2, 1, 1, 0, 4, 0);
-    setType1Notification();
-    return 1;
+    return 0;
   }
   case ExtCmd::RECEIVEDATA: {
     if (!isBasicInputMode()) {
@@ -376,46 +393,6 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     }
     cpu->restorenmi = true;
     return 0;
-  case ExtCmd::SHOWREG:
-    setType2Notification();
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "cpuRunning %s",
-                                       type2notification.cpuRunning ? "true"
-                                                                    : "false");
-    PlatformManager::getInstance().log(
-        LOG_INFO, TAG, "pc = %x, a = %x, x = %x, y = %x, sr = %x",
-        type2notification.pc, type2notification.a, type2notification.x,
-        type2notification.y, type2notification.sr);
-    PlatformManager::getInstance().log(
-        LOG_INFO, TAG, "d011 = %x, d016 = %x, d018 = %x",
-        type2notification.d011, type2notification.d016, type2notification.d018);
-    PlatformManager::getInstance().log(
-        LOG_INFO, TAG, "d019 = %x, d01a = %x, register1 = %x",
-        type2notification.d019, type2notification.d01a,
-        type2notification.register1);
-    PlatformManager::getInstance().log(
-        LOG_INFO, TAG, "dc0d = %x, dc0e = %x, dc0f = %x",
-        type2notification.dc0d, type2notification.dc0e, type2notification.dc0f);
-    PlatformManager::getInstance().log(
-        LOG_INFO, TAG, "dd0d = %x, dd0e = %x, dd0f = %x",
-        type2notification.dd0d, type2notification.dd0e, type2notification.dd0f);
-    return 2;
-  case ExtCmd::SHOWMEM: {
-    uint16_t addr = cmd->param[2] + (cmd->param[3] << 8);
-    // use addr also as debugging start address
-    cpu->debugstartaddr = addr;
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "addr: %x", addr);
-    setType3Notification(addr);
-    for (uint8_t i = 0; i < NOTIFICATIONTYPE3NUMOFBYTES / 8; i++) {
-      uint8_t j = i * 8;
-      PlatformManager::getInstance().log(
-          LOG_INFO, TAG, "mem[%d]: %d %d %d %d %d %d %d %d", j,
-          type3notification.mem[j], type3notification.mem[j + 1],
-          type3notification.mem[j + 2], type3notification.mem[j + 3],
-          type3notification.mem[j + 4], type3notification.mem[j + 5],
-          type3notification.mem[j + 6], type3notification.mem[j + 7]);
-    }
-    return 3;
-  }
   case ExtCmd::RESET:
     cpu->cpuhalted = true;
     cpu->initMemAndRegs();
@@ -425,46 +402,36 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     cpu->sid.initSID();
     cpu->floppy.init(8);
     cpu->cpuhalted = false;
-    setType1Notification();
-    return 1;
+    return 0;
   case ExtCmd::JOYSTICKMODE1:
-    cpu->joystickmode = 1;
-    cpu->vic.drawDOIBox((uint8_t *)"\xa\x31", 37, 23, 2, 1, 1, 0, 3, 0);
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
-                                       cpu->joystickmode);
-    setType1Notification();
-    return 1;
+    setJ1();
+    if (cpu->kbjoystickmode != 0) {
+      setJB2();
+    }
+    return 0;
   case ExtCmd::JOYSTICKMODE2:
-    cpu->joystickmode = 2;
-    cpu->vic.drawDOIBox((uint8_t *)"\xa\x32", 37, 23, 2, 1, 1, 0, 3, 0);
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
-                                       cpu->joystickmode);
-    setType1Notification();
-    return 1;
+    setJ2();
+    if (cpu->kbjoystickmode != 0) {
+      setJB1();
+    }
+    return 0;
   case ExtCmd::JOYSTICKMODEOFF:
-    cpu->joystickmode = 0;
-    cpu->vic.drawDOIBox((uint8_t *)"\xb\x2", 37, 23, 2, 1, 1, 0, 3, 0);
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "joystickmode = %x",
-                                       cpu->joystickmode);
-    setType1Notification();
-    return 1;
+    setNoJoy();
+    return 0;
   case ExtCmd::KBJOYSTICKMODE1:
-    cpu->kbjoystickmode = 1;
-    cpu->vic.drawDOIBox((uint8_t *)"\xa\x31", 37, 23, 2, 1, 1, 0, 3, 0);
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
-                                       cpu->kbjoystickmode);
+    setJB1();
+    if (cpu->joystickmode != 0) {
+      setJ2();
+    }
     return 0;
   case ExtCmd::KBJOYSTICKMODE2:
-    cpu->kbjoystickmode = 2;
-    cpu->vic.drawDOIBox((uint8_t *)"\xa\x32", 37, 23, 2, 1, 1, 0, 3, 0);
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
-                                       cpu->kbjoystickmode);
+    setJB2();
+    if (cpu->joystickmode != 0) {
+      setJ1();
+    }
     return 0;
   case ExtCmd::KBJOYSTICKMODEOFF:
-    cpu->kbjoystickmode = 0;
-    cpu->vic.drawDOIBox((uint8_t *)"\xb\x2", 37, 23, 2, 1, 1, 0, 3, 0);
-    PlatformManager::getInstance().log(LOG_INFO, TAG, "kbjoystickmode = %x",
-                                       cpu->kbjoystickmode);
+    setNoJoyB();
     return 0;
   case ExtCmd::GETSTATUS:
     // just send type 1 notification
@@ -475,14 +442,12 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     cpu->deactivateTemp = !cpu->deactivateTemp;
     PlatformManager::getInstance().log(LOG_INFO, TAG, "deactivateTemp = %x",
                                        cpu->deactivateTemp);
-    setType1Notification();
-    return 1;
+    return 0;
   case ExtCmd::SENDRAWKEYS:
     sendrawkeycodes = !sendrawkeycodes;
     PlatformManager::getInstance().log(LOG_INFO, TAG, "sendrawkeycodes = %x",
                                        sendrawkeycodes);
-    setType1Notification();
-    return 1;
+    return 0;
   case ExtCmd::SWITCHDEBUG:
     cpu->debug = !cpu->debug;
     if (cpu->debug) {
@@ -491,26 +456,29 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
       cpu->debugNumOfSteps = 0;
     }
     PlatformManager::getInstance().log(LOG_INFO, TAG, "debug = %x", cpu->debug);
-    setType1Notification();
-    return 1;
+    return 0;
   case ExtCmd::SWITCHPERF:
     cpu->perf.store(!cpu->perf.load(std::memory_order_acquire),
                     std::memory_order_release);
     PlatformManager::getInstance().log(
         LOG_INFO, TAG, "perf = %x", cpu->perf.load(std::memory_order_acquire));
-    setType1Notification();
-    return 1;
+    return 0;
   case ExtCmd::SWITCHDETECTRELEASEKEY:
     cpu->detectreleasekey = !cpu->detectreleasekey;
     cpu->keyboard->setDetectReleasekey(cpu->detectreleasekey);
     PlatformManager::getInstance().log(LOG_INFO, TAG, "detectreleasekey = %x",
                                        cpu->detectreleasekey);
-    setType1Notification();
-    return 1;
+    return 0;
   case ExtCmd::GETBATTERYVOLTAGE: {
     uint16_t voltage = cpu->batteryVoltage.load(std::memory_order_acquire);
     setType5Notification(voltage & 0xff, (voltage >> 8) & 0xff);
     return 5;
+  }
+  case ExtCmd::GETVERSION: {
+    setType6Notification();
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "THMIC64KB version: %d",
+                                       THMIC64KB_VERSION);
+    return 6;
   }
   case ExtCmd::POWEROFF:
     cpu->poweroff.store(true, std::memory_order_release);
@@ -530,8 +498,7 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     PlatformManager::getInstance().log(LOG_INFO, TAG, "volume = %d",
                                        cpu->sid.getEmuVolume());
     dispVolume();
-    setType1Notification();
-    return 1;
+    return 0;
   }
   case ExtCmd::DECVOLUME: {
     int16_t newVolume = cpu->sid.getEmuVolume() - cmd->param[0];
@@ -542,8 +509,7 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
     PlatformManager::getInstance().log(LOG_INFO, TAG, "volume = %d",
                                        cpu->sid.getEmuVolume());
     dispVolume();
-    setType1Notification();
-    return 1;
+    return 0;
   }
   case ExtCmd::WRITETEXT: {
     if (!isBasicInputMode()) {
@@ -604,6 +570,30 @@ uint8_t ExternalCmds::executeNextExternalCmd() {
   case ExtCmd::SPECIAL2: {
     cpu->vic.display->setSpecial2();
     PlatformManager::getInstance().log(LOG_INFO, TAG, "execute special2");
+    return 0;
+  }
+  case ExtCmd::SENDKEY: {
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "execute sendkey");
+    cpu->actInGameKeycode = {cmd->param[0], cmd->param[1], cmd->param[2]};
+    cpu->actInGameKeycodeChosen.store(true, std::memory_order_release);
+    cpu->actInGameKeycodeCnt.store(cmd->param[3] > 0 ? cmd->param[3] : 3,
+                                   std::memory_order_release);
+    return 0;
+  }
+  case ExtCmd::SENDJOY: {
+    // PlatformManager::getInstance().log(LOG_INFO, TAG, "execute sendjoy: %x",
+    //                                    cmd->param[0]);
+    cpu->restJoyValue.store(cmd->param[0], std::memory_order_release);
+    return 0;
+  }
+  case ExtCmd::SAVESNAPSHOT: {
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "execute savesnapshot");
+    cpu->snapshot.save(cpu);
+    return 0;
+  }
+  case ExtCmd::LOADSNAPSHOT: {
+    PlatformManager::getInstance().log(LOG_INFO, TAG, "execute loadsnapshot");
+    cpu->snapshot.load(cpu);
     return 0;
   }
   case ExtCmd::WAIT: {

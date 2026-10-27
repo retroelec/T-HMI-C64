@@ -19,6 +19,9 @@ class SID
 class Hooks
 class Floppy
 class ExtCmdQueue <<singleton>>
+class Snapshot
+class FileConfig
+class RestAPI
 class WiFiManager <<singleton>>
 class OtaManager
 
@@ -29,6 +32,7 @@ C64Emu --> Board
 
 C64Emu *-- C64Sys
 C64Emu ..> OtaManager
+C64Emu ..> FileConfig
 
 component "Keyboard" as Keyboard
 C64Sys --> Keyboard
@@ -39,14 +43,19 @@ C64Sys --> Joystick
 C64Sys --|> CPU6502
 C64Sys o-- ExternalCmds
 C64Sys o-- Hooks
+C64Sys o-- Snapshot
 C64Sys *-- VIC
 C64Sys *-- CIA : 2
 C64Sys *-- SID
 C64Sys *-- Floppy
 
 ExternalCmds --> C64Sys
+ExternalCmds ..> ExtCmdQueue
 Hooks --> C64Sys
 Floppy --|> CPU6502
+
+Snapshot --> C64Sys
+RestAPI ..> ExtCmdQueue
 
 component "Display" as Display
 VIC --> Display

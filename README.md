@@ -1,22 +1,29 @@
 # C64 Emulator for ESP32-S3 (and ESP32) with "Android BLE keyboard" and/or "Web keyboard"
 
-A C64 emulator developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD, and an SD card slot.
+A C64 emulator originally developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD, and an SD card slot.
 The emulator was later expanded to support the
 [Lilygo T-Display S3 AMOLED](https://lilygo.cc/products/t-display-s3-amoled?srsltid=AfmBOoq3R6k7Wx7UcW6C1HozzFvwgN2AkHtXgrbJKdD2U9mv75vTSvJI), the [ESP32-S3-LCD-2.8 from Waveshare](https://www.waveshare.com/product/esp32-s3-touch-lcd-2.8.htm)
 and the [ESP32 CYD board](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display).
 The emulator is also running on an ESP32-S3 with a 64x64 or a 128x64 LED matrix panel.
 
-Keyboard input is implemented via a custom Android app and/or via a web interface.  
+Keyboard input is implemented via a custom Android app and/or via a web interface.
 The Android app communicates with the emulator via Bluetooth Low Energy (BLE).
-The web keyboard was provided by uliuc@gmx.net.  
+The web keyboard was provided by uliuc@gmx.net.
+A combined mode allows using both the Android app and the web interface simultaneously for keyboard input.  
 Further a "joystick-only" operation is possible for most games.
+
+[![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
 
 The code should also be portable to other ESP32-S3 boards (and even other platforms).
 
 The emulator is also available as a Linux, Mac and Windows application using SDL for graphics, input, and sound.
-In addition, there is a Linux terminal version using the notcurses library for graphics and input (`c64ncterm`), as well as a lightweight text-mode version that renders the C64 screen directly using ANSI escape codes (`c64textterm`).
+In addition, there is a Linux terminal version using the notcurses library for graphics and input, as well as a lightweight text-mode version that renders the C64 screen directly using ANSI escape codes.
 
-[![C64 Emulator on development board Lilygo T-HMI](doc/donkey_kong.png)](https://youtu.be/OmPJlIjszpE)
+The emulator also runs on a Raspberry Pi 3B+ with a display consisting of 15 64x64 LED matrix panels. This enables a resolution of 320x192 pixels.
+The size of the arranged LED matrix panels is therefore 128cm x 76.8cm.
+See [here](LEDMatrixWall.md) for details on the construction of the LED matrix wall and the Raspberry Pi setup.
+
+[![C64 Emulator on a Raspverry Pi controlling an LED matrix wall](doc/westbank.png)](https://youtu.be/JD0v1vYB3po)
 
 ![Build Status](https://github.com/retroelec/T-HMI-C64/actions/workflows/build.yml/badge.svg)
 
@@ -24,9 +31,9 @@ Contact: retroelec42@gmail.com
 
 ## News
 
-- combined BLE and web keyboard
-- C64 emulation in a terminal (kitty)
-- Arduino core 3.3.10
+- [Emulator on a LED matrix wall](LEDMatrixWall.md)
+- Combined BLE and web keyboard
+- C64 emulation in a terminal
 
 ## Hardware
 
@@ -279,6 +286,7 @@ Binary files for the development boards can also be downloaded from https://gith
 Alternatively, you can also download the files from https://github.com/retroelec/T-HMI-C64/releases
 (you do not need to be logged in for this, however, the latest binaries may not be available here).
 So you don't have to compile the binary files yourself if you don't want to.
+The provided binary files support the combined input mode, allowing you to use both the Android app and the web interface simultaneously.
 The available zip files also contain scripts (flash.sh and flash.bat) to upload the binary file (see also README.md in the zip file).
 
 ### Compile and upload code for the BLE joystick
@@ -352,71 +360,6 @@ The terminal version is available in two variants:
    It does not require notcurses and works in any terminal emulator that supports truecolor.  
    Run it directly:  
    ./c64textterm
-
-<!--
-### Build Raspberry Pi version with HUB75 LED matrix panels
-
-The emulator can run on a Raspberry Pi 3 or 4 using an Adafruit Triple LED Matrix Bonnet (or compatible HUB75 adapter) to drive up to 3 parallel chains of LED matrix panels.
-
-#### 1. Install the rpi-rgb-led-matrix library
-
-```bash
-git clone https://github.com/hzeller/rpi-rgb-led-matrix.git
-cd rpi-rgb-led-matrix
-make -j4
-```
-
-#### 2. Build the emulator
-
-```bash
-cd T-HMI-C64
-make c64rpiled
-```
-
-#### 3. Run the emulator (requires root for GPIO access)
-
-```bash
-sudo ./c64rpiled
-```
-
-#### 4. Configuration
-
-The panel setup is configured in `src/Config.h` under the `LINUX_RPILED` section:
-
-| Parameter | Default | Description |
-|---|---|---|
-| `RPI_PANEL_WIDTH` | 64 | Panel width in pixels (cols) |
-| `RPI_PANEL_HEIGHT` | 64 | Panel height in pixels (rows) |
-| `RPI_CHAIN_LENGTH` | 2 | Number of daisy-chained panels per port |
-| `RPI_PARALLEL` | 3 | Number of parallel chains (ports) |
-| `RPI_GPIO_SLOWDOWN` | 2 | GPIO timing slowdown for Pi 3/4 |
-| `RPI_BRIGHTNESS` | 50 | Brightness in percent |
-
-#### 5. System tweaks for stable display
-
-To reduce flickering, add the following to `/boot/firmware/cmdline.txt` (or `/boot/cmdline.txt` on older systems):
-
-```
-sudo sed -i 's/$/ isolcpus=3/' /boot/firmware/cmdline.txt
-sudo reboot
-```
-
-This isolates CPU core 3 for the matrix refresh task.
-
-The on-board sound hardware shares timing resources with the LED matrix and may cause flickering. Deactivate it with:
-
-```bash
-echo "blacklist snd_bcm2835" | sudo tee /etc/modprobe.d/blacklist-rgb-matrix.conf
-sudo update-initramfs -u
-sudo reboot
-```
-
-If you need audio output, use a USB sound dongle instead (has its own timing hardware, no conflict with the matrix).
-
-#### 6. Keyboard input
-
-The emulator reads keyboard input from stdin (raw mode). This allows you to control the C64 emulator directly from your SSH terminal. Control commands are sent by pressing Ctrl + the corresponding key (e.g. Ctrl+Q to quit, Ctrl+H for help).
--->
 </details>
 
 ## Usage
@@ -479,8 +422,7 @@ keyboard input using a web interface.
 
 ### BLEWeb keyboard
 
-The emulator supports a combined BLE and web keyboard (Makefile: KEYBOARD := BLEWEB_KEYBOARD).  
-Both input methods are available simultaneously:
+The emulator supports a combined BLE and web keyboard (Makefile: KEYBOARD := BLEWEB_KEYBOARD).
 
 ### Wi-Fi Provisioning
 
@@ -529,7 +471,7 @@ Hint: Pressing the spacebar can usually also be simulated by pressing the joysti
 
 ### BLE joystick
 
-The BLE joystick only works if the BLE or BLEWeb keyboard has been selected.
+The BLE joystick only works if the BLE (or BLEWeb) keyboard has been selected.
 Once the "BLE joystick" has connected to the C64 emulator, it is automatically configured as a port 2 joystick.
 Pressing the "JoyOnlyMode button" for at least 2 seconds will change the joystick port.
 If both a "hardware joystick" and a "BLE joystick" are available, then games for two players can also be played.
@@ -552,7 +494,7 @@ You then have the following options to load a program:
 2.  You can also load a prg file into memory using the C64 Load command:  
     LOAD"DKONG",8,1  
     This will load the file dkong.prg.
-3.  If you are using the BLE or BLEWeb keyboard, you also can attach a ".d64" file using the ATTACH button on the DIV screen.
+3.  If you are using the BLE (or BLEWeb) keyboard, you also can attach a ".d64" file using the ATTACH button on the DIV screen.
     You can then use LOAD"$",8 to load the directory and subsequently load a specific program or
     you can load the first file from disk using LOAD"*",8,1.
 
@@ -652,6 +594,16 @@ To support a different ESP32-S3 based development board, follow these steps:
   create new driver classes accordingly.
 - Extend the corresponding driver factory to return the appropriate driver implementations for your new board.
 
+### REST API
+
+The Linux build includes a REST API for external control (load programs, press keys, joystick, read screen, save/load snapshot).
+See [doc/REST-API.md](doc/REST-API.md) for the full endpoint reference.
+
+<!--### MCP Server
+
+An MCP server (`mcp-server/c64_mcp_server.py`) provides all REST endpoints as tools for LLM integration.
+Install: `pip install mcp httpx`-->
+
 ### Emulation status
 
 First of all: This is a hobby project :)
@@ -659,7 +611,7 @@ First of all: This is a hobby project :)
 Features not emulated (list not exhaustive) resp. known bugs:
 
 - simple SID emulation, some SID registers are not or only partly implemented yet: $d415 - $d41c
-- only very rudimentary support for disk drive emulation available
+- only rudimentary support for disk drive emulation available
 - "illegal instructions" test suite fails
 - no "FLI border removal" / "sideborder removal"
 - synchronization is rasterline-based, not cycle-exact

@@ -1,8 +1,8 @@
 package org.retroelec.thmic64kb;
 
-public class Type3Notification {
+public class Type6Notification {
     private NotificationObserver observer = null;
-    private short[] mem;
+    private int version;
 
     public void registerObserver(NotificationObserver observer) {
         this.observer = observer;
@@ -18,11 +18,11 @@ public class Type3Notification {
         observer = null;
     }
 
-    public short[] getMem() {
-        return mem;
+    public int getVersion() {
+        return version;
     }
 
-    public void setMem(short[] mem) {
-        this.mem = mem;
+    public void setVersion(int version) {
+        this.version = version;
     }
 }
