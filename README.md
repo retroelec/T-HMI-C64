@@ -23,7 +23,7 @@ The emulator also runs on a Raspberry Pi 3B+ with a display consisting of 15 64x
 The size of the arranged LED matrix panels is therefore 128cm x 76.8cm.
 See [here](LEDMatrixWall.md) for details on the construction of the LED matrix wall and the Raspberry Pi setup.
 
-[![C64 Emulator on a Raspverry Pi controlling an LED matrix wall](doc/westbank.png)](https://youtu.be/JD0v1vYB3po)
+[![C64 Emulator on a Raspverry Pi controlling an LED matrix wall](doc/westbank.png)](https://youtu.be/iq0egGeS0xY)
 
 ![Build Status](https://github.com/retroelec/T-HMI-C64/actions/workflows/build.yml/badge.svg)
 

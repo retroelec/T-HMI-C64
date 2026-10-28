@@ -5,7 +5,7 @@ to drive up to 3 parallel chains of LED matrix panels.
 The LED matrix wall consists of 5x3 panels, each with a resolution of 64x64 pixels, resulting in a total resolution of 320x192 pixels.
 The C64's vertical resolution is not quite reached. Consequently, 4 lines at the top and 4 lines at the bottom are cropped by default.
 
-[![C64 Emulator on a Raspverry Pi controlling an LED matrix wall](doc/westbank.png)](https://youtu.be/JD0v1vYB3po)
+[![C64 Emulator on a Raspverry Pi controlling an LED matrix wall](doc/westbank.png)](https://youtu.be/iq0egGeS0xY)
 
 The visual effect you see in the video above (and also in the following images) is known as scanline banding or the flicker effect.
 It occurs because the LED wall refreshes at an extremely high speed (pulse-width modulation), which clashes
@@ -35,7 +35,7 @@ I used the following components to build the LED matrix wall:
 - Support structure for the wooden wall: timber beams and angle connectors
 - Cables, screws, cable lugs
 
-<img src="ledwall_components.png" alt="components of the LED matrix wall" width="800"/>
+<img src="doc/ledwall_components.png" alt="components of the LED matrix wall" width="800"/>
 
 
 ## Installation
