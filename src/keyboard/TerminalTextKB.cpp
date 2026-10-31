@@ -74,15 +74,14 @@ void TerminalTextKB::handleKeyEvent(uint32_t ch, bool shift, bool ctrl,
                                     "CTRL-H FOR THIS HELP PAGE\r"
                                     "CTRL-Q TO QUIT THE EMULATOR\r"
                                     "CTRL-L TO LOAD A PROGRAM\r"
-                                    "         (SEE CONFIG::PATH, README.MD)\r"
                                     "CTRL-S TO SAVE A PROGRAM\r"
                                     "CTRL-T TO LIST PROGRAMS\r"
                                     "CTRL-R TO RESET THE EMULATOR\r"
                                     "CTRL-D TO DECREMENT SOUND VOLUME\r"
                                     "CTRL-U TO INCREMENT SOUND VOLUME\r"
                                     "CTRL-K TO SWITCH BETWEEN JOYSTICK\r"
-                                    "        IN PORT 1, IN PORT 2, NO\r"
-                                    "        JOYSTICK\r"
+                                    "       IN PORT 1, IN PORT 2, NO\r"
+                                    "       JOYSTICK\r"
                                     "CTRL-P TO PAUSE\r"
                                     "CTRL-X TO SWITCH DISPLAY MODE\r\x9a\0";
       extcmd.cmd = ExtCmd::WRITETEXT;

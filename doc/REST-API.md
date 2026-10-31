@@ -3,7 +3,7 @@
 ## Overview
 
 The REST API allows external control of the C64 emulator via HTTP.
-It is primarily designed for the **Linux (SDL)** build variant, but also works on Windows.
+It works only on Linux.
 
 **Main use cases:**
 - Automated testing (e.g., an LLM fixes a bug, starts the emulator, loads a program, and verifies the result)

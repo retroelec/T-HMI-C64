@@ -43,6 +43,7 @@ I used the following components to build the LED matrix wall:
 ### 1. Setup Raspberry Pi
 
 You need to enable SSH when installing the operating system via Raspberry Pi Imager.
+All of the following steps assume that you are connected to the Raspberry Pi via SSH.
 A graphical user interface is not required for the LED matrix display (the 'Lite' version of Raspberry Pi OS is sufficient).
 
 #### System tweaks for stable display
@@ -189,6 +190,10 @@ The next time the Raspberry Pi starts up, the connection between the gamepad and
 
 ## Usage
 
+You first have to connect to the Raspberry Pi via SSH.
+Create a subdirectory c64prgs in the directory containing the executable (T-HMI-C64) and then
+copy the c64 rom files (.prg) to this directory.
+
 The emulator requires root permissions for GPIO access. Start it with
 
 ```bash
@@ -199,7 +204,7 @@ Control commands are sent by pressing Ctrl + the corresponding key.
 
 Ctrl+h displays the following help page within the emulator itself:
 
-<img src="ledwall_c64_help.jpg" alt="LED matrix wall" width="800"/>
+<img src="doc/ledwall_c64_help.png" alt="LED matrix wall" width="800"/>
 
 Ctrl-x cycles through the display modes:  
 

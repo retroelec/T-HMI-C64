@@ -127,7 +127,7 @@ void SDLKB::handleKeyEvent(SDL_Keysym keysym, SDL_Keymod mod, bool pressed) {
                                "RCTRL-H FOR THIS HELP PAGE\r"
                                "RCTRL-Q TO QUIT THE EMULATOR\r"
                                "RCTRL-L TO LOAD A PROGRAM\r"
-                               "         (SEE CONFIG::PATH, README.MD)\r"
+                               "        (SEE CONFIG::PATH, README.MD)\r"
                                "RCTRL-S TO SAVE A PROGRAM\r"
                                "RCTRL-T TO LIST PROGRAMS\r"
                                "RCTRL-A TO ATTACH/DETACH A D64 FILE\r"

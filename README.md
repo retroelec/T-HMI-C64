@@ -1,4 +1,6 @@
-# C64 Emulator for ESP32-S3 (and ESP32) with "Android BLE keyboard" and/or "Web keyboard"
+# C64 Emulator for Embedded & Desktop (ESP32, Raspberry Pi, SDL)
+
+A flexible Commodore 64 emulator optimized for ESP32 and Raspberry Pi (LED matrix wall), supporting Android BLE and Web keyboards.
 
 A C64 emulator originally developed for the  [Lilygo T-HMI](https://lilygo.cc/products/t-hmi?srsltid=AfmBOorPecASXq7SyOqsX45fdQunicyf2Bg8MDc_GLFPwDzk0vfWwCg7) development board, featuring an ESP32-S3 chip, a 2.8-inch touch LCD, and an SD card slot.
 The emulator was later expanded to support the
@@ -553,6 +555,7 @@ The following example shows the configuration options:
 - Copy the c64 rom/disk files (.prg and .d64) to this directory
 - Configure the keyboard layout in a file .config.json (see previous chapter) and copy it also to this directory
 - Start the emulator with `./c64linux` (Linux), `./c64mac` (Mac) or `c64win.exe` (Windows)
+- Use the `-scale` parameter to change the size of the emulator window
 - Press rctrl + h in the emulator window to display a simple help page on the emulated C64 screen
 - You can use rctrl-a to attach a .d64 file
 - You can use rctrl-k and rctrl-j to configure a keyboard joystick and a "real" joystick offering the possibilty to play two player games

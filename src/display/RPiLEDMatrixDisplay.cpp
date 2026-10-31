@@ -125,18 +125,18 @@ void RPiLEDMatrixDisplay::setSpecial1() {
     mode = 0;
   }
 
-  static uint8_t osdtext[] = "M0";
+  static uint8_t osdtext[] = "\xd\x30";
   osdtext[1] = '0' + mode;
 
   ExtCmdQueue::ExternalCmd extcmd;
   extcmd.cmd = ExtCmd::WRITEOSD;
-  extcmd.param[2] = 30; // x (character cell)
-  extcmd.param[3] = 22; // y (character cell)
+  extcmd.param[2] = 37; // x (character cell)
+  extcmd.param[3] = 23; // y (character cell)
   extcmd.param[4] = 2;  // width (chars)
   extcmd.param[5] = 1;  // height
   extcmd.param[6] = 1;  // fg color (white)
   extcmd.param[7] = 0;  // bg color (black)
-  extcmd.param[8] = 5;  // duration low
+  extcmd.param[8] = 3;  // duration low
   extcmd.param[9] = 0;  // duration hi
   extcmd.param[10] = 0; // doiidx
   memcpy(&extcmd.param[11], osdtext, 2);
